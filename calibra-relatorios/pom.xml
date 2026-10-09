@@ -16,5 +16,9 @@
             <groupId>br.com.calibra</groupId>
             <artifactId>calibra-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+        </dependency>
     </dependencies>
 </project>
