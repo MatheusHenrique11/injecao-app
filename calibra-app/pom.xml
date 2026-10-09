@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>br.com.calibra</groupId>
+        <artifactId>calibra-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <artifactId>calibra-app</artifactId>
+    <name>Calibra - aplicativo JavaFX</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>br.com.calibra</groupId>
+            <artifactId>calibra-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.calibra</groupId>
+            <artifactId>calibra-ecu</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.calibra</groupId>
+            <artifactId>calibra-dados</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>br.com.calibra</groupId>
+            <artifactId>calibra-relatorios</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>br.com.calibra.app.CalibraApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,10 +1,11 @@
-﻿param([string]$Saida)
-# Gera a planilha da cadeia de cálculo (.xlsx) sem depender do Excel.
+﻿param([string]$Saida = (Join-Path $PSScriptRoot 'cadeia-de-calculo.xlsx'))
+# Gera a planilha de conferência das fórmulas da SPEC (seções 7.1, 7.2 e 7.6) sem depender do Excel.
+# Rodar: powershell -ExecutionPolicy Bypass -File docs\fase0\gerar-planilha.ps1
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
 function Esc([string]$t) { $t.Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;').Replace('"','&quot;') }
 
-# estilos: 0 normal, 1 cabeçalho, 2 entrada (amarelo), 3 cálculo, 4 entrada %, 5 cálculo %, 6 título, 7 seção, 8 conferência
+# estilos: 0 normal, 1 cabeçalho, 2 entrada, 3 cálculo, 4 entrada %, 5 cálculo %, 6 título, 7 seção, 8 conferência, 9 observação
 $styles = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -35,12 +36,12 @@ $styles = @'
 <xf fontId="2" applyFont="1"/>
 <xf fontId="1" applyFont="1"/>
 <xf fontId="1" fillId="4" applyFont="1" applyFill="1"/>
-<xf fontId="3" applyFont="1"><alignment wrapText="1"/></xf>
+<xf fontId="3" applyFont="1"/>
 </cellXfs>
 </styleSheet>
 '@
 
-$colunas = 'A','B','C','D','E','F','G','H','I','J'
+$colunas = [char[]](65..90) | ForEach-Object { [string]$_ }
 
 function Celula($ref, $v, $s) {
     if ($null -eq $v -or "$v" -eq '') { return "" }
@@ -50,8 +51,9 @@ function Celula($ref, $v, $s) {
     return "<c r=`"$ref`" s=`"$s`" t=`"inlineStr`"><is><t xml:space=`"preserve`">$(Esc $t)</t></is></c>"
 }
 
-# cada linha: @(numero, estiloDosValores, estiloDoRotulo, valores começando na coluna A)
-function Planilha($linhas, $larguras) {
+# linha: @(numero, estiloDosValores, estiloDoRotulo, valores a partir da coluna A)
+# colunas 0..($nRotulos-1) = rótulo; até $ultimaValor = valores; depois = observação
+function Planilha($linhas, $larguras, $nRotulos = 2, $ultimaValor = 5) {
     $sb = New-Object Text.StringBuilder
     [void]$sb.Append('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><cols>')
     for ($i = 0; $i -lt $larguras.Count; $i++) { [void]$sb.Append("<col min=`"$($i+1)`" max=`"$($i+1)`" width=`"$($larguras[$i])`" customWidth=`"1`"/>") }
@@ -60,7 +62,7 @@ function Planilha($linhas, $larguras) {
         $n = $l[0]; $sv = $l[1]; $sr = $l[2]; $vals = $l[3]
         [void]$sb.Append("<row r=`"$n`">")
         for ($i = 0; $i -lt $vals.Count; $i++) {
-            $s = if ($i -le 1) { $sr } elseif ($i -le 5) { $sv } else { 9 }
+            $s = if ($i -lt $nRotulos) { $sr } elseif ($i -le $ultimaValor) { $sv } else { 9 }
             [void]$sb.Append((Celula "$($colunas[$i])$n" $vals[$i] $s))
         }
         [void]$sb.Append('</row>')
@@ -69,109 +71,209 @@ function Planilha($linhas, $larguras) {
     $sb.ToString()
 }
 
+$casos = 'C','D','E','F'   # colunas da aba Cadeia: golden A, B, C, D
+# mesma fórmula nas 4 colunas; {c} vira a letra da coluna
+function F4([string]$f) { $casos | ForEach-Object { $f.Replace('{c}', $_) } }
+function Linha4($n, $sv, $rotulo, $unidade, $f, $obs = '') { $script:cad += ,@($n, $sv, 0, (@($rotulo, $unidade) + (F4 $f) + @($obs))) }
+
+# ---------------- Combustiveis (SPEC 7.2) ----------------
+$comb = @(
+ @(1,0,6,@('Combustíveis (SPEC 7.2)')),
+ @(2,0,9,@('Constantes da spec','Valor','Unidade')),
+ @(3,2,0,@('AFR estequiométrico gasolina A',14.7,':1')),
+ @(4,2,0,@('AFR estequiométrico etanol',9.0,':1')),
+ @(5,2,0,@('Densidade gasolina A',0.74,'kg/L')),
+ @(6,2,0,@('Densidade etanol anidro',0.789,'kg/L')),
+ @(7,4,0,@('Etanol no EHC (fração em massa)',0.93,'m/m')),
+ @(8,2,0,@('Densidade EHC',0.809,'kg/L')),
+ @(10,1,1,@('Combustível','Etanol (vol)','Fração mássica','AFR esteq.','Densidade kg/L','Lambda sob pressão','Lambda aspirado','Origem')),
+ @(11,3,0,@('Gasolina C comum E32',0.32,'=B11*$B$6/(B11*$B$6+(1-B11)*$B$5)','=(1-C11)*$B$3+C11*$B$4','=B11*$B$6+(1-B11)*$B$5',0.80,0.87,'Calculado (vigente desde 01/08/2026)')),
+ @(12,3,0,@('Gasolina premium E25',0.25,'=B12*$B$6/(B12*$B$6+(1-B12)*$B$5)','=(1-C12)*$B$3+C12*$B$4','=B12*$B$6+(1-B12)*$B$5',0.80,0.87,'Calculado')),
+ @(13,3,0,@('Etanol hidratado (EHC)','-','=$B$7','=$B$4*$B$7','=$B$8',0.80,0.87,'Calculado: 9,0 x fração de etanol')),
+ @(14,3,0,@('Etanol anidro','-',1,9.0,0.789,0.80,0.87,'Valor da spec')),
+ @(15,3,0,@('E85','-','-',9.75,0.78,0.80,0.87,'Valor da spec')),
+ @(16,3,0,@('Metanol','-','-',6.42,0.792,0.65,0.70,'Valor da spec (lambda com aviso amarelo)')),
+ @(18,0,9,@('Conferência: a spec traz E32 = 12,80 e 0,756; E25 = 13,21 e 0,752; EHC = 8,37.'))
+)
+
+# ---------------- Cadeia (SPEC 7.1) ----------------
+$cad = @(
+ @(1,0,6,@('Cadeia de cálculo - fórmulas da SPEC 7.1')),
+ @(2,0,9,@('Colunas C a F = casos golden A a D da SPEC 7.6. Amarelo = entrada; azul = cálculo. A iteração MAP-Tm está na aba Iteracao; a conferência de 1% na aba Conferencia.')),
+ @(3,1,1,@('Item','Unidade','A Garrett','B 2.0 turbo EHC','C 1.0 3 cil E32','D V12 aspirado E32','Observação')),
+ @(4,0,7,@('ENTRADAS')),
+ @(5,2,0,@('Potência no virabrequim','cv','=650/0.98632',400,150,450,'A: 650 hp')),
+ @(6,2,0,@('Caminho da vazão de ar','-','BSFC','K_AR','K_AR','K_AR','K_AR = padrão; BSFC = opcional (decisão 8)')),
+ @(7,2,0,@('k_ar','hp por lb/min',10.5,10.5,10.5,10.5)),
+ @(8,2,0,@('A/F (caminho BSFC)',':1',11.5,'','','')),
+ @(9,2,0,@('BSFC (caminho BSFC)','lb/hp·h',0.46,'','','')),
+ @(10,2,0,@('AFR estequiométrico',':1','','=Combustiveis!D13','=Combustiveis!D11','=Combustiveis!D11')),
+ @(11,2,0,@('Lambda alvo','λ','',0.80,0.80,0.87)),
+ @(12,2,0,@('Cilindros (1 bico por cilindro)','-','',4,3,12)),
+ @(13,2,0,@('Diâmetro','mm','','=SQRT(2000*1000/(PI()/4*92.8*4))',74.5,89.0,'B: diâmetro que dá 2.000 cc (decisão 7)')),
+ @(14,2,0,@('Curso','mm','',92.8,76.4,80.4)),
+ @(15,2,0,@('Cilindrada informada (só A)','pol³',348,'','','')),
+ @(16,2,0,@('Rotação','rpm',6000,7000,5500,6500)),
+ @(17,2,0,@('VE','-',0.80,0.95,0.95,0.90)),
+ @(18,2,0,@('Sobrealimentação','-','FIXO','SIM','SIM','NAO','FIXO = Tm informado (exemplo Garrett)')),
+ @(19,2,0,@('Tm fixo (só A)','°C','=(130-32)*5/9','','','','130 °F')),
+ @(20,2,0,@('Temperatura ambiente','°C','',25,25,25)),
+ @(21,2,0,@('Altitude','m',0,600,600,600)),
+ @(22,2,0,@('Perda depois do compressor','psi',2,2,2,2)),
+ @(23,2,0,@('Perda antes do compressor','psi',1,1,1,1)),
+ @(24,2,0,@('eta_c','-','',0.72,0.72,'')),
+ @(25,2,0,@('eps do intercooler','-','',0.80,0.80,'')),
+ @(26,2,0,@('Acréscimo de Tm no aspirado','°C','','','',10)),
+ @(27,2,0,@('DC máximo','-','',0.80,0.80,0.80)),
+ @(28,2,0,@('Densidade do combustível','kg/L','','=Combustiveis!E13','=Combustiveis!E11','=Combustiveis!E11')),
+ @(29,2,0,@('Densidade do fluido de teste','kg/L','',0.70,0.70,0.70)),
+ @(30,2,0,@('Bico nominal','cc/min','',1050,440,260)),
+ @(31,2,0,@('Pressão de teste do bico','bar','',3,3,3)),
+ @(32,2,0,@('Pressão de trabalho (diferencial)','bar','',3,3,3)),
+ @(33,2,0,@('Tempo morto','ms','',1.0,1.0,1.0)),
+ @(34,2,0,@('Bico alternativo 1','cc/min','',1300,'','')),
+ @(35,2,0,@('Pressão do alternativo 1','bar','',3,'','')),
+ @(36,2,0,@('Bico alternativo 2','cc/min','',1050,'','')),
+ @(37,2,0,@('Pressão do alternativo 2','bar','',4,'','')),
+ @(38,0,7,@('CÁLCULOS'))
+)
+Linha4 39 3 'Potência' 'hp' '={c}5*0.98632'
+Linha4 40 3 'Potência' 'kW' '={c}5*0.7355'
+Linha4 41 3 'Vazão de ar Wa' 'lb/min' '=IF({c}6="BSFC",{c}39*{c}8*{c}9/60,{c}39/{c}7)'
+Linha4 42 3 'Combustível mf' 'lb/h' '=IF({c}6="BSFC",{c}39*{c}9,60*{c}41/({c}10*{c}11))'
+Linha4 43 3 'Combustível mf' 'kg/h' '={c}42*0.453592'
+Linha4 44 3 'BSFC (conferência)' 'lb/hp·h' '={c}42/{c}39'
+Linha4 45 3 'Cilindrada' 'cc' '=IF(ISNUMBER({c}15),{c}15/61.0237*1000,PI()/4*{c}13^2*{c}14*{c}12/1000)'
+Linha4 46 3 'Cilindrada' 'pol³' '={c}45/1000*61.0237'
+Linha4 47 3 'P_atm' 'kPa' '=101.325*(1-2.25577E-5*{c}21)^5.25588'
+Linha4 48 3 'P_atm' 'psia' '={c}47/6.894757'
+Linha4 49 3 'Tm inicial da iteração' '°C' '=IF({c}18="FIXO",{c}19,IF({c}18="NAO",{c}20+{c}26,50))'
+# colunas da aba Iteracao para cada caso: Tm, MAP, PR, T2
+$it = @{}
+for ($j = 0; $j -lt 4; $j++) { $it[$casos[$j]] = @($colunas[1+4*$j], $colunas[2+4*$j], $colunas[3+4*$j], $colunas[4+4*$j]) }
+$ult = 18
+function FIt([string]$f) { $casos | ForEach-Object { $c = $_; $f.Replace('{tm}',$it[$c][0]).Replace('{map}',$it[$c][1]).Replace('{pr}',$it[$c][2]).Replace('{t2}',$it[$c][3]).Replace('{c}',$c) } }
+$cad += ,@(50, 3, 0, (@('Tm final','°C') + (FIt "=Iteracao!{tm}$ult") + @('15 passos; ver aba Iteracao')))
+$cad += ,@(51, 3, 0, (@('Convergiu (|ΔTm| < 0,01 °C)','-') + (FIt "=IF(ABS(Iteracao!{tm}$ult-Iteracao!{tm}$($ult-1))<0.01,""SIM"",""NÃO"")")))
+$cad += ,@(52, 3, 0, (@('MAP necessário','psia') + (FIt "=Iteracao!{map}$ult")))
+Linha4 53 3 'MAP necessário' 'kPa' '={c}52*6.894757'
+$cad += ,@(54, 3, 0, (@('Razão de pressão PR','-') + (FIt "=IF({c}18=""NAO"","""",Iteracao!{pr}$ult)")))
+$cad += ,@(55, 3, 0, (@('T2 (saída do compressor)','°C') + (FIt "=IF({c}18=""SIM"",Iteracao!{t2}$ult,"""")")))
+Linha4 56 3 'MAP ÷ P_atm local' '-' '={c}53/{c}47'
+Linha4 57 3 'Vazão por bico (massa)' 'g/min' '=IFERROR({c}43*1000/60/({c}12*{c}27),"")'
+Linha4 58 3 'Vazão por bico (combustível)' 'cc/min' '=IFERROR({c}57/{c}28,"")'
+Linha4 59 3 'Vazão nominal (fluido de teste)' 'cc/min' '=IFERROR({c}58*SQRT({c}28/{c}29),"")'
+Linha4 60 3 'Volume por cilindro' 'L' '=IFERROR({c}45/1000/{c}12,"")'
+Linha4 61 3 'Ar por cilindro m_ar_cil' 'g' '=IFERROR({c}17*{c}53*1000*{c}60/1000/(287.05*({c}50+273.15))*1000,"")'
+Linha4 62 3 'Combustível por injeção m_f_inj' 'mg' '=IFERROR({c}61/({c}10*{c}11)*1000,"")' 'Sequencial: 1 injeção por ciclo'
+Linha4 63 3 'Vazão real do bico' 'cc/min' '=IFERROR({c}30*SQRT({c}32/{c}31)*SQRT({c}29/{c}28),"")' 'Corrige pressão e densidade'
+Linha4 64 3 'TI efetivo' 'ms' '=IFERROR({c}62/1000000/({c}63*{c}28/60000)*1000,"")'
+Linha4 65 3 'TI com tempo morto' 'ms' '=IFERROR({c}64+{c}33,"")'
+Linha4 66 3 'Ciclo (120000 / rpm)' 'ms' '=120000/{c}16'
+Linha4 67 5 'DC do bico' '%' '=IFERROR({c}65/{c}66,"")'
+Linha4 68 5 'DC com bico alternativo 1' '%' '=IFERROR(({c}62/1000000/({c}34*SQRT({c}35/{c}31)*SQRT({c}29/{c}28)*{c}28/60000)*1000+{c}33)/{c}66,"")'
+Linha4 69 5 'DC com bico alternativo 2' '%' '=IFERROR(({c}62/1000000/({c}36*SQRT({c}37/{c}31)*SQRT({c}29/{c}28)*{c}28/60000)*1000+{c}33)/{c}66,"")'
+Linha4 70 3 'BMEP' 'bar' '=1200*{c}40/({c}45/1000*{c}16)'
+Linha4 71 3 'Torque' 'N·m' '=9549*{c}40/{c}16'
+Linha4 72 3 'Velocidade média do pistão' 'm/s' '=IFERROR(2*{c}14/1000*{c}16/60,"")'
+$cad += ,@(73, 0, 7, @('SEMÁFORO (SPEC 7.4)'))
+Linha4 74 0 'DC do bico' '-' '=IF(ISNUMBER({c}67),IF({c}67<=0.8,"VERDE",IF({c}67<=0.85,"AMARELO","VERMELHO")),"")'
+Linha4 75 0 'BMEP' '-' '=IF({c}18="FIXO","",IF({c}70<=IF({c}18="NAO",13,22),"VERDE",IF({c}70<=IF({c}18="NAO",13,22)*1.15,"AMARELO","VERMELHO")))' 'Vermelho só com pistões ou bielas originais'
+Linha4 76 0 'Velocidade do pistão' '-' '=IF(ISNUMBER({c}72),IF({c}72<=20,"VERDE",IF({c}72<=25,"AMARELO","VERMELHO")),"")'
+Linha4 77 0 'Aspirado: MAP ÷ P_atm local' '-' '=IF({c}18="NAO",IF({c}56<=0.9,"VERDE",IF({c}56<=0.98,"AMARELO","VERMELHO")),"")'
+Linha4 78 3 'Aspirado: MAP ÷ P_atm ao nível do mar' '-' '=IF({c}18="NAO",{c}53/101.325,"")'
+
+# ---------------- Iteracao (MAP <-> Tm) ----------------
+$cabIt = @('k')
+foreach ($c in $casos) { $nome = @{C='A';D='B';E='C';F='D'}[$c]; $cabIt += @("Tm °C ($nome)","MAP psia ($nome)","PR ($nome)","T2 °C ($nome)") }
+$iter = @(
+ @(1,0,6,@('Iteração MAP - Tm (SPEC 7.1)')),
+ @(2,0,9,@('Começa em Tm = 50 °C (sobrealimentado). Para FIXO e NAO, Tm não muda. Critério: |ΔTm| < 0,01 °C.')),
+ @(3,1,1,$cabIt)
+)
+for ($k = 0; $k -le ($ult - 4); $k++) {
+    $r = 4 + $k
+    $vals = @($k)
+    foreach ($c in $casos) {
+        $tm = $it[$c][0]; $map = $it[$c][1]; $pr = $it[$c][2]; $t2 = $it[$c][3]
+        if ($k -eq 0) { $fTm = "=Cadeia!${c}49" }
+        else { $fTm = "=IF(Cadeia!${c}18=""SIM"",${t2}$($r-1)-Cadeia!${c}25*(${t2}$($r-1)-Cadeia!${c}20),${tm}$($r-1))" }
+        $fMap = "=Cadeia!${c}41*639.6*(460+(${tm}$r*9/5+32))/(Cadeia!${c}17*Cadeia!${c}16/2*Cadeia!${c}46)"
+        $fPr = "=(${map}$r+Cadeia!${c}22)/(Cadeia!${c}48-Cadeia!${c}23)"
+        $fT2 = "=IF(Cadeia!${c}18=""SIM"",(Cadeia!${c}20+273.15)*(1+(${pr}$r^0.2857-1)/Cadeia!${c}24)-273.15,"""")"
+        $vals += @($fTm, $fMap, $fPr, $fT2)
+    }
+    $iter += ,@($r, 3, 0, $vals)
+}
+
+# ---------------- Conferencia (SPEC 7.6, tolerância 1%) ----------------
+$esperados = @(
+ @('Wa (lb/min)',41,57.31,37.57,14.09,42.27),
+ @('MAP (psia)',52,25.89,'','',''),
+ @('PR',54,2.04,2.91,2.78,''),
+ @('Combustível (kg/h)',43,'',152.8,37.5,103.3),
+ @('BSFC',44,'','',0.558,0.513),
+ @('Cilindrada (cc)',45,'','',999,6002),
+ @('Vazão por bico (g/min)',57,'',796,260,179),
+ @('Vazão por bico (cc/min de combustível)',58,'',984,344,237),
+ @('Vazão nominal (cc/min)',59,'',1058,358,247),
+ @('P_atm (kPa)',47,'',94.3,94.3,''),
+ @('MAP (kPa)',53,'',241,229,96.6),
+ @('T2 (°C)',55,'',173,165,''),
+ @('Tm (°C)',50,'',55,53,35),
+ @('TI efetivo (ms)',64,'',13.81,14.19,14.01),
+ @('TI com tempo morto (ms)',65,'',14.81,15.19,15.01),
+ @('Ciclo (ms)',66,'',17.14,21.82,18.46),
+ @('DC',67,'',0.86,0.70,0.81),
+ @('DC bico 1.300 cc a 3 bar',68,'',0.71,'',''),
+ @('DC bico 1.050 cc a 4 bar',69,'',0.76,'',''),
+ @('BMEP (bar)',70,'',25.2,24.1,10.2),
+ @('Torque (N·m)',71,'',401,192,486),
+ @('Velocidade do pistão (m/s)',72,'',21.7,14.0,17.4),
+ @('Aspirado: MAP ÷ P_atm a 600 m',56,'','','',1.024),
+ @('Aspirado: MAP ÷ P_atm ao nível do mar',78,'','','',0.953),
+ @('Semáforo DC',74,'','VERMELHO','VERDE','AMARELO'),
+ @('Semáforo BMEP',75,'','AMARELO','AMARELO','VERDE'),
+ @('Semáforo pistão',76,'','AMARELO','VERDE','VERDE'),
+ @('Semáforo aspirado (600 m)',77,'','','','VERMELHO')
+)
+$cabConf = @('Item')
+foreach ($nome in 'A','B','C','D') { $cabConf += @("Esperado $nome","Calculado $nome","$nome") }
+$conf = @(
+ @(1,0,6,@('Conferência dos casos golden (SPEC 7.6) - tolerância de 1%')),
+ @(3,1,1,$cabConf)
+)
+$r = 4
+foreach ($e in $esperados) {
+    $vals = @($e[0])
+    for ($j = 0; $j -lt 4; $j++) {
+        $c = $casos[$j]; $exp = $e[2+$j]
+        $colEsp = $colunas[1+3*$j]; $colCalc = $colunas[2+3*$j]
+        if ("$exp" -eq '') { $vals += @('','','') ; continue }
+        $vals += @($exp, "=Cadeia!$c$($e[1])", "=IF(ISNUMBER($colEsp$r),IF(ABS($colCalc$r/$colEsp$r-1)<=0.01,""OK"",""FALHA""),IF($colCalc$r=$colEsp$r,""OK"",""FALHA""))")
+    }
+    $conf += ,@($r, 3, 0, $vals)
+    $r++
+}
+$fim = $r - 1
+$conf += ,@(($r + 1), 0, 8, @('Resultado', "=IF(COUNTIF(B4:M$fim,""FALHA"")=0,""TODOS OK"",""HÁ FALHAS"")", "=COUNTIF(B4:M$fim,""OK"")&"" OK / ""&COUNTIF(B4:M$fim,""FALHA"")&"" FALHA"""))
+
 # ---------------- Leia-me ----------------
 $leia = @(
- @(1,0,6,@('Cadeia de cálculo do mapa base - fase 0')),
- @(3,0,0,@('Objetivo: conferir as fórmulas antes de escrevê-las em Java (módulo calculo).')),
- @(4,0,0,@('Células amarelas = entradas. Células azuis = cálculos (não editar). Linha verde = conferência.')),
- @(5,0,0,@('Aba Cadeia: coluna C reproduz o exemplo da Garrett (Turbo Tech 103). Colunas D-F são os três motores de referência.')),
- @(6,0,0,@('Aba Combustiveis: valores por combustível com fonte, data e status. "Não verificado" = conferir antes de usar.')),
- @(7,0,0,@('Aba Exemplo_documento: preencher com o exemplo resolvido do documento do projeto e comparar com a coluna correspondente.')),
- @(9,0,7,@('Fórmulas usadas (Garrett, unidades inglesas)')),
- @(10,0,0,@('Vazão de ar  Wa [lb/min] = HP x AFR x BSFC / 60')),
- @(11,0,0,@('MAP [psia] = Wa x R x (460 + Tm[°F]) / (VE x N/2 x Vd[in³]),  R = 639,6')),
- @(12,0,0,@('Razão de pressão = (MAP + perda na descarga) / (p atm - perda na admissão)')),
- @(13,0,0,@('Combustível [lb/h] = HP x BSFC;  vazão do injetor corrigida = vazão nominal x raiz(p trabalho / p teste)')),
- @(14,0,0,@('Tempo de injeção na potência máxima [ms] = uso do injetor x 120000 / rpm  (sem tempo morto)')),
- @(16,0,7,@('Aviso')),
- @(17,0,0,@('Valores dos motores D-F são EXEMPLOS para testar a cadeia; não são recomendação de acerto. Mapa base sempre abaixo da meta e acerto com wideband.'))
-)
-
-# ---------------- Combustiveis ----------------
-$hoje = '08/10/2026'
-$comb = @(
- @(1,0,6,@('Combustíveis')),
- @(2,0,9,@('Constantes (entradas)','', 'Unidade','Fonte','Status')),
- @(3,2,0,@('AFR estequiométrico gasolina A (sem etanol)',14.7,'kg ar/kg','Literatura (valor usual 14,6-14,7)','Não verificado')),
- @(4,2,0,@('AFR estequiométrico etanol puro',9.0,'kg ar/kg','Literatura (8,95-9,0)','Não verificado')),
- @(5,2,0,@('Densidade gasolina A a 20 °C',0.745,'g/cm³','Literatura (faixa ~0,72-0,77)','Não verificado')),
- @(6,2,0,@('Densidade etanol anidro a 20 °C',0.791,'g/cm³','Literatura / Res. ANP 907/2022 (conferir anexo)','Não verificado')),
- @(7,4,0,@('Teor alcoólico do EHC (% massa)',0.93,'% m/m','Res. ANP 907/2022, Tabela 1 (conferir anexo)','Não verificado')),
- @(8,2,0,@('Densidade EHC a 20 °C',0.809,'g/cm³','Res. ANP 907/2022 (faixa citada 807,6-811,0 kg/m³)','Não verificado')),
- @(10,0,1,@('Combustível','% etanol (vol)','Fração mássica etanol','AFR esteq.','Densidade g/cm³','Fonte','Data','Status')),
- @(11,3,0,@('Gasolina A (sem etanol)',0,'=B11*$B$6/(B11*$B$6+(1-B11)*$B$5)','=C11*$B$4+(1-C11)*$B$3','=B11*$B$6+(1-B11)*$B$5','Referência','', 'Não verificado')),
- @(12,3,0,@('Gasolina C comum/aditivada (E32)',0.32,'=B12*$B$6/(B12*$B$6+(1-B12)*$B$5)','=C12*$B$4+(1-C12)*$B$3','=B12*$B$6+(1-B12)*$B$5','Res. CNPE 9/2026 (vigente desde 01/08/2026, 180 dias)',$hoje,'Teor verificado; AFR/densidade calculados')),
- @(13,3,0,@('Gasolina C premium (E25)',0.25,'=B13*$B$6/(B13*$B$6+(1-B13)*$B$5)','=C13*$B$4+(1-C13)*$B$3','=B13*$B$6+(1-B13)*$B$5','ANP, comunicado E32 (premium mantida em 25%)',$hoje,'Teor verificado; AFR/densidade calculados')),
- @(14,3,0,@('Etanol anidro (EAC)',1,'=B14*$B$6/(B14*$B$6+(1-B14)*$B$5)','=C14*$B$4+(1-C14)*$B$3','=B14*$B$6+(1-B14)*$B$5','Literatura','', 'Não verificado')),
- @(15,3,0,@('Etanol hidratado (EHC)','-','=$B$7','=$B$4*$B$7','=$B$8','Res. ANP 907/2022 (água não queima: AFR = 9,0 x fração de etanol)','', 'Não verificado')),
- @(17,0,9,@('Obs.: E32 é temporário (180 dias a partir de 01/08/2026, prorrogável uma vez). Ao vencer, conferir se volta a E30 e atualizar a linha 12 com nova data - por isso o catálogo é versionado.'))
-)
-
-# ---------------- Cadeia ----------------
-$cad = @(
- @(1,0,6,@('Cadeia de cálculo - potência alvo até injetor')),
- @(2,0,9,@('Coluna C = exemplo Garrett Turbo Tech 103 (2,0 L, 400 hp). D-F = motores de referência com valores de EXEMPLO.')),
- @(3,0,1,@('Item','Unidade','Garrett TT103','AP 2.0 turbo','EA888 2.0 (gen3)','V8 5.0 (modelo)','Observação')),
- @(4,0,7,@('ENTRADAS')),
- @(5,0,0,@('Combustível','-','Gasolina (exemplo Garrett)','EHC','Gasolina C E32','Gasolina C E32')),
- @(6,3,0,@('AFR estequiométrico',':1',14.7,'=Combustiveis!D15','=Combustiveis!D12','=Combustiveis!D12','Vem da aba Combustiveis')),
- @(7,2,0,@('Lambda alvo na potência máxima','λ','=12/14.7',0.80,0.82,0.82,'Garrett usa AFR 12 em gasolina')),
- @(8,2,0,@('Potência alvo no virabrequim','hp',400,300,380,500)),
- @(9,2,0,@('BSFC','lb/hp·h',0.55,0.75,0.55,0.50,'Etanol gasta mais massa por hp')),
- @(10,2,0,@('Cilindrada','L','=122*0.016387',1.984,1.984,5.0,'EA888: 1984 cm³ (SSP 606)')),
- @(11,2,0,@('Número de cilindros','-',4,4,4,8)),
- @(12,2,0,@('Rotação na potência máxima','rpm',7200,6500,6500,7000)),
- @(13,2,0,@('Eficiência volumétrica','-',0.95,0.90,0.95,0.95)),
- @(14,2,0,@('Temperatura no coletor','°C','=(130-32)*5/9',50,45,50,'Garrett: 130 °F')),
- @(15,2,0,@('Perda entre compressor e coletor','psi',2,2,2,2,'Intercooler e tubos')),
- @(16,2,0,@('Perda antes do compressor','psi',1,1,1,1,'Filtro e tubo de admissão')),
- @(17,2,0,@('Pressão atmosférica','psia',14.7,14.7,14.7,14.7,'Ajustar pela altitude da oficina')),
- @(18,2,0,@('Densidade do combustível','g/cm³',0.745,'=Combustiveis!E15','=Combustiveis!E12','=Combustiveis!E12')),
- @(19,2,0,@('Vazão nominal do injetor','cm³/min',700,1000,650,550,'Usar dado de caracterização do fabricante. Garrett não define injetor: 700 é escolha nossa')),
- @(20,2,0,@('Pressão de teste do injetor','bar',3,3,3,3)),
- @(21,2,0,@('Pressão de trabalho (diferencial no bico)','bar',3,4,3.5,4,'Regulador referenciado ao coletor')),
- @(22,4,0,@('Uso máximo admitido do injetor','%',0.85,0.85,0.85,0.85)),
- @(24,0,7,@('CÁLCULOS')),
- @(25,3,0,@('AFR alvo',':1','=C6*C7','=D6*D7','=E6*E7','=F6*F7')),
- @(26,3,0,@('Potência alvo','cv','=C8*1.01387','=D8*1.01387','=E8*1.01387','=F8*1.01387')),
- @(27,3,0,@('Vazão de ar Wa','lb/min','=C8*C25*C9/60','=D8*D25*D9/60','=E8*E25*E9/60','=F8*F25*F9/60','HP x AFR x BSFC / 60')),
- @(28,3,0,@('Vazão de ar','kg/h','=C27*0.45359*60','=D27*0.45359*60','=E27*0.45359*60','=F27*0.45359*60')),
- @(29,3,0,@('Cilindrada','in³','=C10/0.016387','=D10/0.016387','=E10/0.016387','=F10/0.016387')),
- @(30,3,0,@('Temperatura no coletor','°F','=C14*9/5+32','=D14*9/5+32','=E14*9/5+32','=F14*9/5+32')),
- @(31,3,0,@('MAP necessária','psia','=C27*639.6*(460+C30)/(C13*C12/2*C29)','=D27*639.6*(460+D30)/(D13*D12/2*D29)','=E27*639.6*(460+E30)/(E13*E12/2*E29)','=F27*639.6*(460+F30)/(F13*F12/2*F29)','R = 639,6')),
- @(32,3,0,@('MAP necessária','bar abs','=C31*0.0689476','=D31*0.0689476','=E31*0.0689476','=F31*0.0689476')),
- @(33,3,0,@('Pressão de turbo (manométrica)','bar','=(C31-C17)*0.0689476','=(D31-D17)*0.0689476','=(E31-E17)*0.0689476','=(F31-F17)*0.0689476')),
- @(34,3,0,@('Pressão na saída do compressor P2c','psia','=C31+C15','=D31+D15','=E31+E15','=F31+F15')),
- @(35,3,0,@('Pressão na entrada do compressor P1c','psia','=C17-C16','=D17-D16','=E17-E16','=F17-F16')),
- @(36,3,0,@('Razão de pressão do compressor','-','=C34/C35','=D34/D35','=E34/E35','=F34/F35','Ponto no mapa do compressor: (Wa, PR)')),
- @(37,3,0,@('Vazão total de combustível','lb/h','=C8*C9','=D8*D9','=E8*E9','=F8*F9','HP x BSFC')),
- @(38,3,0,@('Vazão total de combustível','cm³/min','=C37*453.59/60/C18','=D37*453.59/60/D18','=E37*453.59/60/E18','=F37*453.59/60/F18')),
- @(39,3,0,@('Vazão mínima por injetor (no uso máx.)','cm³/min','=C38/C11/C22','=D38/D11/D22','=E38/E11/E22','=F38/F11/F22')),
- @(40,3,0,@('Vazão do injetor na pressão de trabalho','cm³/min','=C19*SQRT(C21/C20)','=D19*SQRT(D21/D20)','=E19*SQRT(E21/E20)','=F19*SQRT(F21/F20)')),
- @(41,5,0,@('Uso do injetor na potência máxima','%','=C38/C11/C40','=D38/D11/D40','=E38/E11/E40','=F38/F11/F40','Acima do limite = trocar injetor')),
- @(42,3,0,@('Tempo de injeção efetivo','ms','=C41*120000/C12','=D41*120000/D12','=E41*120000/E12','=F41*120000/F12','Somar o tempo morto para o tempo comandado')),
- @(43,0,0,@('Injetor atende?','-','=IF(C41<=C22,"SIM","NÃO")','=IF(D41<=D22,"SIM","NÃO")','=IF(E41<=E22,"SIM","NÃO")','=IF(F41<=F22,"SIM","NÃO")')),
- @(45,0,8,@('Conferência Garrett','-','=IF(AND(ABS(C27-44)<0.05,ABS(C31-39.8)<0.1,ABS(C36-3.05)<0.02),"OK - bate com a Garrett","CONFERIR")','','','','Garrett: Wa = 44 lb/min, MAP = 39,8 psia, PR = 3,05'))
-)
-
-# ---------------- Exemplo_documento ----------------
-$ex = @(
- @(1,0,6,@('Exemplo resolvido do documento do projeto')),
- @(2,0,9,@('Copiar aqui as entradas e os resultados do exemplo do documento. Depois lançar as mesmas entradas numa coluna da aba Cadeia e comparar.')),
- @(4,0,1,@('Item','Unidade','Valor do documento','Valor da planilha','Diferença %','','Observação')),
- @(5,2,0,@('Vazão de ar','lb/min','','','=IF(AND(ISNUMBER(C5),ISNUMBER(D5)),(D5-C5)/C5,"")')),
- @(6,2,0,@('MAP necessária','psia','','','=IF(AND(ISNUMBER(C6),ISNUMBER(D6)),(D6-C6)/C6,"")')),
- @(7,2,0,@('Razão de pressão','-','','','=IF(AND(ISNUMBER(C7),ISNUMBER(D7)),(D7-C7)/C7,"")')),
- @(8,2,0,@('Vazão de combustível','cm³/min','','','=IF(AND(ISNUMBER(C8),ISNUMBER(D8)),(D8-C8)/C8,"")')),
- @(9,2,0,@('Uso do injetor','%','','','=IF(AND(ISNUMBER(C9),ISNUMBER(D9)),(D9-C9)/C9,"")')),
- @(10,2,0,@('Tempo de injeção','ms','','','=IF(AND(ISNUMBER(C10),ISNUMBER(D10)),(D10-C10)/C10,"")'))
+ @(1,0,6,@('Planilha de conferência - SPEC Calibra')),
+ @(3,0,0,@('Objetivo: conferir as fórmulas da SPEC (seção 7.1) e os casos golden (7.6) antes de escrever o calibra-core.')),
+ @(4,0,0,@('Amarelo = entrada; azul = cálculo (não editar); verde = conferência.')),
+ @(5,0,0,@('Abas: Cadeia (fórmulas, colunas = golden A a D), Iteracao (MAP-Tm), Combustiveis (SPEC 7.2), Conferencia (esperado x calculado, 1%).')),
+ @(6,0,0,@('Golden B usa 2.000 cc (a spec não dá o diâmetro). Golden A usa o caminho por BSFC; B, C e D usam k_ar. Ver docs/decisoes.md.')),
+ @(7,0,0,@('Esta planilha é gerada por gerar-planilha.ps1. Para mudar de verdade, editar o script e gerar de novo.'))
 )
 
 $abas = @(
- @('Leia-me', (Planilha $leia @(110))),
- @('Cadeia', (Planilha $cad @(42,12,22,16,18,18,44))),
- @('Combustiveis', (Planilha $comb @(44,14,20,12,16,52,12,34))),
- @('Exemplo_documento', (Planilha $ex @(28,12,20,18,14,4,40)))
+ @('Leia-me', (Planilha $leia @(120) 1 0)),
+ @('Cadeia', (Planilha $cad @(38,14,16,18,18,20,48))),
+ @('Iteracao', (Planilha $iter (@(5) + (@(11) * 16)) 1 16)),
+ @('Combustiveis', (Planilha $comb @(32,12,14,12,14,16,14,40) 1 6)),
+ @('Conferencia', (Planilha $conf (@(38) + (@(12,12,7) * 4)) 1 12))
 )
 
 $ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'

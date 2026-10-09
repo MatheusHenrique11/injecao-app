@@ -1,26 +1,42 @@
-# Injeção (nome provisório)
+# Calibra (nome provisório)
 
-Aplicativo de apoio ao cálculo de mapa base para injeção programável.
+App desktop para Windows, 100% offline, para oficinas de preparação. Ele dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
+
+A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
+
+## Situação
+
+Fase 0 (preparação): estrutura vazia que compila e testa. Ainda não há funções de produto.
 
 ## Módulos
 
-| Módulo | Responsabilidade | Depende de |
+| Módulo | O que faz | Depende de |
 |---|---|---|
-| `dominio` | Modelos: motor, peças, injetores, combustível, unidades | — |
-| `calculo` | Núcleo de cálculo. Sem interface, revisado fórmula por fórmula, com testes | `dominio` |
-| `catalogo` | Catálogo versionado (combustíveis, injetores, turbos), com fonte e data em cada item | `dominio` |
-| `exportacao` | Saída das tabelas por injeção (nível B: formato do software; nível C: texto/planilha) | `dominio` |
-| `persistencia` | Banco de dados e backup diário | `dominio` |
-| `app` | Interface JavaFX (telas em FXML, editadas no Scene Builder) | todos |
+| `calibra-core` | Cálculo puro (sem JavaFX, JDBC ou arquivos) | — |
+| `calibra-ecu` | Perfis de injeção; exportar e importar tabelas | core |
+| `calibra-dados` | SQLite, migrações, anexos, backup | core |
+| `calibra-relatorios` | PDFs | core |
+| `calibra-app` | Telas JavaFX e casos de uso | todos |
 
 ## Requisitos
 
-- Temurin JDK 25
-- Maven 3.9+
+- Eclipse Temurin 25 LTS (`java -version` → 25.0.x)
+- Apache Maven 3.9.x (`mvn -v`)
+- Git
+- WiX Toolset (só a partir da fase 2, para o instalador)
 
 ## Comandos
 
 ```
-mvn verify                 # compila e roda os testes
-mvn -pl app -am javafx:run # abre o aplicativo
+mvn -q verify                          # compila e roda os testes
+mvn -q install -DskipTests             # instala os módulos no repositório local
+mvn -q -pl calibra-app javafx:run      # abre o app (depois do install)
 ```
+
+## Documentação
+
+- [docs/SPEC.md](docs/SPEC.md): especificação
+- [docs/decisoes.md](docs/decisoes.md): decisões técnicas
+- [docs/manual.md](docs/manual.md): manual do usuário
+- [docs/fase0/](docs/fase0/): levantamentos da fase 0 (injeções, combustíveis, motores, planilha de conferência)
+- [CHANGELOG.md](CHANGELOG.md)

@@ -11,3 +11,5 @@ target/
 *.db-journal
 backup/
 docs/fase0/manuais/
+dist/
+*.msi

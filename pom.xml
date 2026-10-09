@@ -4,53 +4,53 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>app.injecao</groupId>
-    <artifactId>injecao-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <groupId>br.com.calibra</groupId>
+    <artifactId>calibra-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Injeção - projeto pai</name>
+    <name>Calibra</name>
 
     <modules>
-        <module>dominio</module>
-        <module>calculo</module>
-        <module>catalogo</module>
-        <module>exportacao</module>
-        <module>persistencia</module>
-        <module>app</module>
+        <module>calibra-core</module>
+        <module>calibra-ecu</module>
+        <module>calibra-dados</module>
+        <module>calibra-relatorios</module>
+        <module>calibra-app</module>
     </modules>
 
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>25.0.1</javafx.version>
-        <junit.version>5.13.4</junit.version>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <javafx.version>25.0.4</javafx.version>
+        <junit.version>6.1.3</junit.version>
+
+        <compiler-plugin.version>3.16.0</compiler-plugin.version>
+        <surefire-plugin.version>3.6.0</surefire-plugin.version>
+        <javafx-plugin.version>0.0.8</javafx-plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>app.injecao</groupId>
-                <artifactId>dominio</artifactId>
+                <groupId>br.com.calibra</groupId>
+                <artifactId>calibra-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>app.injecao</groupId>
-                <artifactId>calculo</artifactId>
+                <groupId>br.com.calibra</groupId>
+                <artifactId>calibra-ecu</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>app.injecao</groupId>
-                <artifactId>catalogo</artifactId>
+                <groupId>br.com.calibra</groupId>
+                <artifactId>calibra-dados</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>app.injecao</groupId>
-                <artifactId>exportacao</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>app.injecao</groupId>
-                <artifactId>persistencia</artifactId>
+                <groupId>br.com.calibra</groupId>
+                <artifactId>calibra-relatorios</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -87,17 +87,22 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.14.0</version>
+                    <version>${compiler-plugin.version}</version>
+                    <configuration>
+                        <compilerArgs>
+                            <arg>-Xlint:all</arg>
+                        </compilerArgs>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.3</version>
+                    <version>${surefire-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.openjfx</groupId>
                     <artifactId>javafx-maven-plugin</artifactId>
-                    <version>0.0.8</version>
+                    <version>${javafx-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
