@@ -10,3 +10,4 @@ target/
 *.db
 *.db-journal
 backup/
+docs/fase0/manuais/
