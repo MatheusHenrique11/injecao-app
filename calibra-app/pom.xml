@@ -45,6 +45,10 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>br.com.calibra.app.CalibraApp</mainClass>
+                    <options>
+                        <!-- O JavaFX carrega bibliotecas nativas; sem isto o Java 25 avisa a cada abertura. -->
+                        <option>--enable-native-access=javafx.graphics</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>

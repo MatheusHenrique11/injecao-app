@@ -1,0 +1,82 @@
+/* Tema claro, fonte mínima de 13 px (SPEC 8). */
+.root {
+    -fx-font-size: 14px;
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+.pagina {
+    -fx-padding: 16px;
+    -fx-spacing: 8px;
+}
+
+.titulo-secao {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 0 2px 0;
+}
+
+.grade {
+    -fx-hgap: 10px;
+    -fx-vgap: 8px;
+}
+
+.negrito {
+    -fx-font-weight: bold;
+}
+
+.dica {
+    -fx-font-size: 13px;
+    -fx-text-fill: #555555;
+}
+
+.erro {
+    -fx-text-fill: #b71c1c;
+}
+
+.aviso-amarelo {
+    -fx-text-fill: #7a5c00;
+}
+
+.ok {
+    -fx-text-fill: #1b5e20;
+    -fx-font-weight: bold;
+}
+
+.etiqueta-cor {
+    -fx-padding: 3px 10px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 3px;
+    -fx-alignment: center;
+}
+
+.cor-verde {
+    -fx-background-color: #2e7d32;
+    -fx-text-fill: white;
+}
+
+.cor-amarelo {
+    -fx-background-color: #f9a825;
+    -fx-text-fill: black;
+}
+
+.cor-vermelho {
+    -fx-background-color: #c62828;
+    -fx-text-fill: white;
+}
+
+.faixa-desatualizado {
+    -fx-background-color: #fff3cd;
+    -fx-border-color: #e0c060;
+    -fx-padding: 8px;
+    -fx-font-weight: bold;
+}
+
+.rodape {
+    -fx-padding: 8px 12px;
+    -fx-background-color: #eeeeee;
+    -fx-alignment: center-left;
+}
+
+.estado {
+    -fx-font-size: 13px;
+}
