@@ -1,0 +1,67 @@
+package br.com.calibra.core.util;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class NumeroBrTest {
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "1050|1050",
+        "1.050|1050",
+        "3,5|3.5",
+        "1.050,5|1050.5",
+        "-2,5|-2.5",
+        "' 13,81 '|13.81",
+        "0,80|0.8",
+        "12.000|12000"})
+    void leNumerosNoFormatoBrasileiro(String texto, double esperado) {
+        assertEquals(esperado, NumeroBr.ler(texto), 1e-12);
+    }
+
+    /** "3.5" viraria 35 se o ponto fosse lido como milhar: o app recusa e explica. */
+    @ParameterizedTest
+    @ValueSource(strings = {"3.5", "10.50", "1.05", "1,2,3", ",5", "1 050", "abc"})
+    void recusaNumerosAmbiguosOuInvalidos(String texto) {
+        NumberFormatException erro = assertThrows(NumberFormatException.class, () -> NumeroBr.ler(texto));
+        assertTrue(erro.getMessage().contains("vírgula"), erro.getMessage());
+    }
+
+    @Test
+    void recusaCampoVazio() {
+        assertThrows(NumberFormatException.class, () -> NumeroBr.ler(""));
+        assertThrows(NumberFormatException.class, () -> NumeroBr.ler("   "));
+        assertThrows(NumberFormatException.class, () -> NumeroBr.ler(null));
+    }
+
+    @Test
+    void formataComVirgulaEPontoDeMilhar() {
+        assertEquals("1.057,8", NumeroBr.formatar(1057.8, 1));
+        assertEquals("0,80", NumeroBr.formatar(0.8, 2));
+        assertEquals("2,38", NumeroBr.formatar(2.375, 2));
+        assertEquals("—", NumeroBr.formatar(Double.NaN, 2));
+    }
+
+    @Test
+    void formataEscolhendoAsCasasPelaGrandeza() {
+        assertEquals("1.058", NumeroBr.formatar(1057.8));
+        assertEquals("241,0", NumeroBr.formatar(241.04));
+        assertEquals("37,57", NumeroBr.formatar(37.574));
+        assertEquals("0,809", NumeroBr.formatar(0.809));
+        assertEquals("0,000500", NumeroBr.formatar(0.0005));
+        assertEquals("0", NumeroBr.formatar(0.0));
+        assertEquals("—", NumeroBr.formatar(Double.POSITIVE_INFINITY));
+    }
+
+    @Test
+    void formataPercentual() {
+        assertEquals("86,3%", NumeroBr.percentual(0.8633, 1));
+        assertEquals("80%", NumeroBr.percentual(0.80, 0));
+    }
+}
