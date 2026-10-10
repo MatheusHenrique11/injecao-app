@@ -71,12 +71,22 @@ class SemaforoTest {
 
     @Test
     void saidasDaInjecao() {
-        assertEquals(Cor.VERDE, Semaforo.saidasInjecao("X", 4, 8, 4, 4).cor());
-        Avaliacao faltaBico = Semaforo.saidasInjecao("FT450", 12, 6, 6, 4);
+        assertEquals(Cor.VERDE, Semaforo.saidasInjecao("X", 4, 8, 4, 4, null, 4, true).cor());
+        Avaliacao faltaBico = Semaforo.saidasInjecao("FT450", 12, 6, 6, 4, null, 12, true);
         assertEquals(Cor.VERMELHO, faltaBico.cor());
         assertTrue(faltaBico.mensagem().contains("A injeção FT450 tem 6 saídas de bico; este motor pede 12."),
                 faltaBico.mensagem());
         assertTrue(faltaBico.mensagem().contains("saídas de ignição"), faltaBico.mensagem());
+    }
+
+    @Test
+    void saidasDaInjecaoConferemOLimiteEmSequencial() {
+        Avaliacao limite = Semaforo.saidasInjecao("X", 12, 16, 12, 12, 8, 12, true);
+        assertEquals(Cor.VERMELHO, limite.cor());
+        assertTrue(limite.mensagem().contains("controla até 8 cilindros em sequencial; este motor tem 12"),
+                limite.mensagem());
+        assertEquals(Cor.VERDE, Semaforo.saidasInjecao("X", 12, 16, 6, 12, 8, 12, false).cor(),
+                "sem modo sequencial o limite não se aplica");
     }
 
     @Test

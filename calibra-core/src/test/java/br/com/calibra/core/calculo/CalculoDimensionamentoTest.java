@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Set;
 
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.Fixtures;
@@ -263,6 +264,63 @@ class CalculoDimensionamentoTest {
         EntradaDimensionamento entrada = comMotor(Fixtures.casoB(), c -> c.taxaCompressao(11.5));
         List<Aviso> avisos = resultado(entrada).avisos();
         assertTrue(avisos.stream().anyMatch(a -> a.mensagem().contains("sobrealimentação")));
+    }
+
+    // ---------- Iteração MAP ↔ Tm (SPEC 7.1: "se não convergir, erro") ----------
+
+    @Test
+    void iteracaoQueNaoConvergeDaErro() {
+        double patmPsia = Conversoes.kpaParaPsi(Formulas.pressaoAtmosfericaKpa(600));
+        double vdPol3 = Conversoes.litrosParaPol3(2.0);
+        CalculoNaoConvergiuException erro = assertThrows(CalculoNaoConvergiuException.class,
+                () -> CalculoDimensionamento.iterarMapTm(37.57, 0.95, 7000, vdPol3, patmPsia, 2, 1, 25, 0.72, 0.80, 1));
+        assertTrue(erro.getMessage().contains("não convergiu"), erro.getMessage());
+
+        CalculoDimensionamento.IteracaoMapTm convergiu = CalculoDimensionamento.iterarMapTm(37.57, 0.95, 7000, vdPol3,
+                patmPsia, 2, 1, 25, 0.72, 0.80, CalculoDimensionamento.MAX_ITERACOES);
+        assertTrue(convergiu.passos() > 1 && convergiu.passos() < CalculoDimensionamento.MAX_ITERACOES);
+        assertProximo(55, convergiu.tmC(), "Tm convergida");
+    }
+
+    @Test
+    void perdaAntesDoCompressorMaiorQueAPressaoAtmosfericaERecusada() {
+        Parametros p = Parametros.padrao();
+        Parametros errada = new Parametros(p.caminhoAr(), p.kAr(), p.bsfc(), p.dcMax(), p.etaC(), p.eps(),
+                p.perdaDescargaKpa(), Conversoes.psiParaKpa(15), p.acrescimoTmAspiradoC(), p.densidadeFluidoTesteKgL(),
+                p.tiMinimoMarchaLentaMs(), p.gruposSimultaneo(), p.limiares());
+        List<String> erros = erros(Fixtures.casoB().comParametros(errada));
+        assertTrue(erros.stream().anyMatch(e -> e.contains("perda antes do compressor")), erros::toString);
+    }
+
+    // ---------- Memória: tudo que decide um aviso fica registrado (regra 2.5) ----------
+
+    @Test
+    void memoriaRegistraTiMinimoECilindradaInformada() {
+        EntradaDimensionamento entrada = comMotor(Fixtures.casoB(), c -> c.cilindradaInformadaCc(1990.0))
+                .comMarchaLenta(new MarchaLenta(40, 0.45));
+        Resultado<Dimensionamento> r = resultado(entrada);
+        assertTrue(r.memoria().stream().anyMatch(p -> p.grandeza().equals("Cilindrada informada (conferência)")));
+        Passo marchaLenta = r.memoria().stream()
+                .filter(p -> p.grandeza().equals("TI efetivo na marcha lenta")).findFirst().orElseThrow();
+        assertTrue(marchaLenta.entradas().stream().anyMatch(e -> e.simbolo().equals("TI mínimo")));
+    }
+
+    // ---------- Sensor MAP e saídas ----------
+
+    @Test
+    void sensorMapNoTurboSemPressaoPositivaUsaAPatm() {
+        Dimensionamento d = calcular(Fixtures.casoB().comMeta(Meta.noVirabrequim(40, 7000, Uso.RUA)));
+        assertTrue(d.ladoDoAr().mapKpa() < d.ladoDoAr().patmKpa());
+        assertEquals(d.ladoDoAr().patmKpa(), d.sensorMap().mapMaximoPrevistoKpa(), 1e-9);
+    }
+
+    @Test
+    void saidasConferemOLimiteDeCilindrosEmSequencial() {
+        Injecao limitada = new Injecao("Marca", "Oito em sequencial", 16, 12, 8, Set.of(), "teste", null);
+        Dimensionamento d = calcular(Fixtures.casoD(0).comInjecao(limitada));
+        assertEquals(Cor.VERMELHO, d.avaliacao(Indicador.SAIDAS_INJECAO).orElseThrow().cor());
+        assertTrue(d.avaliacao(Indicador.SAIDAS_INJECAO).orElseThrow().mensagem()
+                .contains("controla até 8 cilindros em sequencial"));
     }
 
     // ---------- Recomendações (SPEC 7.3) ----------

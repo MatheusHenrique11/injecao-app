@@ -112,9 +112,15 @@ public final class Semaforo {
                 inicio + ", acima de " + formatar(l.pistaoAmareloAte(), 0) + " m/s.");
     }
 
-    /** Saídas da injeção: suficientes = verde; insuficientes = vermelho (SPEC 6.3 e 7.4). */
+    /**
+     * Saídas da injeção: suficientes = verde; insuficientes = vermelho (SPEC 6.3 e 7.4).
+     *
+     * @param maxCilindrosSequencial limite da injeção em sequencial, ou null se não informado
+     * @param sequencial o motor usa injeção ou ignição sequencial
+     */
     public static Avaliacao saidasInjecao(String nomeInjecao, int bicosExigidos, int bicosDisponiveis,
-            int ignicaoExigida, int ignicaoDisponivel) {
+            int ignicaoExigida, int ignicaoDisponivel, Integer maxCilindrosSequencial, int cilindros,
+            boolean sequencial) {
         List<String> faltas = new ArrayList<>();
         if (bicosDisponiveis < bicosExigidos) {
             faltas.add("A injeção " + nomeInjecao + " tem " + bicosDisponiveis
@@ -123,6 +129,10 @@ public final class Semaforo {
         if (ignicaoDisponivel < ignicaoExigida) {
             faltas.add("A injeção " + nomeInjecao + " tem " + ignicaoDisponivel
                     + " saídas de ignição; este motor pede " + ignicaoExigida + ".");
+        }
+        if (sequencial && maxCilindrosSequencial != null && cilindros > maxCilindrosSequencial) {
+            faltas.add("A injeção " + nomeInjecao + " controla até " + maxCilindrosSequencial
+                    + " cilindros em sequencial; este motor tem " + cilindros + ".");
         }
         if (faltas.isEmpty()) {
             return new Avaliacao(Indicador.SAIDAS_INJECAO, Cor.VERDE, Double.NaN, "",

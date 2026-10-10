@@ -104,6 +104,8 @@ class RelatorioMemoriaTest {
         assertTrue(texto.contains("241,0 kPa"), "MAP do caso B");
         assertTrue(texto.contains("lambda"), "λ trocado por texto");
         assertTrue(texto.contains("página 1 de"), "rodapé");
+        assertTrue(texto.contains("TI mínimo na marcha lenta 1,0 ms"), "parâmetro que decide aviso");
+        assertTrue(texto.contains("Limiares: padrão da SPEC 7.4"), "limiares do semáforo");
         assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
         try (PDDocument documento = Loader.loadPDF(destino.toFile())) {
             assertTrue(documento.getNumberOfPages() >= 2);

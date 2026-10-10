@@ -6,7 +6,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
 ## Situação
 
-Fase 0 (preparação): estrutura vazia que compila e testa. Ainda não há funções de produto.
+Fase 1 (0.1.0): núcleo de cálculo completo (SPEC 6.3 e 7), calculadora e PDF da memória de cálculo. Ainda sem banco de dados, catálogos editáveis nem instalador (fase 2).
 
 ## Módulos
 
@@ -31,7 +31,10 @@ Fase 0 (preparação): estrutura vazia que compila e testa. Ainda não há funç
 mvn -q verify                          # compila e roda os testes
 mvn -q install -DskipTests             # instala os módulos no repositório local
 mvn -q -pl calibra-app javafx:run      # abre o app (depois do install)
+mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum   # teste de interface (opcional)
 ```
+
+O teste de interface precisa da área de trabalho do Windows. Ele salva imagens da tela em `calibra-app/target/`. O PDF de exemplo do caso B fica em `calibra-relatorios/target/exemplo-memoria-caso-B.pdf` depois do `verify`.
 
 ## Documentação
 

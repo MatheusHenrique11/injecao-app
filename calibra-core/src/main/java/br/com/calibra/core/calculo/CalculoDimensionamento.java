@@ -16,6 +16,8 @@ import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.Construcao;
+import br.com.calibra.core.motor.ModoIgnicao;
+import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.motor.SaidasExigidas;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.pecas.Bico;
@@ -56,6 +58,37 @@ public final class CalculoDimensionamento {
         return new Cadeia(entrada).calcular();
     }
 
+    // ===================== Iteração MAP ↔ Tm =====================
+
+    /** Resultado da iteração MAP ↔ Tm: a temperatura no coletor convergida e quantos passos levou. */
+    record IteracaoMapTm(double tmC, int passos) {
+    }
+
+    /**
+     * Iteração MAP ↔ Tm da SPEC 7.1: começa em Tm = 50 °C e para quando |ΔTm| < 0,01 °C. Com PR até 1
+     * o compressor não aquece o ar (T2 = T1).
+     *
+     * @throws CalculoNaoConvergiuException se não convergir em {@code maxPassos} passos
+     */
+    static IteracaoMapTm iterarMapTm(double waLbMin, double ve, double rpm, double cilindradaPol3, double patmPsia,
+            double perdasPsi, double admissaoPsi, double temperaturaAmbienteC, double etaC, double eps, int maxPassos) {
+        double t1K = Conversoes.cParaK(temperaturaAmbienteC);
+        double tmC = TM_INICIAL_C;
+        for (int passo = 1; passo <= maxPassos; passo++) {
+            double mapPsia = Formulas.mapPsia(waLbMin, Conversoes.cParaF(tmC), ve, rpm, cilindradaPol3);
+            double pr = Formulas.razaoPressao(mapPsia, perdasPsi, patmPsia, admissaoPsi);
+            double t2K = pr > 1.0 ? Formulas.temperaturaSaidaCompressorK(t1K, pr, etaC) : t1K;
+            double novaTmC = Formulas.temperaturaColetor(Conversoes.kParaC(t2K), eps, temperaturaAmbienteC);
+            boolean convergiu = Math.abs(novaTmC - tmC) < TOLERANCIA_TM_C;
+            tmC = novaTmC;
+            if (convergiu) {
+                return new IteracaoMapTm(tmC, passo);
+            }
+        }
+        throw new CalculoNaoConvergiuException("A iteração MAP ↔ Tm não convergiu em " + maxPassos
+                + " passos. Confira VE, rotação e meta.");
+    }
+
     // ===================== Validação da entrada =====================
 
     static void validar(EntradaDimensionamento entrada) {
@@ -77,6 +110,7 @@ public final class CalculoDimensionamento {
             erros.add("Informe a pressão de base do combustível (diferencial no bico).");
         }
         validarParametros(entrada.parametros(), erros);
+        validarPerdaAntesDoCompressor(entrada, erros);
         validarBicos(entrada, erros);
         if (entrada.tensaoV() != null && !(entrada.tensaoV() > 0)) {
             erros.add("A tensão deve ser maior que zero.");
@@ -172,6 +206,26 @@ public final class CalculoDimensionamento {
         }
         if (p.limiares() == null) {
             erros.add("Informe os limiares do semáforo.");
+        }
+    }
+
+    /**
+     * A perda antes do compressor precisa ser menor que a pressão atmosférica local; senão a entrada do
+     * compressor fica com pressão zero ou negativa e a PR perde o sentido (ex.: 15 psi digitado no lugar de 1,5).
+     */
+    private static void validarPerdaAntesDoCompressor(EntradaDimensionamento entrada, List<String> erros) {
+        ConfiguracaoMotor motor = entrada.motor();
+        Parametros p = entrada.parametros();
+        boolean sobrealimentado = motor.aspiracao() != null && motor.aspiracao().sobrealimentado();
+        if (p == null || !sobrealimentado || !(p.perdaAdmissaoKpa() >= 0)
+                || !(motor.altitudeLocalM() >= 0 && motor.altitudeLocalM() <= 3000)) {
+            return;
+        }
+        double patmKpa = Formulas.pressaoAtmosfericaKpa(motor.altitudeLocalM());
+        if (p.perdaAdmissaoKpa() >= patmKpa) {
+            erros.add("A perda antes do compressor (" + formatar(Conversoes.kpaParaPsi(p.perdaAdmissaoKpa()), 1)
+                    + " psi) precisa ser menor que a pressão atmosférica local ("
+                    + formatar(Conversoes.kpaParaPsi(patmKpa), 1) + " psi).");
         }
     }
 
@@ -316,6 +370,13 @@ public final class CalculoDimensionamento {
             double cilindradaCc = memoria.passo("Cilindrada", "Vd = π/4 × D² × S × n", motor.cilindradaCc(), "cm³",
                     e("D", motor.diametroMm(), "mm"), e("S", motor.cursoMm(), "mm"),
                     e("n", motor.numeroCilindros(), "cilindros"));
+            Double informada = motor.cilindradaInformadaCc();
+            if (informada != null) {
+                memoria.passo("Cilindrada informada (conferência)",
+                        "diferença = |informada − calculada| / calculada (aviso acima de 2%)",
+                        Math.abs(informada - cilindradaCc) / cilindradaCc, "fração",
+                        e("informada", informada, "cm³"), e("calculada", cilindradaCc, "cm³"));
+            }
             double cilindradaL = cilindradaCc / 1000.0;
             double vdPol3 = memoria.passo("Cilindrada", "Vd[pol³] = Vd[L] × 61,0237",
                     Conversoes.litrosParaPol3(cilindradaL), "pol³", e("Vd", cilindradaL, "L"));
@@ -334,22 +395,10 @@ public final class CalculoDimensionamento {
             double tAmbiente = entrada.temperaturaAmbienteC();
             double t1K = Conversoes.cParaK(tAmbiente);
 
-            double tmC = TM_INICIAL_C;
-            int iteracoes = 0;
-            boolean convergiu = false;
-            while (!convergiu && iteracoes < MAX_ITERACOES) {
-                iteracoes++;
-                double mapPsia = Formulas.mapPsia(waLbMin, Conversoes.cParaF(tmC), entrada.ve(), rpm, vdPol3);
-                double pr = Formulas.razaoPressao(mapPsia, perdasPsi, patmPsia, admissaoPsi);
-                double t2C = Conversoes.kParaC(t2K(t1K, pr));
-                double novaTmC = Formulas.temperaturaColetor(t2C, p.eps(), tAmbiente);
-                convergiu = Math.abs(novaTmC - tmC) < TOLERANCIA_TM_C;
-                tmC = novaTmC;
-            }
-            if (!convergiu) {
-                throw new CalculoNaoConvergiuException(
-                        "A iteração MAP ↔ Tm não convergiu em " + MAX_ITERACOES + " passos. Confira VE, rotação e meta.");
-            }
+            IteracaoMapTm iteracao = iterarMapTm(waLbMin, entrada.ve(), rpm, vdPol3, patmPsia, perdasPsi, admissaoPsi,
+                    tAmbiente, p.etaC(), p.eps(), MAX_ITERACOES);
+            double tmC = iteracao.tmC();
+            int iteracoes = iteracao.passos();
             memoria.passo("Iteração MAP ↔ Tm", "começa em Tm = 50 °C; para quando |ΔTm| < 0,01 °C (máximo de 100 passos)",
                     iteracoes, "passos", e("Tm convergida", tmC, "°C"));
 
@@ -380,11 +429,6 @@ public final class CalculoDimensionamento {
                     e("T2", t2C, "°C"), e("eps", p.eps(), ""), e("T_amb", tAmbiente, "°C"));
             return new Dimensionamento.LadoDoAr(true, cilindradaCc, patmKpa, mapKpa, pr, t2C, tmFinalC, iteracoes,
                     mapKpa / patmKpa);
-        }
-
-        /** T2 pela fórmula da SPEC; com PR até 1 o compressor não aquece o ar (T2 = T1). */
-        private double t2K(double t1K, double pr) {
-            return pr > 1.0 ? Formulas.temperaturaSaidaCompressorK(t1K, pr, p.etaC()) : t1K;
         }
 
         private Dimensionamento.LadoDoAr ladoDoArAspirado(double waLbMin, double vdPol3, double cilindradaCc,
@@ -578,7 +622,8 @@ public final class CalculoDimensionamento {
                     "TI_ef = m_f_inj (marcha lenta, lambda 1,00) / mdot do bico primário",
                     Formulas.tempoInjecaoMs(massaCombustivelKg, vazaoPrimarioKgS, 0.0), "ms",
                     e("MAP", marchaLenta.mapKpa(), "kPa"), e("VE", marchaLenta.ve(), ""), e("T", temperaturaC, "°C"),
-                    e("lambda", LAMBDA_MARCHA_LENTA, ""), e("m_f_inj", massaCombustivelKg * 1e6, "mg"));
+                    e("lambda", LAMBDA_MARCHA_LENTA, ""), e("m_f_inj", massaCombustivelKg * 1e6, "mg"),
+                    e("TI mínimo", p.tiMinimoMarchaLentaMs(), "ms"));
             if (tiMs < p.tiMinimoMarchaLentaMs()) {
                 memoria.aviso(NivelAviso.AMARELO, "TI efetivo na marcha lenta de " + formatar(tiMs, 2)
                         + " ms, abaixo de " + formatar(p.tiMinimoMarchaLentaMs(), 1)
@@ -652,16 +697,19 @@ public final class CalculoDimensionamento {
                     e("n", motor.numeroCilindros(), "cilindros"));
             Injecao injecao = entrada.injecao();
             if (injecao != null) {
+                boolean sequencial = motor.modoInjecao() == ModoInjecao.SEQUENCIAL
+                        || motor.modoIgnicao() == ModoIgnicao.SEQUENCIAL;
                 semaforo.add(Semaforo.saidasInjecao(injecao.nome(), saidas.bicosTotal(), injecao.saidasBico(),
-                        saidas.ignicao(), injecao.saidasIgnicao()));
+                        saidas.ignicao(), injecao.saidasIgnicao(), injecao.maxCilindrosSequencial(),
+                        motor.numeroCilindros(), sequencial));
             }
             return saidas;
         }
 
         private Dimensionamento.SensorMap sensorMap(Dimensionamento.LadoDoAr ladoDoAr) {
-            double mapMaximo = memoria.passo("MAP máximo previsto",
-                    sobrealimentado ? "MAP necessário na potência máxima" : "aspirado: P_atm local",
-                    sobrealimentado ? ladoDoAr.mapKpa() : ladoDoAr.patmKpa(), "kPa");
+            double mapMaximo = memoria.passo("MAP máximo previsto", "maior entre o MAP necessário e a P_atm local",
+                    Math.max(ladoDoAr.mapKpa(), ladoDoAr.patmKpa()), "kPa",
+                    e("MAP necessário", ladoDoAr.mapKpa(), "kPa"), e("P_atm", ladoDoAr.patmKpa(), "kPa"));
             double faixaMinima = memoria.passo("Faixa mínima do sensor MAP",
                     "faixa = " + formatar(limiares.sensorMapVerde(), 1) + " × MAP máximo previsto",
                     limiares.sensorMapVerde() * mapMaximo, "kPa", e("MAP máximo", mapMaximo, "kPa"));

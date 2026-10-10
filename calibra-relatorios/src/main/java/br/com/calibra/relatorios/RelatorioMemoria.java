@@ -22,12 +22,14 @@ import br.com.calibra.core.memoria.Entrada;
 import br.com.calibra.core.memoria.Passo;
 import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
+import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.semaforo.Avaliacao;
 import br.com.calibra.core.semaforo.Indicador;
 import br.com.calibra.core.semaforo.Justificativa;
+import br.com.calibra.core.semaforo.LimiaresSemaforo;
 import br.com.calibra.core.semaforo.Semaforo;
 import br.com.calibra.core.unidades.Conversoes;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -65,7 +67,7 @@ public final class RelatorioMemoria {
             cabecalho(pdf, dados);
             motor(pdf, dados.entrada().motor());
             metaEParametros(pdf, dados.entrada());
-            semaforo(pdf, d, dados.justificativas());
+            semaforo(pdf, d, dados.justificativas(), dados.entrada().parametros().limiares());
             resultados(pdf, d);
             listas(pdf, d, dados.resultado());
             memoria(pdf, dados.resultado());
@@ -91,7 +93,9 @@ public final class RelatorioMemoria {
                 ? " " + formatar(m.anguloEntreBancadas(), 0) + "°" : "");
         pdf.item("Cilindros", m.numeroCilindros() + SEPARADOR + arranjo + SEPARADOR + "cilindrada "
                 + formatar(m.cilindradaCc(), 0) + " cm³ (diâmetro " + formatar(m.diametroMm(), 2) + " × curso "
-                + formatar(m.cursoMm(), 2) + " mm)");
+                + formatar(m.cursoMm(), 2) + " mm)"
+                + (m.cilindradaInformadaCc() != null
+                        ? SEPARADOR + "informada " + formatar(m.cilindradaInformadaCc(), 0) + " cm³" : ""));
         pdf.item("Construção", "taxa " + formatar(m.taxaCompressao(), 1) + ":1" + SEPARADOR + m.valvulasPorCilindro()
                 + " válvulas por cilindro" + SEPARADOR + "comando " + m.comando().rotulo().toLowerCase(Locale.ROOT)
                 + SEPARADOR + "pistões " + m.pistoes().rotulo().toLowerCase(Locale.ROOT) + SEPARADOR + "bielas "
@@ -137,7 +141,11 @@ public final class RelatorioMemoria {
                 + formatar(p.etaC(), 2) + SEPARADOR + "eps " + formatar(p.eps(), 2) + SEPARADOR + "perdas "
                 + formatar(Conversoes.kpaParaPsi(p.perdaDescargaKpa()), 1) + " psi (descarga) e "
                 + formatar(Conversoes.kpaParaPsi(p.perdaAdmissaoKpa()), 1) + " psi (admissão)" + SEPARADOR
-                + "aspirado: T_amb + " + formatar(p.acrescimoTmAspiradoC(), 1) + " °C");
+                + "aspirado: T_amb + " + formatar(p.acrescimoTmAspiradoC(), 1) + " °C" + SEPARADOR
+                + "TI mínimo na marcha lenta " + formatar(p.tiMinimoMarchaLentaMs(), 1) + " ms" + SEPARADOR
+                + "fluido de teste padrão " + formatar(p.densidadeFluidoTesteKgL(), 2) + " kg/L"
+                + (e.motor().modoInjecao() == ModoInjecao.SIMULTANEO
+                        ? SEPARADOR + "simultâneo com " + p.gruposSimultaneo() + " grupo(s) de saídas" : ""));
         if (e.bico() != null) {
             pdf.item("Bico informado", descreverBico(e.bico())
                     + (e.bicoSecundario() != null ? "; secundário: " + descreverBico(e.bicoSecundario()) : ""));
@@ -167,9 +175,11 @@ public final class RelatorioMemoria {
                 + formatar(b.densidadeFluidoTesteKgL(), 2) + " kg/L, " + tempoMorto + " (fonte: " + b.fonte() + ")";
     }
 
-    private static void semaforo(EscritorPdf pdf, Dimensionamento d, List<Justificativa> justificativas)
-            throws IOException {
+    private static void semaforo(EscritorPdf pdf, Dimensionamento d, List<Justificativa> justificativas,
+            LimiaresSemaforo limiares) throws IOException {
         pdf.secao("3. Semáforo");
+        pdf.item("Limiares", descreverLimiares(limiares));
+        pdf.espaco(4f);
         List<Avaliacao> ordenadas = d.semaforo().stream()
                 .sorted(Comparator.comparing(Avaliacao::cor).reversed())
                 .toList();
@@ -182,6 +192,21 @@ public final class RelatorioMemoria {
                 }
             }
         }
+    }
+
+    /** Os limiares usados no semáforo, para o PDF mostrar com que régua cada cor foi dada. */
+    private static String descreverLimiares(LimiaresSemaforo l) {
+        String origem = l.equals(LimiaresSemaforo.padrao()) ? "padrão da SPEC 7.4" : "editados";
+        return origem + ": DC do bico verde até " + percentual(l.dcVerdeAte(), 0) + " e amarelo até "
+                + percentual(l.dcAmareloAte(), 0) + SEPARADOR + "folga da bomba verde a partir de "
+                + percentual(l.folgaBombaVerde(), 0) + " e amarela a partir de " + percentual(l.folgaBombaAmarelo(), 0)
+                + SEPARADOR + "BMEP de referência " + formatar(l.bmepReferenciaAspiradoBar(), 0) + " bar (aspirado) e "
+                + formatar(l.bmepReferenciaSobrealimentadoBar(), 0) + " bar (sobrealimentado), amarela até "
+                + percentual(l.bmepFatorAmarelo() - 1.0, 0) + " acima" + SEPARADOR + "pistão verde até "
+                + formatar(l.pistaoVerdeAte(), 0) + " m/s e amarelo até " + formatar(l.pistaoAmareloAte(), 0) + " m/s"
+                + SEPARADOR + "sensor MAP verde a partir de " + formatar(l.sensorMapVerde(), 1) + " × e amarelo a partir de "
+                + formatar(l.sensorMapAmarelo(), 1) + " ×" + SEPARADOR + "aspirado verde até "
+                + formatar(l.aspiradoVerdeAte(), 2) + " e amarelo até " + formatar(l.aspiradoAmareloAte(), 2) + " × P_atm";
     }
 
     private static void resultados(EscritorPdf pdf, Dimensionamento d) throws IOException {
