@@ -190,7 +190,7 @@
               <ComboBox fx:id="caminhoAr" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
               <Label text="k_ar (hp por lb/min) / BSFC" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
               <HBox spacing="6.0" GridPane.rowIndex="0" GridPane.columnIndex="3">
-                <TextField fx:id="kAr" promptText="9,5 a 11" prefWidth="110.0"/>
+                <TextField fx:id="kAr" promptText="8 a 11" prefWidth="110.0"/>
                 <TextField fx:id="bsfc" promptText="lb/hp·h" prefWidth="110.0"/>
               </HBox>
 
@@ -199,6 +199,8 @@
               <Label text="VE na potência máxima" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
               <TextField fx:id="ve" promptText="fração, ex.: 0,95" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
 
+              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                     text="k_ar: referência a validar. Motor moderno de 4 válvulas perto de 10,5; motor antigo de 2 válvulas perto de 8,5 a 9,5 (dados de fábrica do Omega 4.1 e 3.0)."/>
               <Label styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="2" GridPane.columnSpan="2"
                      text="VE sem padrão. Referência a validar: 4 válvulas 0,95 a 0,99; 2 válvulas 0,80 a 0,95."/>
             </GridPane>

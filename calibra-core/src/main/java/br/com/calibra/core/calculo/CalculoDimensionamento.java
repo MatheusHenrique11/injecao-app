@@ -175,8 +175,10 @@ public final class CalculoDimensionamento {
         }
         if (p.caminhoAr() == null) {
             erros.add("Escolha o caminho da vazão de ar (k_ar ou BSFC).");
-        } else if (p.caminhoAr() == CaminhoAr.K_AR && !(p.kAr() >= 9.5 && p.kAr() <= 11.0)) {
-            erros.add("O fator k_ar deve ficar entre 9,5 e 11 hp por lb/min.");
+        } else if (p.caminhoAr() == CaminhoAr.K_AR
+                && !(p.kAr() >= Parametros.K_AR_MINIMO && p.kAr() <= Parametros.K_AR_MAXIMO)) {
+            erros.add("O fator k_ar deve ficar entre " + formatar(Parametros.K_AR_MINIMO, 1) + " e "
+                    + formatar(Parametros.K_AR_MAXIMO, 0) + " hp por lb/min.");
         } else if (p.caminhoAr() == CaminhoAr.BSFC && !(p.bsfc() > 0)) {
             erros.add("Caminho por BSFC: informe o BSFC (lb/hp·h).");
         }

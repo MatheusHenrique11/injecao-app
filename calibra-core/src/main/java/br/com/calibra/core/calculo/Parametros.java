@@ -7,7 +7,8 @@ import br.com.calibra.core.unidades.Conversoes;
  * Parâmetros do cálculo, com os padrões da SPEC 7.1. Todos editáveis.
  *
  * @param caminhoAr k_ar (padrão) ou BSFC
- * @param kAr hp por lb/min de ar; padrão 10,5, aceito de 9,5 a 11
+ * @param kAr hp por lb/min de ar; padrão 10,5, aceito de 8,0 a 11 (a spec dizia 9,5 a 11; ampliado em
+ *     09/10/2026 porque motores antigos de 2 válvulas ficam perto de 8,5–9,5, decisão 40)
  * @param bsfc lb/hp·h; só no caminho BSFC (NaN no caminho k_ar)
  * @param dcMax DC máximo do bico; padrão 0,80
  * @param etaC eficiência do compressor; padrão 0,72
@@ -34,6 +35,11 @@ public record Parametros(
         double tiMinimoMarchaLentaMs,
         int gruposSimultaneo,
         LimiaresSemaforo limiares) {
+
+    /** Menor k_ar aceito (decisão 40). */
+    public static final double K_AR_MINIMO = 8.0;
+    /** Maior k_ar aceito (SPEC 7.1). */
+    public static final double K_AR_MAXIMO = 11.0;
 
     /** Padrões da SPEC 7.1. */
     public static Parametros padrao() {

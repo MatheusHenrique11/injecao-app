@@ -114,6 +114,17 @@ class CalculoDimensionamentoTest {
                 .stream().anyMatch(e -> e.contains("k_ar")));
     }
 
+    /** Faixa ampliada para motores antigos de 2 válvulas (decisão 40): de 8,0 a 11. */
+    @Test
+    void kArAceitaDe8a11() {
+        calcular(Fixtures.casoB().comParametros(Parametros.padrao().comKAr(8.0)));
+        calcular(Fixtures.casoB().comParametros(Parametros.padrao().comKAr(11.0)));
+        List<String> abaixo = erros(Fixtures.casoB().comParametros(Parametros.padrao().comKAr(7.9)));
+        assertTrue(abaixo.contains("O fator k_ar deve ficar entre 8,0 e 11 hp por lb/min."), abaixo::toString);
+        assertTrue(erros(Fixtures.casoB().comParametros(Parametros.padrao().comKAr(11.1)))
+                .stream().anyMatch(e -> e.contains("k_ar")));
+    }
+
     @Test
     void motorInvalidoBloqueiaOCalculo() {
         EntradaDimensionamento entrada = comMotor(Fixtures.casoC(), c -> c.modoInjecao(ModoInjecao.SEMISSEQUENCIAL));
