@@ -214,7 +214,8 @@ Conversões: 1 cv = 0,98632 hp = 0,73550 kW; 1 lb = 0,453592 kg; 1 psi = 6,89475
 
 Ar e combustível
   P_hp = P_cv × 0,98632
-  Wa [lb/min] = P_hp / k_ar                          k_ar padrão 10,5 (editável de 9,5 a 11)
+  Wa [lb/min] = P_hp / k_ar                          k_ar padrão 10,5 (editável de 8,0 a 11; era 9,5 a 11,
+                                                     alterado em 09/10/2026 — ver docs/decisoes.md, item 40)
   mf [lb/h]   = 60 × Wa / (AFR_est × lambda)
   BSFC        = mf / P_hp                             só conferência (turbo a gasolina: 0,50 a 0,65)
 

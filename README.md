@@ -6,7 +6,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
 ## Situação
 
-Fase 1 (0.1.0): núcleo de cálculo completo (SPEC 6.3 e 7), calculadora e PDF da memória de cálculo. Ainda sem banco de dados, catálogos editáveis nem instalador (fase 2).
+Fase 1.1 (0.1.1): núcleo de cálculo completo (SPEC 6.3 e 7), calculadora e PDF da memória de cálculo, testados também com motores do mercado brasileiro (AP, Opala, Omega, Família II, 5 cilindros Fiat e VW, G4GC). Ainda sem banco de dados, catálogos editáveis nem instalador (fase 2). Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
 ## Módulos
 

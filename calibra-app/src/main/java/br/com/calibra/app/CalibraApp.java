@@ -12,7 +12,7 @@ import javafx.stage.Stage;
 /** Ponto de entrada do app. Na fase 1 abre a calculadora. */
 public class CalibraApp extends Application {
 
-    public static final String VERSAO = "0.1.0";
+    public static final String VERSAO = "0.1.1";
 
     @Override
     public void start(Stage palco) throws IOException {

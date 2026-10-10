@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test;
 class CalibraAppTest {
 
     @Test
-    void versaoDaFase1() {
-        assertEquals("0.1.0", CalibraApp.VERSAO);
+    void versaoDaFase11() {
+        assertEquals("0.1.1", CalibraApp.VERSAO);
     }
 
     @Test

@@ -1,6 +1,6 @@
 # Manual do usuário — Calibra
 
-Versão do app: 0.1.0 (fase 1). Este manual cresce a cada fase.
+Versão do app: 0.1.1 (fase 1.1). Este manual cresce a cada fase.
 
 ## 1. O que o Calibra faz
 
@@ -38,6 +38,7 @@ A calculadora dimensiona as peças para uma meta de potência e gera o PDF da me
 - **VE na potência máxima:** sem padrão, você informa. Use fração (0,95 = 95%). Referência a validar: 4 válvulas 0,95 a 0,99; 2 válvulas 0,80 a 0,95.
 - **Pressão de base do combustível:** diferencial no bico, com regulador referenciado ao coletor. Sem padrão.
 - **Parâmetros:** já vêm com os padrões da spec (k_ar 10,5, DC máximo 80%, eficiências do compressor e do intercooler, perdas de 2 e 1 psi). Só mude se souber por quê.
+- **k_ar (cv por lb/min de ar):** diz quanta potência o motor tira de cada lb/min de ar. O padrão de 10,5 serve para motores modernos de 4 válvulas. Motor antigo de 2 válvulas (AP, Opala, Omega, Família II 8V) costuma ficar perto de 8,5 a 9,5: a referência vem dos dados de fábrica do Omega 4.1 e 3.0 e ainda precisa ser validada no dinamômetro. k_ar menor = mais ar e mais combustível para a mesma potência, ou seja, bico e bomba maiores. O app aceita de 8,0 a 11.
 - **Bico (opcional):** com o bico preenchido, o app calcula o tempo de injeção, o DC com tempo morto e a vazão mínima que mantém o DC em 80%.
 - **Marcha lenta (opcional):** com MAP e VE de marcha lenta, o app avisa se o bico fica grande demais para a lenta (tempo efetivo abaixo de 1,0 ms) e sugere duas bancadas.
 - **Bomba, sensor MAP e injeção (opcionais):** entram no semáforo. A vazão da bomba deve ser lida na curva do fabricante na **pressão exigida** que aparece no resultado.

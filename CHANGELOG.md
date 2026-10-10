@@ -2,6 +2,15 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [0.1.1] — 09/10/2026 — Fase 1.1
+
+### Mudado
+- O k_ar agora aceita de 8,0 a 11 (era 9,5 a 11). O padrão continua 10,5. A tela mostra a referência para motor moderno (perto de 10,5) e para motor antigo de 2 válvulas (perto de 8,5–9,5, a validar).
+
+### Adicionado
+- Testes com motores do mercado brasileiro de preparação: AP 1.6/1.8/2.0 e montagens, Opala 151 e 250, Omega 4.1 e 3.0, Família II, Fiat 2.0 20V Turbo e 2.4 20V, VW 2.5 20V, Hyundai G4GC, EA211 1.0 TSI e EA888 2.0 TSI.
+- Pesquisa do mercado de preparação no Brasil (`docs/pesquisa/mercado-preparacao-brasil.md`).
+
 ## [0.1.0] — 09/10/2026 — Fase 1
 
 ### Adicionado
