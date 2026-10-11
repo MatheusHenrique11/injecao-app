@@ -168,6 +168,13 @@ public final class CalculoDimensionamento {
         }
     }
 
+    /** Confere só os parâmetros (usado também pela tela de Configurações). */
+    public static List<String> validarParametros(Parametros p) {
+        List<String> erros = new ArrayList<>();
+        validarParametros(p, erros);
+        return erros;
+    }
+
     private static void validarParametros(Parametros p, List<String> erros) {
         if (p == null) {
             erros.add("Informe os parâmetros do cálculo.");

@@ -1,0 +1,1191 @@
+{
+  "entrada" : {
+    "motor" : {
+      "numeroCilindros" : 4,
+      "arranjo" : "EM_LINHA",
+      "anguloEntreBancadas" : null,
+      "diametroMm" : 82.82588277470565,
+      "cursoMm" : 92.8,
+      "cilindradaInformadaCc" : null,
+      "taxaCompressao" : 9.5,
+      "valvulasPorCilindro" : 4,
+      "comando" : "ORIGINAL",
+      "duracaoComandoGraus" : null,
+      "cruzamentoGraus" : null,
+      "aspiracao" : "TURBO",
+      "pistoes" : "ORIGINAL",
+      "bielas" : "ORIGINAL",
+      "rotacaoMaxima" : 7500,
+      "rotacaoMarchaLenta" : 900,
+      "ordemIgnicao" : [ 1, 3, 4, 2 ],
+      "angulosPms" : [ 0.0, 180.0, 360.0, 540.0 ],
+      "bicosPorCilindro" : 1,
+      "bicosExtrasCorpoBorboleta" : 0,
+      "modoInjecao" : "SEQUENCIAL",
+      "modoIgnicao" : "SEQUENCIAL",
+      "rodaFonica" : {
+        "dentesTotais" : 60,
+        "dentesFaltantes" : 2,
+        "sensorFase" : true
+      },
+      "combustivel" : {
+        "codigo" : "EHC",
+        "nome" : "Etanol hidratado (93% em massa)",
+        "composicao" : {
+          "tipo" : "ETANOL_HIDRATADO",
+          "fracaoMassicaEtanol" : 0.93
+        },
+        "densidadeKgL" : 0.809,
+        "lambdaSobPressao" : 0.8,
+        "lambdaAspiradoPlenaCarga" : 0.87,
+        "avisoLambda" : null,
+        "vigenteDesde" : null,
+        "fonte" : "SPEC 7.2 (versão 1.0, 08/10/2026)",
+        "versao" : 1
+      },
+      "sensorEtanol" : false,
+      "altitudeLocalM" : 600.0
+    },
+    "meta" : {
+      "potenciaKw" : 294.20000000000005,
+      "pontoMedicao" : "VIRABREQUIM",
+      "perdaTransmissaoPct" : null,
+      "rotacaoPotenciaMaxima" : 7000,
+      "rotacaoTorqueMaximo" : null,
+      "uso" : "RUA"
+    },
+    "lambdaAlvo" : 0.8,
+    "ve" : 0.95,
+    "temperaturaAmbienteC" : 25.0,
+    "pressaoBaseKpa" : 300.0,
+    "parametros" : {
+      "caminhoAr" : "K_AR",
+      "kAr" : 10.5,
+      "bsfc" : "NaN",
+      "dcMax" : 0.8,
+      "etaC" : 0.72,
+      "eps" : 0.8,
+      "perdaDescargaKpa" : 13.789514,
+      "perdaAdmissaoKpa" : 6.894757,
+      "acrescimoTmAspiradoC" : 10.0,
+      "densidadeFluidoTesteKgL" : 0.7,
+      "tiMinimoMarchaLentaMs" : 1.0,
+      "gruposSimultaneo" : 1,
+      "limiares" : {
+        "dcVerdeAte" : 0.8,
+        "dcAmareloAte" : 0.85,
+        "folgaBombaVerde" : 0.3,
+        "folgaBombaAmarelo" : 0.15,
+        "bmepReferenciaAspiradoBar" : 13.0,
+        "bmepReferenciaSobrealimentadoBar" : 22.0,
+        "bmepFatorAmarelo" : 1.15,
+        "pistaoVerdeAte" : 20.0,
+        "pistaoAmareloAte" : 25.0,
+        "sensorMapVerde" : 1.2,
+        "sensorMapAmarelo" : 1.0,
+        "aspiradoVerdeAte" : 0.9,
+        "aspiradoAmareloAte" : 0.98
+      }
+    },
+    "bico" : {
+      "nome" : "1.050 cm³/min",
+      "vazaoNominalCm3Min" : 1050.0,
+      "pressaoTesteKpa" : 300.0,
+      "densidadeFluidoTesteKgL" : 0.7,
+      "tempoMorto" : {
+        "pontos" : [ {
+          "tensaoV" : "NaN",
+          "pressaoKpa" : "NaN",
+          "tempoMs" : 1.0
+        } ]
+      },
+      "impedanciaOhm" : null,
+      "fonte" : "informado na calculadora",
+      "data" : null
+    },
+    "bicoSecundario" : null,
+    "tensaoV" : null,
+    "marchaLenta" : {
+      "mapKpa" : 35.0,
+      "ve" : 0.5
+    },
+    "vazaoBombaDisponivelLh" : 255.0,
+    "faixaSensorMapKpa" : 400.0,
+    "injecao" : {
+      "marca" : "Injeção de teste",
+      "modelo" : "",
+      "saidasBico" : 8,
+      "saidasIgnicao" : 4,
+      "maxCilindrosSequencial" : null,
+      "recursos" : [ ],
+      "fonte" : "informada na calculadora",
+      "data" : null
+    }
+  },
+  "resultado" : {
+    "valor" : {
+      "potencia" : {
+        "virabrequimKw" : 294.20000000000005,
+        "cv" : 400.00000000000006,
+        "hp" : 394.528,
+        "especificaCvPorLitro" : 200.00000000000006
+      },
+      "combustao" : {
+        "afrEstequiometrico" : 8.370000000000001,
+        "lambdaAlvo" : 0.8,
+        "afrAlvo" : 6.6960000000000015,
+        "vazaoArKgS" : 0.2840551501206349,
+        "vazaoArLbMin" : 37.57409523809524,
+        "combustivelKgH" : 152.71782264550262,
+        "combustivelLbH" : 336.6854412015702,
+        "bsfcLbHpH" : 0.8533879501621435
+      },
+      "ladoDoAr" : {
+        "sobrealimentado" : true,
+        "cilindradaCc" : 1999.9999999999998,
+        "patmKpa" : 94.321677756708,
+        "mapKpa" : 241.02412401293296,
+        "razaoPressao" : 2.9145901034537114,
+        "t2C" : 173.02674800112658,
+        "tmC" : 54.60534960022531,
+        "iteracoes" : 4,
+        "mapSobrePatm" : 2.5553417808642798
+      },
+      "porInjecao" : {
+        "injecoesPorCiclo" : 1,
+        "cicloMs" : 17.142857142857142,
+        "massaArCilindroMg" : 1216.8772800466193,
+        "massaCombustivelPorInjecaoMg" : 181.73197133312706
+      },
+      "bicoNecessario" : {
+        "numeroBicos" : 4,
+        "vazaoMassaGMin" : 795.4053262786595,
+        "vazaoCombustivelCm3Min" : 983.1957061540908,
+        "vazaoNominalCm3Min" : 1056.9762137134887,
+        "pressaoTesteKpa" : 300.0,
+        "densidadeTesteKgL" : 0.7
+      },
+      "bicoAvaliado" : {
+        "vazaoRealCm3Min" : 976.7064557061384,
+        "vazaoRealSecundarioCm3Min" : "NaN",
+        "tempoMortoMs" : 1.0,
+        "tempoMortoSecundarioMs" : "NaN",
+        "tiEfetivoMs" : 13.79971153424825,
+        "tiTotalMs" : 14.79971153424825,
+        "tiTotalSecundarioMs" : "NaN",
+        "dutyCycle" : 0.8633165061644812,
+        "vazaoNominalMinimaCm3Min" : 1139.6390986148833,
+        "tiEfetivoMarchaLentaMs" : 0.8974319814402458
+      },
+      "bomba" : {
+        "vazaoLh" : 188.77357558158542,
+        "pressaoKpa" : 446.70244625622496,
+        "vazaoComFolgaVerdeLh" : 245.40564825606106,
+        "folga" : 0.35082465442729505
+      },
+      "esforco" : {
+        "bmepBar" : 25.217142857142864,
+        "torqueNm" : 401.3308285714286,
+        "velocidadePistaoMS" : 21.65333333333333
+      },
+      "saidas" : {
+        "bicos" : 4,
+        "ignicao" : 4,
+        "bicosExtras" : 0
+      },
+      "sensorMap" : {
+        "mapMaximoPrevistoKpa" : 241.02412401293296,
+        "faixaMinimaKpa" : 289.2289488155195
+      },
+      "pontoOperacao" : {
+        "vazaoArKgS" : 0.2840551501206349,
+        "vazaoArLbMin" : 37.57409523809524,
+        "razaoPressao" : 2.9145901034537114
+      },
+      "semaforo" : [ {
+        "indicador" : "DC_BICO",
+        "cor" : "VERMELHO",
+        "valor" : 0.8633165061644812,
+        "unidade" : "fração",
+        "mensagem" : "DC de 86,3%, acima de 85%: escolher bico maior ou subir a pressão de base."
+      }, {
+        "indicador" : "FOLGA_BOMBA",
+        "cor" : "VERDE",
+        "valor" : 0.35082465442729505,
+        "unidade" : "fração",
+        "mensagem" : "Folga de 35% (verde a partir de 30%)."
+      }, {
+        "indicador" : "BMEP",
+        "cor" : "AMARELO",
+        "valor" : 25.217142857142864,
+        "unidade" : "bar",
+        "mensagem" : "BMEP de 25,2 bar, até 15% acima da referência de 22 bar (sobrealimentado): confirmar os internos."
+      }, {
+        "indicador" : "VELOCIDADE_PISTAO",
+        "cor" : "AMARELO",
+        "valor" : 21.65333333333333,
+        "unidade" : "m/s",
+        "mensagem" : "Velocidade média do pistão de 21,7 m/s, entre 20 e 25 m/s."
+      }, {
+        "indicador" : "SAIDAS_INJECAO",
+        "cor" : "VERDE",
+        "valor" : "NaN",
+        "unidade" : "",
+        "mensagem" : "A injeção Injeção de teste atende: 8 saídas de bico (pede 4) e 4 de ignição (pede 4)."
+      }, {
+        "indicador" : "FAIXA_SENSOR_MAP",
+        "cor" : "VERDE",
+        "valor" : 1.6595849134941225,
+        "unidade" : "×",
+        "mensagem" : "Sensor de 400 kPa = 1,66 × o MAP máximo previsto (241 kPa)."
+      }, {
+        "indicador" : "MAPA_COMPRESSOR",
+        "cor" : "AMARELO",
+        "valor" : "NaN",
+        "unidade" : "",
+        "mensagem" : "Turbo sem mapa cadastrado: conferir o ponto de operação (vazão e PR) no mapa do compressor do fabricante."
+      } ],
+      "recomendacoes" : [ "Intercooler: ar-ar (padrão).", "Bico: vazão nominal de pelo menos 1.057 cm³/min a 3,0 bar (fluido de teste 0,70 kg/L); com o tempo morto do bico informado, pelo menos 1.140 cm³/min.", "Bomba: pelo menos 245 L/h a 4,47 bar (necessário + 30% de folga).", "Sensor MAP: faixa de pelo menos 289 kPa absolutos.", "Injeção: pelo menos 4 saídas de bico e 4 de ignição." ]
+    },
+    "memoria" : [ {
+      "grandeza" : "Potência em hp",
+      "formula" : "P_hp = P_cv × 0,98632",
+      "entradas" : [ {
+        "simbolo" : "P_cv",
+        "valor" : {
+          "numero" : 400.00000000000006,
+          "unidade" : "cv"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 394.528,
+        "unidade" : "hp"
+      }
+    }, {
+      "grandeza" : "AFR estequiométrico (EHC)",
+      "formula" : "AFR = 9,0 × fração em massa de etanol",
+      "entradas" : [ {
+        "simbolo" : "x",
+        "valor" : {
+          "numero" : 0.93,
+          "unidade" : "fração em massa"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 8.370000000000001,
+        "unidade" : ":1"
+      }
+    }, {
+      "grandeza" : "AFR alvo",
+      "formula" : "AFR_alvo = AFR_est × lambda",
+      "entradas" : [ {
+        "simbolo" : "AFR_est",
+        "valor" : {
+          "numero" : 8.370000000000001,
+          "unidade" : ":1"
+        }
+      }, {
+        "simbolo" : "lambda",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 6.6960000000000015,
+        "unidade" : ":1"
+      }
+    }, {
+      "grandeza" : "Vazão de ar Wa",
+      "formula" : "Wa = P_hp / k_ar",
+      "entradas" : [ {
+        "simbolo" : "P_hp",
+        "valor" : {
+          "numero" : 394.528,
+          "unidade" : "hp"
+        }
+      }, {
+        "simbolo" : "k_ar",
+        "valor" : {
+          "numero" : 10.5,
+          "unidade" : "hp por lb/min"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 37.57409523809524,
+        "unidade" : "lb/min"
+      }
+    }, {
+      "grandeza" : "Combustível mf",
+      "formula" : "mf = 60 × Wa / (AFR_est × lambda)",
+      "entradas" : [ {
+        "simbolo" : "Wa",
+        "valor" : {
+          "numero" : 37.57409523809524,
+          "unidade" : "lb/min"
+        }
+      }, {
+        "simbolo" : "AFR_est",
+        "valor" : {
+          "numero" : 8.370000000000001,
+          "unidade" : ":1"
+        }
+      }, {
+        "simbolo" : "lambda",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 336.6854412015702,
+        "unidade" : "lb/h"
+      }
+    }, {
+      "grandeza" : "Combustível mf",
+      "formula" : "mf[kg/h] = mf[lb/h] × 0,453592",
+      "entradas" : [ {
+        "simbolo" : "mf",
+        "valor" : {
+          "numero" : 336.6854412015702,
+          "unidade" : "lb/h"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 152.71782264550262,
+        "unidade" : "kg/h"
+      }
+    }, {
+      "grandeza" : "BSFC (conferência)",
+      "formula" : "BSFC = mf / P_hp",
+      "entradas" : [ {
+        "simbolo" : "mf",
+        "valor" : {
+          "numero" : 336.6854412015702,
+          "unidade" : "lb/h"
+        }
+      }, {
+        "simbolo" : "P_hp",
+        "valor" : {
+          "numero" : 394.528,
+          "unidade" : "hp"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 0.8533879501621435,
+        "unidade" : "lb/hp·h"
+      }
+    }, {
+      "grandeza" : "Cilindrada",
+      "formula" : "Vd = π/4 × D² × S × n",
+      "entradas" : [ {
+        "simbolo" : "D",
+        "valor" : {
+          "numero" : 82.82588277470565,
+          "unidade" : "mm"
+        }
+      }, {
+        "simbolo" : "S",
+        "valor" : {
+          "numero" : 92.8,
+          "unidade" : "mm"
+        }
+      }, {
+        "simbolo" : "n",
+        "valor" : {
+          "numero" : 4.0,
+          "unidade" : "cilindros"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 1999.9999999999998,
+        "unidade" : "cm³"
+      }
+    }, {
+      "grandeza" : "Cilindrada",
+      "formula" : "Vd[pol³] = Vd[L] × 61,0237",
+      "entradas" : [ {
+        "simbolo" : "Vd",
+        "valor" : {
+          "numero" : 1.9999999999999998,
+          "unidade" : "L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 122.04739999999998,
+        "unidade" : "pol³"
+      }
+    }, {
+      "grandeza" : "Pressão atmosférica local",
+      "formula" : "P_atm = 101,325 × (1 − 2,25577e−5 × h)^5,25588",
+      "entradas" : [ {
+        "simbolo" : "h",
+        "valor" : {
+          "numero" : 600.0,
+          "unidade" : "m"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 94.321677756708,
+        "unidade" : "kPa"
+      }
+    }, {
+      "grandeza" : "Iteração MAP ↔ Tm",
+      "formula" : "começa em Tm = 50 °C; para quando |ΔTm| < 0,01 °C (máximo de 100 passos)",
+      "entradas" : [ {
+        "simbolo" : "Tm convergida",
+        "valor" : {
+          "numero" : 54.60504014605773,
+          "unidade" : "°C"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 4.0,
+        "unidade" : "passos"
+      }
+    }, {
+      "grandeza" : "MAP necessário",
+      "formula" : "MAP = Wa × 639,6 × (460 + Tm[°F]) / (VE × (RPM/2) × Vd[pol³])",
+      "entradas" : [ {
+        "simbolo" : "Wa",
+        "valor" : {
+          "numero" : 37.57409523809524,
+          "unidade" : "lb/min"
+        }
+      }, {
+        "simbolo" : "Tm",
+        "valor" : {
+          "numero" : 130.28907226290391,
+          "unidade" : "°F"
+        }
+      }, {
+        "simbolo" : "VE",
+        "valor" : {
+          "numero" : 0.95,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      }, {
+        "simbolo" : "Vd",
+        "valor" : {
+          "numero" : 122.04739999999998,
+          "unidade" : "pol³"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 34.95759517165477,
+        "unidade" : "psia"
+      }
+    }, {
+      "grandeza" : "MAP necessário",
+      "formula" : "MAP[kPa] = MAP[psia] × 6,894757",
+      "entradas" : [ {
+        "simbolo" : "MAP",
+        "valor" : {
+          "numero" : 34.95759517165477,
+          "unidade" : "psia"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 241.02412401293296,
+        "unidade" : "kPa"
+      }
+    }, {
+      "grandeza" : "Razão de pressão do compressor PR",
+      "formula" : "PR = (MAP + dP_perdas) / (P_atm − dP_admissao)",
+      "entradas" : [ {
+        "simbolo" : "MAP",
+        "valor" : {
+          "numero" : 34.95759517165477,
+          "unidade" : "psia"
+        }
+      }, {
+        "simbolo" : "dP_perdas",
+        "valor" : {
+          "numero" : 2.0,
+          "unidade" : "psi"
+        }
+      }, {
+        "simbolo" : "P_atm",
+        "valor" : {
+          "numero" : 13.680203342439478,
+          "unidade" : "psia"
+        }
+      }, {
+        "simbolo" : "dP_admissao",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : "psi"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 2.9145901034537114,
+        "unidade" : ""
+      }
+    }, {
+      "grandeza" : "Temperatura na saída do compressor T2",
+      "formula" : "T2 = T1 × (1 + (PR^0,2857 − 1) / eta_c)",
+      "entradas" : [ {
+        "simbolo" : "T1",
+        "valor" : {
+          "numero" : 298.15,
+          "unidade" : "K"
+        }
+      }, {
+        "simbolo" : "PR",
+        "valor" : {
+          "numero" : 2.9145901034537114,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "eta_c",
+        "valor" : {
+          "numero" : 0.72,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 446.17674800112655,
+        "unidade" : "K"
+      }
+    }, {
+      "grandeza" : "Temperatura no coletor Tm",
+      "formula" : "Tm = T2 − eps × (T2 − T_amb)",
+      "entradas" : [ {
+        "simbolo" : "T2",
+        "valor" : {
+          "numero" : 173.02674800112658,
+          "unidade" : "°C"
+        }
+      }, {
+        "simbolo" : "eps",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "T_amb",
+        "valor" : {
+          "numero" : 25.0,
+          "unidade" : "°C"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 54.60534960022531,
+        "unidade" : "°C"
+      }
+    }, {
+      "grandeza" : "Massa de ar por cilindro",
+      "formula" : "m_ar_cil = VE × MAP[Pa] × V_cil[m³] / (287,05 × Tm[K])",
+      "entradas" : [ {
+        "simbolo" : "VE",
+        "valor" : {
+          "numero" : 0.95,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "MAP",
+        "valor" : {
+          "numero" : 241024.12401293297,
+          "unidade" : "Pa"
+        }
+      }, {
+        "simbolo" : "V_cil",
+        "valor" : {
+          "numero" : 4.999999999999999E-4,
+          "unidade" : "m³"
+        }
+      }, {
+        "simbolo" : "Tm",
+        "valor" : {
+          "numero" : 327.75534960022526,
+          "unidade" : "K"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 1.2168772800466192,
+        "unidade" : "g"
+      }
+    }, {
+      "grandeza" : "Combustível por injeção",
+      "formula" : "m_f_inj = m_ar_cil / (AFR_est × lambda × injecoesPorCiclo)",
+      "entradas" : [ {
+        "simbolo" : "m_ar_cil",
+        "valor" : {
+          "numero" : 1.2168772800466192,
+          "unidade" : "g"
+        }
+      }, {
+        "simbolo" : "AFR_est",
+        "valor" : {
+          "numero" : 8.370000000000001,
+          "unidade" : ":1"
+        }
+      }, {
+        "simbolo" : "lambda",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "injecoesPorCiclo",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 181.73197133312706,
+        "unidade" : "mg"
+      }
+    }, {
+      "grandeza" : "Duração do ciclo",
+      "formula" : "ciclo = 120000 / RPM",
+      "entradas" : [ {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 17.142857142857142,
+        "unidade" : "ms"
+      }
+    }, {
+      "grandeza" : "Vazão por bico (massa)",
+      "formula" : "Q_bico = mf / (N_bicos × DC_max)",
+      "entradas" : [ {
+        "simbolo" : "mf",
+        "valor" : {
+          "numero" : 152.71782264550262,
+          "unidade" : "kg/h"
+        }
+      }, {
+        "simbolo" : "N_bicos",
+        "valor" : {
+          "numero" : 4.0,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "DC_max",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 795.4053262786595,
+        "unidade" : "g/min"
+      }
+    }, {
+      "grandeza" : "Vazão por bico (combustível)",
+      "formula" : "Q = Q_bico / rho_comb",
+      "entradas" : [ {
+        "simbolo" : "Q_bico",
+        "valor" : {
+          "numero" : 795.4053262786595,
+          "unidade" : "g/min"
+        }
+      }, {
+        "simbolo" : "rho_comb",
+        "valor" : {
+          "numero" : 0.809,
+          "unidade" : "kg/L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 983.1957061540908,
+        "unidade" : "cm³/min"
+      }
+    }, {
+      "grandeza" : "Vazão por bico no fluido de teste",
+      "formula" : "Q_teste = Q_comb × raiz(rho_comb / rho_teste)  (inverso de Q_comb = Q_teste × raiz(rho_teste / rho_comb))",
+      "entradas" : [ {
+        "simbolo" : "Q_comb",
+        "valor" : {
+          "numero" : 983.1957061540908,
+          "unidade" : "cm³/min"
+        }
+      }, {
+        "simbolo" : "rho_comb",
+        "valor" : {
+          "numero" : 0.809,
+          "unidade" : "kg/L"
+        }
+      }, {
+        "simbolo" : "rho_teste",
+        "valor" : {
+          "numero" : 0.7,
+          "unidade" : "kg/L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 1056.9762137134887,
+        "unidade" : "cm³/min"
+      }
+    }, {
+      "grandeza" : "Vazão nominal mínima do bico (sem tempo morto)",
+      "formula" : "Q2 = Q1 × raiz(dP2 / dP1)",
+      "entradas" : [ {
+        "simbolo" : "Q1",
+        "valor" : {
+          "numero" : 1056.9762137134887,
+          "unidade" : "cm³/min"
+        }
+      }, {
+        "simbolo" : "dP1 (base)",
+        "valor" : {
+          "numero" : 300.0,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "dP2 (teste)",
+        "valor" : {
+          "numero" : 300.0,
+          "unidade" : "kPa"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 1056.9762137134887,
+        "unidade" : "cm³/min"
+      }
+    }, {
+      "grandeza" : "Vazão real do bico",
+      "formula" : "Q_real = Q_nom × raiz(dP_base / dP_teste) × raiz(rho_teste / rho_comb)",
+      "entradas" : [ {
+        "simbolo" : "Q_nom",
+        "valor" : {
+          "numero" : 1050.0,
+          "unidade" : "cm³/min"
+        }
+      }, {
+        "simbolo" : "dP_base",
+        "valor" : {
+          "numero" : 300.0,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "dP_teste",
+        "valor" : {
+          "numero" : 300.0,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "rho_teste",
+        "valor" : {
+          "numero" : 0.7,
+          "unidade" : "kg/L"
+        }
+      }, {
+        "simbolo" : "rho_comb",
+        "valor" : {
+          "numero" : 0.809,
+          "unidade" : "kg/L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 976.7064557061384,
+        "unidade" : "cm³/min"
+      }
+    }, {
+      "grandeza" : "Tempo de injeção efetivo",
+      "formula" : "TI_ef = m_f_inj / mdot_bico",
+      "entradas" : [ {
+        "simbolo" : "m_f_inj",
+        "valor" : {
+          "numero" : 181.73197133312706,
+          "unidade" : "mg"
+        }
+      }, {
+        "simbolo" : "mdot",
+        "valor" : {
+          "numero" : 13.169258711104433,
+          "unidade" : "g/s"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 13.79971153424825,
+        "unidade" : "ms"
+      }
+    }, {
+      "grandeza" : "TI com tempo morto",
+      "formula" : "TI = m_f_inj / mdot_bico + t_morto",
+      "entradas" : [ {
+        "simbolo" : "TI_ef",
+        "valor" : {
+          "numero" : 13.79971153424825,
+          "unidade" : "ms"
+        }
+      }, {
+        "simbolo" : "t_morto",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : "ms"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 14.79971153424825,
+        "unidade" : "ms"
+      }
+    }, {
+      "grandeza" : "DC do bico",
+      "formula" : "DC = TI × injecoesPorCiclo / (120000 / RPM)",
+      "entradas" : [ {
+        "simbolo" : "TI",
+        "valor" : {
+          "numero" : 14.79971153424825,
+          "unidade" : "ms"
+        }
+      }, {
+        "simbolo" : "injecoesPorCiclo",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 0.8633165061644812,
+        "unidade" : "fração"
+      }
+    }, {
+      "grandeza" : "Vazão nominal mínima com tempo morto",
+      "formula" : "janela = DC_max × ciclo / injecoesPorCiclo − t_morto; Q = m_f_inj / janela, levada ao fluido e à pressão de teste",
+      "entradas" : [ {
+        "simbolo" : "DC_max",
+        "valor" : {
+          "numero" : 0.8,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "ciclo",
+        "valor" : {
+          "numero" : 17.142857142857142,
+          "unidade" : "ms"
+        }
+      }, {
+        "simbolo" : "injecoesPorCiclo",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "t_morto",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : "ms"
+        }
+      }, {
+        "simbolo" : "janela",
+        "valor" : {
+          "numero" : 12.714285714285715,
+          "unidade" : "ms"
+        }
+      }, {
+        "simbolo" : "m_f_inj",
+        "valor" : {
+          "numero" : 181.73197133312706,
+          "unidade" : "mg"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 1139.6390986148833,
+        "unidade" : "cm³/min"
+      }
+    }, {
+      "grandeza" : "TI efetivo na marcha lenta",
+      "formula" : "TI_ef = m_f_inj (marcha lenta, lambda 1,00) / mdot do bico primário",
+      "entradas" : [ {
+        "simbolo" : "MAP",
+        "valor" : {
+          "numero" : 35.0,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "VE",
+        "valor" : {
+          "numero" : 0.5,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "T",
+        "valor" : {
+          "numero" : 35.0,
+          "unidade" : "°C"
+        }
+      }, {
+        "simbolo" : "lambda",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : ""
+        }
+      }, {
+        "simbolo" : "m_f_inj",
+        "valor" : {
+          "numero" : 11.81851393920567,
+          "unidade" : "mg"
+        }
+      }, {
+        "simbolo" : "TI mínimo",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : "ms"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 0.8974319814402458,
+        "unidade" : "ms"
+      }
+    }, {
+      "grandeza" : "Vazão de combustível na bomba",
+      "formula" : "Bomba = mf / rho_comb",
+      "entradas" : [ {
+        "simbolo" : "mf",
+        "valor" : {
+          "numero" : 152.71782264550262,
+          "unidade" : "kg/h"
+        }
+      }, {
+        "simbolo" : "rho_comb",
+        "valor" : {
+          "numero" : 0.809,
+          "unidade" : "kg/L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 188.77357558158542,
+        "unidade" : "L/h"
+      }
+    }, {
+      "grandeza" : "Pressão exigida da bomba",
+      "formula" : "p = pressão de base + pressão do turbo (MAP − P_atm)",
+      "entradas" : [ {
+        "simbolo" : "pressão de base",
+        "valor" : {
+          "numero" : 300.0,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "pressão do turbo",
+        "valor" : {
+          "numero" : 146.70244625622496,
+          "unidade" : "kPa"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 446.70244625622496,
+        "unidade" : "kPa"
+      }
+    }, {
+      "grandeza" : "Vazão de bomba com folga verde",
+      "formula" : "Bomba × (1 + folga verde)",
+      "entradas" : [ {
+        "simbolo" : "Bomba",
+        "valor" : {
+          "numero" : 188.77357558158542,
+          "unidade" : "L/h"
+        }
+      }, {
+        "simbolo" : "folga verde",
+        "valor" : {
+          "numero" : 0.3,
+          "unidade" : "fração"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 245.40564825606106,
+        "unidade" : "L/h"
+      }
+    }, {
+      "grandeza" : "Folga da bomba",
+      "formula" : "folga = vazão disponível / vazão necessária − 1",
+      "entradas" : [ {
+        "simbolo" : "disponível",
+        "valor" : {
+          "numero" : 255.0,
+          "unidade" : "L/h"
+        }
+      }, {
+        "simbolo" : "necessária",
+        "valor" : {
+          "numero" : 188.77357558158542,
+          "unidade" : "L/h"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 0.35082465442729505,
+        "unidade" : "fração"
+      }
+    }, {
+      "grandeza" : "BMEP",
+      "formula" : "BMEP = 1200 × P[kW] / (Vd[L] × RPM)",
+      "entradas" : [ {
+        "simbolo" : "P",
+        "valor" : {
+          "numero" : 294.20000000000005,
+          "unidade" : "kW"
+        }
+      }, {
+        "simbolo" : "Vd",
+        "valor" : {
+          "numero" : 1.9999999999999998,
+          "unidade" : "L"
+        }
+      }, {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 25.217142857142864,
+        "unidade" : "bar"
+      }
+    }, {
+      "grandeza" : "Torque na potência máxima",
+      "formula" : "T = 9549 × P[kW] / RPM",
+      "entradas" : [ {
+        "simbolo" : "P",
+        "valor" : {
+          "numero" : 294.20000000000005,
+          "unidade" : "kW"
+        }
+      }, {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 401.3308285714286,
+        "unidade" : "N·m"
+      }
+    }, {
+      "grandeza" : "Velocidade média do pistão",
+      "formula" : "c_m = 2 × curso[m] × RPM / 60",
+      "entradas" : [ {
+        "simbolo" : "curso",
+        "valor" : {
+          "numero" : 0.0928,
+          "unidade" : "m"
+        }
+      }, {
+        "simbolo" : "RPM",
+        "valor" : {
+          "numero" : 7000.0,
+          "unidade" : "rpm"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 21.65333333333333,
+        "unidade" : "m/s"
+      }
+    }, {
+      "grandeza" : "Potência específica",
+      "formula" : "P_cv / Vd[L]",
+      "entradas" : [ {
+        "simbolo" : "P_cv",
+        "valor" : {
+          "numero" : 400.00000000000006,
+          "unidade" : "cv"
+        }
+      }, {
+        "simbolo" : "Vd",
+        "valor" : {
+          "numero" : 1.9999999999999998,
+          "unidade" : "L"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 200.00000000000006,
+        "unidade" : "cv/L"
+      }
+    }, {
+      "grandeza" : "Saídas de bico exigidas",
+      "formula" : "sequencial: n × bicos por cilindro",
+      "entradas" : [ {
+        "simbolo" : "n",
+        "valor" : {
+          "numero" : 4.0,
+          "unidade" : "cilindros"
+        }
+      }, {
+        "simbolo" : "bicos por cilindro",
+        "valor" : {
+          "numero" : 1.0,
+          "unidade" : ""
+        }
+      } ],
+      "resultado" : {
+        "numero" : 4.0,
+        "unidade" : "saídas"
+      }
+    }, {
+      "grandeza" : "Saídas de ignição exigidas",
+      "formula" : "sequencial: n",
+      "entradas" : [ {
+        "simbolo" : "n",
+        "valor" : {
+          "numero" : 4.0,
+          "unidade" : "cilindros"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 4.0,
+        "unidade" : "saídas"
+      }
+    }, {
+      "grandeza" : "MAP máximo previsto",
+      "formula" : "maior entre o MAP necessário e a P_atm local",
+      "entradas" : [ {
+        "simbolo" : "MAP necessário",
+        "valor" : {
+          "numero" : 241.02412401293296,
+          "unidade" : "kPa"
+        }
+      }, {
+        "simbolo" : "P_atm",
+        "valor" : {
+          "numero" : 94.321677756708,
+          "unidade" : "kPa"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 241.02412401293296,
+        "unidade" : "kPa"
+      }
+    }, {
+      "grandeza" : "Faixa mínima do sensor MAP",
+      "formula" : "faixa = 1,2 × MAP máximo previsto",
+      "entradas" : [ {
+        "simbolo" : "MAP máximo",
+        "valor" : {
+          "numero" : 241.02412401293296,
+          "unidade" : "kPa"
+        }
+      } ],
+      "resultado" : {
+        "numero" : 289.2289488155195,
+        "unidade" : "kPa"
+      }
+    } ],
+    "avisos" : [ {
+      "nivel" : "AMARELO",
+      "mensagem" : "TI efetivo na marcha lenta de 0,90 ms, abaixo de 1,0 ms: bico grande para a marcha lenta. Avaliar duas bancadas por cilindro (primária menor)."
+    } ],
+    "versaoNucleo" : "1.0.0"
+  }
+}

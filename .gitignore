@@ -9,7 +9,8 @@ target/
 .classpath
 *.db
 *.db-journal
-backup/
+/backup/
+/backups/
 docs/fase0/manuais/
 dist/
 *.msi

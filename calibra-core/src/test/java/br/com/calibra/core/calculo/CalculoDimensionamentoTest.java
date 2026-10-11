@@ -125,6 +125,15 @@ class CalculoDimensionamentoTest {
                 .stream().anyMatch(e -> e.contains("k_ar")));
     }
 
+    /** A tela de Configurações confere os padrões de cálculo com a mesma regra do cálculo. */
+    @Test
+    void validarParametrosSozinho() {
+        assertTrue(CalculoDimensionamento.validarParametros(Parametros.padrao()).isEmpty());
+        assertEquals(List.of("O fator k_ar deve ficar entre 8,0 e 11 hp por lb/min."),
+                CalculoDimensionamento.validarParametros(Parametros.padrao().comKAr(7.9)));
+        assertEquals(List.of("Informe os parâmetros do cálculo."), CalculoDimensionamento.validarParametros(null));
+    }
+
     @Test
     void motorInvalidoBloqueiaOCalculo() {
         EntradaDimensionamento entrada = comMotor(Fixtures.casoC(), c -> c.modoInjecao(ModoInjecao.SEMISSEQUENCIAL));
