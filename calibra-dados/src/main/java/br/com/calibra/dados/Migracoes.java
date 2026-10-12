@@ -67,7 +67,7 @@ public final class Migracoes {
                 : backup.fazer(backup.pastas().backupsPadrao(), MotivoBackup.ANTES_DE_MIGRAR);
         try {
             MigrateResult resultado = flyway.migrate();
-            LOG.info(() -> "Banco migrado de v" + antes + " para v" + resultado.targetSchemaVersion + " ("
+            LOG.info(() -> (antes == null ? "Banco criado" : "Banco migrado de v" + antes) + " até a v" + resultado.targetSchemaVersion + " ("
                     + resultado.migrationsExecuted + " migração(ões)).");
             return new Resultado(antes, resultado.targetSchemaVersion, resultado.migrationsExecuted, copia);
         } catch (FlywayException erro) {

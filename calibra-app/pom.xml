@@ -39,15 +39,32 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Só o versao.properties recebe a versão do POM; o FXML usa ${...} para outra coisa. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/versao.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/versao.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>br.com.calibra.app.CalibraApp</mainClass>
+                    <mainClass>br.com.calibra.app.Inicio</mainClass>
                     <options>
-                        <!-- O JavaFX carrega bibliotecas nativas; sem isto o Java 25 avisa a cada abertura. -->
-                        <option>--enable-native-access=javafx.graphics</option>
+                        <!-- O JavaFX e o sqlite-jdbc carregam bibliotecas nativas; sem isto o Java 25 avisa. -->
+                        <option>--enable-native-access=javafx.graphics,ALL-UNNAMED</option>
                     </options>
                 </configuration>
             </plugin>

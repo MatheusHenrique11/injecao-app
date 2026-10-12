@@ -174,7 +174,7 @@ public class CalculadoraController {
         registrarCampos();
         preencherPadroes();
         configurarReacoes();
-        rotuloVersao.setText("Calibra " + CalibraApp.VERSAO + " · núcleo " + VersaoNucleo.ATUAL + " · offline");
+        rotuloVersao.setText("Calibra " + Versao.atual() + " · núcleo " + VersaoNucleo.ATUAL + " · offline");
         botaoPdf.setDisable(true);
         rotuloEstado.setText("Preencha o motor e a meta e clique em Calcular (Enter).");
     }
@@ -550,7 +550,7 @@ public class CalculadoraController {
         if (arquivo.isEmpty()) {
             return;
         }
-        DadosRelatorio dados = new DadosRelatorio(ultimaEntrada, ultimoResultado, justificativas, CalibraApp.VERSAO,
+        DadosRelatorio dados = new DadosRelatorio(ultimaEntrada, ultimoResultado, justificativas, Versao.atual(),
                 agora);
         Path destino = arquivo.get().toPath();
         Task<Void> tarefa = new Task<>() {

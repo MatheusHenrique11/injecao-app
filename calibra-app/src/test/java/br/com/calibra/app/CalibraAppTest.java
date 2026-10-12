@@ -9,8 +9,9 @@ import org.junit.jupiter.api.Test;
 class CalibraAppTest {
 
     @Test
-    void versaoDaFase11() {
-        assertEquals("0.1.1", CalibraApp.VERSAO);
+    void versaoVemDoPom() {
+        // Se o filtro do versao.properties parar de funcionar, Versao.atual() lança erro em vez de "${...}".
+        assertEquals("0.2.0-SNAPSHOT", Versao.atual());
     }
 
     @Test
