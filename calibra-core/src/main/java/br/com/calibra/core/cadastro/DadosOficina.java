@@ -29,7 +29,7 @@ public record DadosOficina(String nome, String cnpj, String endereco, String tel
         if (!cnpj.isEmpty() && !Documento.cnpjValido(cnpj)) {
             erros.add("CNPJ da oficina inválido: confira os números (dígitos verificadores).");
         }
-        if (!email.isEmpty() && !email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) {
+        if (!email.isEmpty() && !Contato.emailValido(email)) {
             erros.add("E-mail da oficina inválido.");
         }
         return erros;
