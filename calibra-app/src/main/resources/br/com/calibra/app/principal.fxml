@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Janela principal: navegação à esquerda, a tela escolhida no centro e a barra de status embaixo. -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.PrincipalController"
+            prefWidth="1380.0" prefHeight="860.0">
+  <fx:define>
+    <ToggleGroup fx:id="navegacao"/>
+  </fx:define>
+
+  <left>
+    <VBox styleClass="navegacao" spacing="4.0">
+      <Label styleClass="marca" text="Calibra"/>
+      <ToggleButton fx:id="navCalculadora" text="Calculadora" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarCalculadora"/>
+      <ToggleButton fx:id="navConfiguracoes" text="Configurações" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarConfiguracoes"/>
+    </VBox>
+  </left>
+
+  <center>
+    <StackPane fx:id="conteudo"/>
+  </center>
+
+  <bottom>
+    <HBox styleClass="barra-status" spacing="10.0">
+      <Label fx:id="rotuloStatus" styleClass="estado"/>
+      <Region HBox.hgrow="ALWAYS"/>
+      <Label fx:id="rotuloVersao" styleClass="dica"/>
+    </HBox>
+  </bottom>
+</BorderPane>

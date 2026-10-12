@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo e limiares do semáforo. -->
+<TabPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+         fx:id="abasConfiguracoes" fx:controller="br.com.calibra.app.ConfiguracoesController"
+         tabClosingPolicy="UNAVAILABLE">
+
+  <!-- ===================== Oficina ===================== -->
+  <Tab fx:id="abaOficina" text="Oficina">
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina">
+        <Label styleClass="titulo-secao" text="Dados da oficina para os PDFs"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Todos opcionais. Aparecem no cabeçalho dos documentos que o Calibra gera."/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="160.0"/>
+            <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+            <ColumnConstraints minWidth="120.0"/>
+            <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label text="Nome da oficina" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <TextField fx:id="oficinaNome" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label text="CNPJ" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+          <TextField fx:id="oficinaCnpj" promptText="00.000.000/0000-00" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+          <Label text="Endereço" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="oficinaEndereco" GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3"/>
+
+          <Label text="Telefone" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="oficinaTelefone" promptText="(00) 00000-0000" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <Label text="E-mail" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+          <TextField fx:id="oficinaEmail" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+          <Label text="Logo" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="3">
+            <ImageView fx:id="logoImagem" fitWidth="200.0" fitHeight="80.0" preserveRatio="true" smooth="true"/>
+            <Label fx:id="logoInfo" styleClass="dica" wrapText="true"/>
+            <Button text="Escolher imagem…" onAction="#escolherLogo"/>
+            <Button fx:id="botaoRemoverLogo" text="Remover logo" onAction="#removerLogo"/>
+          </HBox>
+        </GridPane>
+
+        <HBox spacing="10.0">
+          <Button fx:id="botaoSalvarOficina" text="Salvar dados da oficina" onAction="#salvarOficina"/>
+          <Button text="Descartar alterações" onAction="#descartarOficina"/>
+        </HBox>
+        <VBox fx:id="mensagensOficina" spacing="4.0"/>
+      </VBox>
+    </ScrollPane>
+  </Tab>
+
+  <!-- ===================== Cálculo e semáforo ===================== -->
+  <Tab fx:id="abaCalculo" text="Cálculo e semáforo">
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina">
+        <Label styleClass="titulo-secao" text="Padrões de cálculo (SPEC 7.1)"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Valem para os cálculos novos e aparecem já preenchidos na calculadora, onde podem ser mudados em cada cálculo. Cálculos salvos guardam os valores que usaram e não mudam."/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="260.0"/>
+            <ColumnConstraints minWidth="120.0" hgrow="SOMETIMES"/>
+            <ColumnConstraints minWidth="260.0"/>
+            <ColumnConstraints minWidth="120.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label text="k_ar (hp por lb/min)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <TextField fx:id="padraoKAr" promptText="8 a 11" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label text="DC máximo do bico (%)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+          <TextField fx:id="padraoDcMax" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+          <Label text="Eficiência do compressor (eta_c)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="padraoEtaC" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <Label text="Eficiência do intercooler (eps)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+          <TextField fx:id="padraoEps" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+          <Label text="Perda depois do compressor (psi)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="padraoPerdaDescarga" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <Label text="Perda antes do compressor (psi)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+          <TextField fx:id="padraoPerdaAdmissao" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+          <Label text="Aspirado: acréscimo no coletor (°C)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <TextField fx:id="padraoAcrescimoTm" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+          <Label text="Fluido de teste padrão (kg/L)" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+          <TextField fx:id="padraoDensidadeTeste" GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+
+          <Label text="TI mínimo na marcha lenta (ms)" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+          <TextField fx:id="padraoTiMinimo" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+        </GridPane>
+
+        <Label styleClass="titulo-secao" text="Limiares do semáforo (SPEC 7.4)"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Mudar um limiar muda a cor dos próximos cálculos. O PDF da memória mostra se os limiares usados são os da SPEC ou editados."/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="300.0"/>
+            <ColumnConstraints minWidth="150.0" prefWidth="150.0"/>
+            <ColumnConstraints minWidth="150.0" prefWidth="150.0"/>
+            <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label styleClass="negrito" text="Indicador" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <Label styleClass="negrito" text="Limite do verde" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label styleClass="negrito" text="Limite do amarelo" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+          <Label styleClass="negrito" text="Como lê" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+          <Label text="DC do bico na potência máxima (%)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarDcVerde" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarDcAmarelo" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde até o 1º; amarelo até o 2º; acima, vermelho" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+          <Label text="Folga da bomba (%)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarFolgaVerde" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarFolgaAmarelo" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde a partir do 1º; amarelo a partir do 2º; abaixo, vermelho" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+          <Label text="Velocidade média do pistão (m/s)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarPistaoVerde" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarPistaoAmarelo" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde até o 1º; amarelo até o 2º; acima, vermelho" GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+
+          <Label text="Faixa do sensor MAP (× MAP máximo)" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarSensorVerde" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarSensorAmarelo" GridPane.rowIndex="4" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde a partir do 1º; amarelo a partir do 2º; abaixo, vermelho" GridPane.rowIndex="4" GridPane.columnIndex="3"/>
+
+          <Label text="Aspirado: MAP necessário ÷ P_atm local" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarAspiradoVerde" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarAspiradoAmarelo" GridPane.rowIndex="5" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde até o 1º; amarelo até o 2º; acima, vermelho" GridPane.rowIndex="5" GridPane.columnIndex="3"/>
+        </GridPane>
+
+        <Label styleClass="negrito" text="BMEP"/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="300.0"/>
+            <ColumnConstraints minWidth="150.0" prefWidth="150.0"/>
+            <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label text="Referência do aspirado (bar)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarBmepAspirado" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" text="verde até a referência" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+          <Label text="Referência do sobrealimentado (bar)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarBmepSobrealimentado" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" text="verde até a referência" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+
+          <Label text="Amarelo até (% acima da referência)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarBmepAmarelo" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="2"
+                 text="acima: vermelho com pistões ou bielas originais; com os dois forjados, amarelo com aviso"/>
+        </GridPane>
+
+        <HBox spacing="10.0">
+          <Button fx:id="botaoSalvarPadroes" text="Salvar padrões e limiares" onAction="#salvarPadroes"/>
+          <Button text="Voltar aos padrões da SPEC" onAction="#voltarAosPadroesDaSpec"/>
+          <Button text="Descartar alterações" onAction="#descartarPadroes"/>
+        </HBox>
+        <VBox fx:id="mensagensPadroes" spacing="4.0"/>
+      </VBox>
+    </ScrollPane>
+  </Tab>
+</TabPane>

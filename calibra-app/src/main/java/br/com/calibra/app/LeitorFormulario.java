@@ -24,7 +24,6 @@ import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.Uso;
-import br.com.calibra.core.semaforo.LimiaresSemaforo;
 import br.com.calibra.core.unidades.Conversoes;
 import br.com.calibra.core.util.NumeroBr;
 
@@ -58,9 +57,13 @@ public final class LeitorFormulario {
         this.valores = valores;
     }
 
-    public static Leitura ler(Map<Campo, String> valores) {
+    /**
+     * @param padroes padrões salvos em Configurações: dão os limiares do semáforo e os grupos do modo
+     *     simultâneo, que não têm campo na calculadora
+     */
+    public static Leitura ler(Map<Campo, String> valores, Parametros padroes) {
         LeitorFormulario leitor = new LeitorFormulario(valores);
-        EntradaDimensionamento entrada = leitor.entrada();
+        EntradaDimensionamento entrada = leitor.entrada(padroes);
         return new Leitura(leitor.erros.isEmpty() ? entrada : null, leitor.erros);
     }
 
@@ -72,14 +75,14 @@ public final class LeitorFormulario {
 
     // ===================== Montagem =====================
 
-    private EntradaDimensionamento entrada() {
+    private EntradaDimensionamento entrada(Parametros padroes) {
         ConfiguracaoMotor motor = motor();
         Meta meta = meta();
         double lambda = numero(Campo.LAMBDA);
         double ve = numero(Campo.VE);
         double temperatura = numero(Campo.TEMPERATURA_AMBIENTE);
         double pressaoBase = Conversoes.barParaKpa(numero(Campo.PRESSAO_BASE_BAR));
-        Parametros parametros = parametros();
+        Parametros parametros = parametros(padroes);
         Bico bico = bico("Bico", Campo.BICO_VAZAO, Campo.BICO_PRESSAO_TESTE_BAR, Campo.BICO_DENSIDADE_TESTE,
                 Campo.BICO_TEMPO_MORTO);
         Bico secundario = bico("Bico secundário", Campo.BICO2_VAZAO, Campo.BICO2_PRESSAO_TESTE_BAR,
@@ -147,7 +150,7 @@ public final class LeitorFormulario {
         return new Meta(Conversoes.cvParaKw(cv), ponto, perda, rpmPotencia, rpmTorque, uso);
     }
 
-    private Parametros parametros() {
+    private Parametros parametros(Parametros padroes) {
         CaminhoAr caminho = escolha(Campo.CAMINHO_AR, CaminhoAr::valueOf);
         double kAr = caminho == CaminhoAr.K_AR ? numero(Campo.K_AR) : Double.NaN;
         double bsfc = caminho == CaminhoAr.BSFC ? numero(Campo.BSFC) : Double.NaN;
@@ -160,8 +163,8 @@ public final class LeitorFormulario {
                 numero(Campo.ACRESCIMO_TM),
                 numero(Campo.DENSIDADE_TESTE_PADRAO),
                 numero(Campo.TI_MINIMO_MARCHA_LENTA),
-                1,
-                LimiaresSemaforo.padrao());
+                padroes.gruposSimultaneo(),
+                padroes.limiares());
     }
 
     /** Um bico existe quando a vazão está preenchida; aí os outros campos dele são obrigatórios. */

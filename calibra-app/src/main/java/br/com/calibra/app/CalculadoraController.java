@@ -18,6 +18,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import br.com.calibra.app.casos.CampoPadrao;
+import br.com.calibra.app.casos.FormularioPadroes;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.CalculoNaoConvergiuException;
@@ -29,7 +31,6 @@ import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.memoria.Aviso;
 import br.com.calibra.core.memoria.Resultado;
-import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.motor.Arranjo;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.Comando;
@@ -149,14 +150,28 @@ public class CalculadoraController {
     @FXML private Button botaoCalcular;
     @FXML private Button botaoPdf;
     @FXML private Label rotuloEstado;
-    @FXML private Label rotuloVersao;
 
     /** Leitura e escrita de cada campo da tela, como texto. */
     private record CampoTela(Supplier<String> ler, Consumer<String> escrever) {
     }
 
+    /** Campos da calculadora que começam com um padrão de Configurações. */
+    private static final Map<CampoPadrao, List<Campo>> CAMPOS_COM_PADRAO = Map.of(
+            CampoPadrao.K_AR, List.of(Campo.K_AR),
+            CampoPadrao.DC_MAX_PCT, List.of(Campo.DC_MAX_PCT),
+            CampoPadrao.ETA_C, List.of(Campo.ETA_C),
+            CampoPadrao.EPS, List.of(Campo.EPS),
+            CampoPadrao.PERDA_DESCARGA_PSI, List.of(Campo.PERDA_DESCARGA_PSI),
+            CampoPadrao.PERDA_ADMISSAO_PSI, List.of(Campo.PERDA_ADMISSAO_PSI),
+            CampoPadrao.ACRESCIMO_TM, List.of(Campo.ACRESCIMO_TM),
+            CampoPadrao.DENSIDADE_TESTE,
+            List.of(Campo.DENSIDADE_TESTE_PADRAO, Campo.BICO_DENSIDADE_TESTE, Campo.BICO2_DENSIDADE_TESTE),
+            CampoPadrao.TI_MINIMO, List.of(Campo.TI_MINIMO_MARCHA_LENTA));
+
     private final Map<Campo, CampoTela> campos = new EnumMap<>(Campo.class);
     private final PainelResultado painel = new PainelResultado();
+    /** Padrões de cálculo e limiares do semáforo em uso; sem Configurações (teste), os da SPEC. */
+    private Parametros padroes = Parametros.padrao();
     private HostServices servicos;
     private EntradaDimensionamento ultimaEntrada;
     private Resultado<Dimensionamento> ultimoResultado;
@@ -174,7 +189,6 @@ public class CalculadoraController {
         registrarCampos();
         preencherPadroes();
         configurarReacoes();
-        rotuloVersao.setText("Calibra " + Versao.atual() + " · núcleo " + VersaoNucleo.ATUAL + " · offline");
         botaoPdf.setDisable(true);
         rotuloEstado.setText("Preencha o motor e a meta e clique em Calcular (Enter).");
     }
@@ -301,9 +315,8 @@ public class CalculadoraController {
         combo.valueProperty().addListener((obs, antes, depois) -> marcarDesatualizado());
     }
 
-    /** Padrões da SPEC 7.1 e campos neutros. Dados técnicos do motor ficam em branco. */
+    /** Padrões de cálculo e campos neutros. Dados técnicos do motor ficam em branco. */
     private void preencherPadroes() {
-        Parametros p = Parametros.padrao();
         comando.setValue(Comando.ORIGINAL);
         pistoes.setValue(Construcao.ORIGINAL);
         bielas.setValue(Construcao.ORIGINAL);
@@ -312,19 +325,32 @@ public class CalculadoraController {
         dentesFaltantes.setText("0");
         pontoMedicao.setValue(PontoMedicao.VIRABREQUIM);
         caminhoAr.setValue(CaminhoAr.K_AR);
-        kAr.setText(formatar(p.kAr(), 1));
         temperaturaAmbiente.setText("25");
-        perdaDescarga.setText(formatar(Conversoes.kpaParaPsi(p.perdaDescargaKpa()), 1));
-        perdaAdmissao.setText(formatar(Conversoes.kpaParaPsi(p.perdaAdmissaoKpa()), 1));
-        etaC.setText(formatar(p.etaC(), 2));
-        eps.setText(formatar(p.eps(), 2));
-        acrescimoTm.setText(formatar(p.acrescimoTmAspiradoC(), 0));
-        dcMax.setText(formatar(p.dcMax() * 100, 0));
-        densidadeTestePadrao.setText(formatar(p.densidadeFluidoTesteKgL(), 2));
-        tiMinimoMarchaLenta.setText(formatar(p.tiMinimoMarchaLentaMs(), 1));
-        bicoDensidadeTeste.setText(formatar(p.densidadeFluidoTesteKgL(), 2));
-        bico2DensidadeTeste.setText(formatar(p.densidadeFluidoTesteKgL(), 2));
+        Map<CampoPadrao, String> textos = FormularioPadroes.textos(padroes);
+        CAMPOS_COM_PADRAO.forEach((padrao, alvos) ->
+                alvos.forEach(campo -> campos.get(campo).escrever().accept(textos.get(padrao))));
         cilindros.setValue(4);
+    }
+
+    /**
+     * Passa a usar os padrões salvos em Configurações. Campo que ainda mostra o padrão anterior recebe o
+     * novo; campo que o usuário já mudou fica como está. Limiares novos deixam o resultado na tela
+     * desatualizado, porque as cores foram calculadas com os antigos.
+     */
+    void usarPadroes(Parametros novos) {
+        Map<CampoPadrao, String> antes = FormularioPadroes.textos(padroes);
+        Map<CampoPadrao, String> depois = FormularioPadroes.textos(novos);
+        boolean limiaresMudaram = !novos.limiares().equals(padroes.limiares());
+        padroes = novos;
+        CAMPOS_COM_PADRAO.forEach((padrao, alvos) -> alvos.forEach(campo -> {
+            CampoTela tela = campos.get(campo);
+            if (tela.ler().get().equals(antes.get(padrao))) {
+                tela.escrever().accept(depois.get(padrao));
+            }
+        }));
+        if (limiaresMudaram) {
+            marcarDesatualizado();
+        }
     }
 
     private void configurarReacoes() {
@@ -491,7 +517,7 @@ public class CalculadoraController {
 
     @FXML
     private void calcular() {
-        LeitorFormulario.Leitura leitura = LeitorFormulario.ler(valoresDosCampos());
+        LeitorFormulario.Leitura leitura = LeitorFormulario.ler(valoresDosCampos(), padroes);
         if (!leitura.erros().isEmpty()) {
             mostrarErros(leitura.erros());
             return;

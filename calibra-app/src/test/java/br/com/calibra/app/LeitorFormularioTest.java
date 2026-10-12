@@ -10,15 +10,17 @@ import java.util.Map;
 import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.Dimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.semaforo.Cor;
 import br.com.calibra.core.semaforo.Indicador;
+import br.com.calibra.core.semaforo.LimiaresSemaforo;
 import org.junit.jupiter.api.Test;
 
 /** Leitura dos campos da tela, sem JavaFX. */
 class LeitorFormularioTest {
 
     private static LeitorFormulario.Leitura ler(Map<Campo, String> valores) {
-        return LeitorFormulario.ler(valores);
+        return LeitorFormulario.ler(valores, Parametros.padrao());
     }
 
     private static Map<Campo, String> casoBCom(Campo campo, String valor) {
@@ -41,6 +43,25 @@ class LeitorFormularioTest {
         assertEquals(0.86, d.bicoAvaliado().dutyCycle(), 0.86 * 0.01);
         assertEquals(Cor.VERMELHO, d.avaliacao(Indicador.DC_BICO).orElseThrow().cor());
         assertEquals(241, d.ladoDoAr().mapKpa(), 241 * 0.01);
+    }
+
+    /** Os limiares não têm campo na calculadora: vêm dos padrões salvos em Configurações. */
+    @Test
+    void limiaresVemDosPadroesSalvos() {
+        LimiaresSemaforo l = LimiaresSemaforo.padrao();
+        LimiaresSemaforo dcMaisFolgado = new LimiaresSemaforo(0.90, 0.95, l.folgaBombaVerde(), l.folgaBombaAmarelo(),
+                l.bmepReferenciaAspiradoBar(), l.bmepReferenciaSobrealimentadoBar(), l.bmepFatorAmarelo(),
+                l.pistaoVerdeAte(), l.pistaoAmareloAte(), l.sensorMapVerde(), l.sensorMapAmarelo(),
+                l.aspiradoVerdeAte(), l.aspiradoAmareloAte());
+        Parametros p = Parametros.padrao();
+        Parametros salvos = new Parametros(p.caminhoAr(), p.kAr(), p.bsfc(), p.dcMax(), p.etaC(), p.eps(),
+                p.perdaDescargaKpa(), p.perdaAdmissaoKpa(), p.acrescimoTmAspiradoC(), p.densidadeFluidoTesteKgL(),
+                p.tiMinimoMarchaLentaMs(), p.gruposSimultaneo(), dcMaisFolgado);
+
+        EntradaDimensionamento entrada = LeitorFormulario.ler(ValoresDeTeste.casoB(), salvos).entrada();
+        assertEquals(dcMaisFolgado, entrada.parametros().limiares());
+        Dimensionamento d = CalculoDimensionamento.calcular(entrada).valor();
+        assertEquals(Cor.VERDE, d.avaliacao(Indicador.DC_BICO).orElseThrow().cor(), "DC de 86% com verde até 90%");
     }
 
     @Test

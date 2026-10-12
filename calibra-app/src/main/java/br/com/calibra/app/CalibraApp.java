@@ -9,8 +9,10 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import br.com.calibra.dados.ErroDados;
@@ -19,6 +21,9 @@ import br.com.calibra.dados.ErroDados;
 public class CalibraApp extends Application {
 
     private static final Logger LOG = Logger.getLogger(CalibraApp.class.getName());
+
+    /** Altura da barra de título do Windows, que fica fora da cena. */
+    private static final double BORDA_DA_JANELA = 40;
 
     private ContextoApp contexto;
 
@@ -34,14 +39,22 @@ public class CalibraApp extends Application {
             Platform.exit();
             return;
         }
-        FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("calculadora.fxml"));
+        FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("principal.fxml"));
         Parent raiz = carregador.load();
-        CalculadoraController controlador = carregador.getController();
-        controlador.usarServicos(getHostServices());
-        Scene cena = new Scene(raiz);
+        PrincipalController principal = carregador.getController();
+        principal.iniciar(contexto, getHostServices(), palco);
+        Rectangle2D area = Screen.getPrimary().getVisualBounds();
+        double largura = raiz.prefWidth(-1);
+        double altura = raiz.prefHeight(-1);
+        boolean cabe = largura <= area.getWidth() && altura + BORDA_DA_JANELA <= area.getHeight();
+        Scene cena = new Scene(raiz, Math.min(largura, area.getWidth()),
+                Math.min(altura, area.getHeight() - BORDA_DA_JANELA));
         cena.getStylesheets().add(folhaDeEstilo());
-        palco.setTitle("Calibra " + Versao.atual() + " — Calculadora");
         palco.setScene(cena);
+        palco.setMinWidth(900);
+        palco.setMinHeight(600);
+        // Notebook com tela pequena (1366 × 768): a janela abre maximizada e as telas rolam.
+        palco.setMaximized(!cabe);
         palco.show();
         LOG.info(() -> "Tela aberta em " + Inicio.msDesdeOInicio() + " ms.");
     }

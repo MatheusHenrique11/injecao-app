@@ -49,6 +49,19 @@ class NumeroBrTest {
     }
 
     @Test
+    void formataComCasasEntreMinimoEMaximo() {
+        assertEquals("10,5", NumeroBr.formatar(10.5, 1, 3));
+        assertEquals("9,75", NumeroBr.formatar(9.75, 1, 3));
+        assertEquals("2,0", NumeroBr.formatar(2.0000000001, 1, 3));
+        assertEquals("0,72", NumeroBr.formatar(0.72, 2, 3));
+        assertEquals("0,725", NumeroBr.formatar(0.7249999, 2, 3));
+        assertEquals("1.050", NumeroBr.formatar(1050, 0, 2));
+        assertEquals("—", NumeroBr.formatar(Double.NaN, 1, 3));
+        // O texto formatado volta ao mesmo número na leitura.
+        assertEquals(9.75, NumeroBr.ler(NumeroBr.formatar(9.75, 1, 3)), 1e-12);
+    }
+
+    @Test
     void formataEscolhendoAsCasasPelaGrandeza() {
         assertEquals("1.058", NumeroBr.formatar(1057.8));
         assertEquals("241,0", NumeroBr.formatar(241.04));

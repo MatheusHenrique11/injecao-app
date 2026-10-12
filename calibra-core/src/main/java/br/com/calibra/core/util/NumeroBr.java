@@ -43,6 +43,15 @@ public final class NumeroBr {
 
     /** Formata com um número fixo de casas decimais e ponto de milhar. Ex.: 1057,8 com 1 casa → "1.057,8". */
     public static String formatar(double valor, int casasDecimais) {
+        return formatar(valor, casasDecimais, casasDecimais);
+    }
+
+    /**
+     * Formata com pelo menos {@code minimoCasas} e no máximo {@code maximoCasas} casas, sem zeros sobrando:
+     * com 1 a 3 casas, 10,5 → "10,5", 9,75 → "9,75" e 2 → "2,0". Serve para mostrar um valor salvo sem
+     * cortar o que foi digitado.
+     */
+    public static String formatar(double valor, int minimoCasas, int maximoCasas) {
         if (!Double.isFinite(valor)) {
             return "—";
         }
@@ -50,8 +59,8 @@ public final class NumeroBr {
         formato.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(PT_BR));
         formato.setGroupingUsed(true);
         formato.setGroupingSize(3);
-        formato.setMinimumFractionDigits(casasDecimais);
-        formato.setMaximumFractionDigits(casasDecimais);
+        formato.setMinimumFractionDigits(minimoCasas);
+        formato.setMaximumFractionDigits(maximoCasas);
         formato.setRoundingMode(RoundingMode.HALF_UP);
         return formato.format(valor);
     }

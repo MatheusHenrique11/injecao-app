@@ -20,8 +20,10 @@ class CalibraAppTest {
     }
 
     @Test
-    void telaEEstiloEstaoNoApp() {
+    void telasEEstiloEstaoNoApp() {
+        assertNotNull(CalibraApp.class.getResource("principal.fxml"));
         assertNotNull(CalibraApp.class.getResource("calculadora.fxml"));
+        assertNotNull(CalibraApp.class.getResource("configuracoes.fxml"));
         assertNotNull(CalibraApp.folhaDeEstilo());
     }
 }
