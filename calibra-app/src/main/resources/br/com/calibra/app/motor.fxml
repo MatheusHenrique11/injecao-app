@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Formulário do motor (SPEC 6.3): usado na calculadora, no assistente de novo projeto e na aba Motor do projeto. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.MotorFormController" styleClass="pagina">
+  <Label styleClass="titulo-secao" text="Cilindros e dimensões"/>
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Número de cilindros" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="cilindros" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Arranjo" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <ComboBox fx:id="arranjo" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Ângulo entre bancadas (°)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="anguloBancadas" promptText="V e VR/W, ex.: 90" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <Label text="Cilindrada calculada" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+    <Label fx:id="cilindradaCalculada" text="—" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+    <Label text="Diâmetro (mm)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <TextField fx:id="diametro" promptText="ex.: 82,5" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+    <Label text="Curso (mm)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+    <TextField fx:id="curso" promptText="ex.: 92,8" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+    <Label text="Cilindrada informada (cm³)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+    <TextField fx:id="cilindradaInformada" promptText="opcional" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+  </GridPane>
+
+  <Label styleClass="titulo-secao" text="Construção"/>
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Taxa de compressão (:1)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="taxa" promptText="6,0 a 16,0" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Válvulas por cilindro" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <ComboBox fx:id="valvulas" promptText="Escolha" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Comando" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="comando" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <Label text="Duração / cruzamento (°)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+    <HBox spacing="6.0" GridPane.rowIndex="1" GridPane.columnIndex="3">
+      <TextField fx:id="duracaoComando" promptText="duração (opcional)" prefWidth="140.0"/>
+      <TextField fx:id="cruzamento" promptText="cruzamento (opcional)" prefWidth="140.0"/>
+    </HBox>
+
+    <Label text="Aspiração" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="aspiracao" promptText="Escolha" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+    <Label text="Pistões / bielas" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+    <HBox spacing="6.0" GridPane.rowIndex="2" GridPane.columnIndex="3">
+      <ComboBox fx:id="pistoes"/>
+      <ComboBox fx:id="bielas"/>
+    </HBox>
+  </GridPane>
+
+  <Label styleClass="titulo-secao" text="Rotações, ignição e injeção"/>
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Rotação máxima (rpm)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="rotacaoMaxima" promptText="1.000 a 12.000" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Marcha lenta (rpm)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="marchaLentaRpm" promptText="500 a 1.500" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Ordem de ignição" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="ordemIgnicao" promptText="ex.: 1-3-4-2" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <Label text="Ângulos dos PMS (°)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+    <TextField fx:id="angulosPms" promptText="ex.: 0; 180; 360; 540" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+    <Label fx:id="dicaOrdem" styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3"/>
+
+    <Label text="Modo de injeção" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="modoInjecao" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+    <Label text="Modo de ignição" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+    <ComboBox fx:id="modoIgnicao" GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+
+    <Label text="Bicos por cilindro" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="bicosPorCilindro" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+    <Label text="Bicos extras no corpo de borboleta" GridPane.rowIndex="4" GridPane.columnIndex="2"/>
+    <TextField fx:id="bicosExtras" GridPane.rowIndex="4" GridPane.columnIndex="3"/>
+
+    <Label text="Roda fônica (dentes − faltantes)" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+    <HBox spacing="6.0" GridPane.rowIndex="5" GridPane.columnIndex="1">
+      <TextField fx:id="dentesTotais" promptText="ex.: 60" prefWidth="110.0"/>
+      <TextField fx:id="dentesFaltantes" promptText="ex.: 2" prefWidth="110.0"/>
+    </HBox>
+    <Label text="Sensores" GridPane.rowIndex="5" GridPane.columnIndex="2"/>
+    <HBox spacing="14.0" GridPane.rowIndex="5" GridPane.columnIndex="3">
+      <CheckBox fx:id="sensorFase" text="Sensor de fase"/>
+      <CheckBox fx:id="sensorEtanol" text="Sensor de etanol"/>
+    </HBox>
+  </GridPane>
+
+  <Label styleClass="titulo-secao" text="Combustível e local"/>
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="220.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Combustível" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="combustivel" promptText="Escolha" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Altitude da oficina (m)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="altitude" promptText="0 a 3.000" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+    <Label fx:id="infoCombustivel" styleClass="dica" wrapText="true" GridPane.rowIndex="1" GridPane.columnIndex="1" GridPane.columnSpan="3"/>
+  </GridPane>
+
+  <HBox spacing="10.0">
+    <Button text="Con_ferir motor" onAction="#conferirMotor"/>
+  </HBox>
+  <VBox fx:id="mensagensMotor" spacing="4.0"/>
+</VBox>
