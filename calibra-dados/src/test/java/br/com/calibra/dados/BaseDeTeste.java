@@ -11,6 +11,14 @@ public final class BaseDeTeste {
 
     public static final String VERSAO_APP = "0.2.0-teste";
 
+    /** Última migração do app (V1, V2...). Sobe junto com cada migração nova. */
+    public static final String VERSAO_BANCO = "2";
+
+    /** Migrações só de teste, com números bem acima dos do app: simulam uma versão futura do banco. */
+    public static final String FUTURA_OK = "classpath:br/com/calibra/dados/migracoes-teste/futura-ok";
+    public static final String FUTURA_FALHA = "classpath:br/com/calibra/dados/migracoes-teste/futura-falha";
+    public static final String VERSAO_FUTURA = "900";
+
     public final PastasDados pastas;
     public final RelogioDeTeste relogio;
     public final BancoDados banco;

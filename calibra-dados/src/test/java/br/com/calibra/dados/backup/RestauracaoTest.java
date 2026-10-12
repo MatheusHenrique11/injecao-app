@@ -108,10 +108,9 @@ class RestauracaoTest {
     @Test
     void backupDeVersaoMaisNovaERecusado() throws Exception {
         BaseDeTeste novo = BaseDeTeste.criada(pasta.resolve("app-novo"));
-        Migracoes.migrar(novo.banco, novo.backup, Migracoes.LOCAL_PADRAO,
-                "classpath:br/com/calibra/dados/migracoes-teste/v2-ok");
+        Migracoes.migrar(novo.banco, novo.backup, Migracoes.LOCAL_PADRAO, BaseDeTeste.FUTURA_OK);
         InfoBackup backupNovo = novo.backup.fazer(pasta.resolve("backups"), MotivoBackup.MANUAL);
-        assertEquals("2", backupNovo.manifesto().versaoBanco());
+        assertEquals(BaseDeTeste.VERSAO_FUTURA, backupNovo.manifesto().versaoBanco());
 
         BaseDeTeste antigo = BaseDeTeste.criada(pasta.resolve("app-antigo"));
         antigo.configuracao.gravar(Chave.OFICINA, ANTES);
@@ -120,7 +119,7 @@ class RestauracaoTest {
 
         assertTrue(erro.getMessage().contains("versão mais nova"), erro.getMessage());
         assertEquals(ANTES, antigo.configuracao.ler(Chave.OFICINA));
-        assertEquals("1", antigo.banco.versaoDoEsquema());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, antigo.banco.versaoDoEsquema());
     }
 
     @Test

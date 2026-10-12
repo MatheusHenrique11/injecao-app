@@ -23,7 +23,6 @@ import br.com.calibra.dados.config.Chave;
 
 class MigracoesTest {
 
-    private static final String TESTE = "classpath:br/com/calibra/dados/migracoes-teste/";
     private static final DadosOficina OFICINA = new DadosOficina("Oficina do Teste", "", "", "", "", null);
 
     @TempDir
@@ -34,7 +33,7 @@ class MigracoesTest {
         BaseDeTeste base = BaseDeTeste.semMigrar(pasta);
         Migracoes.Resultado resultado = Migracoes.migrar(base.banco, base.backup);
         assertNull(resultado.versaoAntes());
-        assertEquals("1", resultado.versaoDepois());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoDepois());
         assertTrue(resultado.migrou());
         assertNull(resultado.backupAntes(), "banco novo não precisa de backup");
         assertTrue(tabelaExiste(base.banco, "configuracao"));
@@ -47,7 +46,7 @@ class MigracoesTest {
         BaseDeTeste base = BaseDeTeste.criada(pasta);
         Migracoes.Resultado resultado = Migracoes.migrar(base.banco, base.backup);
         assertFalse(resultado.migrou());
-        assertEquals("1", resultado.versaoAntes());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoAntes());
         assertNull(resultado.backupAntes());
     }
 
@@ -57,13 +56,14 @@ class MigracoesTest {
         base.configuracao.gravar(Chave.OFICINA, OFICINA);
 
         Migracoes.Resultado resultado =
-                Migracoes.migrar(base.banco, base.backup, Migracoes.LOCAL_PADRAO, TESTE + "v2-ok");
+                Migracoes.migrar(base.banco, base.backup, Migracoes.LOCAL_PADRAO, BaseDeTeste.FUTURA_OK);
 
-        assertEquals("1", resultado.versaoAntes());
-        assertEquals("2", resultado.versaoDepois());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoAntes());
+        assertEquals(BaseDeTeste.VERSAO_FUTURA, resultado.versaoDepois());
         assertNotNull(resultado.backupAntes());
         assertEquals(MotivoBackup.ANTES_DE_MIGRAR, resultado.backupAntes().manifesto().motivo());
-        assertEquals("1", resultado.backupAntes().manifesto().versaoBanco(), "o backup guarda o banco antes da V2");
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.backupAntes().manifesto().versaoBanco(),
+                "o backup guarda o banco antes da migração futura");
         assertTrue(tabelaExiste(base.banco, "tabela_de_teste"));
         assertEquals(OFICINA, base.configuracao.ler(Chave.OFICINA));
     }
@@ -74,13 +74,13 @@ class MigracoesTest {
         BaseDeTeste base = BaseDeTeste.criada(pasta);
         base.configuracao.gravar(Chave.OFICINA, OFICINA);
 
-        // V2 dá certo e V3 falha no meio: sem a restauração, o banco ficaria na V2.
+        // V900 dá certo e V901 falha no meio: sem a restauração, o banco ficaria na V900.
         MigracaoFalhouException erro = assertThrows(MigracaoFalhouException.class, () -> Migracoes.migrar(
-                base.banco, base.backup, Migracoes.LOCAL_PADRAO, TESTE + "v2-ok", TESTE + "v3-falha"));
+                base.banco, base.backup, Migracoes.LOCAL_PADRAO, BaseDeTeste.FUTURA_OK, BaseDeTeste.FUTURA_FALHA));
 
         assertTrue(erro.getMessage().contains("voltaram a ser como estavam antes"), erro.getMessage());
-        assertEquals("1", base.banco.versaoDoEsquema());
-        assertFalse(tabelaExiste(base.banco, "tabela_de_teste"), "a V2 foi desfeita junto");
+        assertEquals(BaseDeTeste.VERSAO_BANCO, base.banco.versaoDoEsquema());
+        assertFalse(tabelaExiste(base.banco, "tabela_de_teste"), "a V900 foi desfeita junto");
         assertEquals(OFICINA, base.configuracao.ler(Chave.OFICINA), "os dados continuam lá");
         List<InfoBackup> backups = Backup.listar(base.pastas.backupsPadrao());
         assertEquals(1, backups.size());
@@ -90,13 +90,13 @@ class MigracoesTest {
     @Test
     void bancoDeVersaoMaisNovaERecusado() throws Exception {
         BaseDeTeste base = BaseDeTeste.criada(pasta);
-        Migracoes.migrar(base.banco, base.backup, Migracoes.LOCAL_PADRAO, TESTE + "v2-ok");
+        Migracoes.migrar(base.banco, base.backup, Migracoes.LOCAL_PADRAO, BaseDeTeste.FUTURA_OK);
 
-        // O app "antigo" só conhece a V1.
+        // O app de hoje não conhece a V900.
         BancoMaisNovoException erro =
                 assertThrows(BancoMaisNovoException.class, () -> Migracoes.migrar(base.banco, base.backup));
         assertTrue(erro.getMessage().contains("versão mais nova do Calibra"), erro.getMessage());
-        assertEquals("2", base.banco.versaoDoEsquema(), "nada foi alterado");
+        assertEquals(BaseDeTeste.VERSAO_FUTURA, base.banco.versaoDoEsquema(), "nada foi alterado");
     }
 
     static boolean tabelaExiste(BancoDados banco, String nome) {

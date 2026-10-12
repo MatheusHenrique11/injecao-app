@@ -43,7 +43,7 @@ class BackupTest {
         Manifesto m = info.manifesto();
         assertEquals(Manifesto.FORMATO, m.formato());
         assertEquals(BaseDeTeste.VERSAO_APP, m.versaoApp());
-        assertEquals("1", m.versaoBanco());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, m.versaoBanco());
         assertEquals(LocalDateTime.of(2026, 10, 11, 18, 30, 1), m.criadoEm());
         assertEquals(MotivoBackup.MANUAL, m.motivo());
         assertEquals(2, m.anexos());
@@ -52,7 +52,8 @@ class BackupTest {
             assertNotNull(zip.getEntry("manifesto.json"));
             assertEquals("imagem", ler(zip, "anexos/logo.png"));
             assertEquals("mapa", ler(zip, "anexos/turbos/mapa.png"));
-            assertTrue(ler(zip, "manifesto.json").contains("\"versaoBanco\" : \"1\""), "manifesto legível");
+            assertTrue(ler(zip, "manifesto.json").contains("\"versaoBanco\" : \"" + BaseDeTeste.VERSAO_BANCO + "\""),
+                    "manifesto legível");
         }
         assertFalse(Files.exists(info.arquivo().resolveSibling(info.arquivo().getFileName() + ".parcial")));
         try (var restos = Files.list(base.pastas.temporaria())) {
