@@ -214,3 +214,17 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 83. **Mensagens de "salvo" aparecem na própria tela, sem janela.** Só confirmações e erros abrem janela: incomoda menos e não trava o teste automático.
 84. **Arquivar veículo:** existe no banco e foi testado (o veículo sai da lista do assistente), mas ainda não tem botão. Por enquanto todo veículo nasce com um projeto. O botão entra quando houver uma tela de clientes e veículos.
 85. **Testes de interface:** o cache do JavaFX dos testes fica em `target/javafx-cache` (configuração do surefire no POM). Na pasta temporária do teste, a DLL de fonte ficava presa e a pasta não era apagada no fim.
+
+## 12/10/2026 — Fase 2 (bloco 2.3: catálogos e seleção de peças)
+
+86. **Peças novas de catálogo no núcleo.** Campo que não tem fonte fica vazio (regra: não inventar dado técnico).
+    - **Intercooler:** tipo ar-ar ou ar-água; a eficiência é opcional e, se informada, vira o eps do cálculo.
+    - **Sensor:** tipo (MAP, pressão, temperatura ou outro) e faixa. A faixa máxima do sensor MAP é a do semáforo.
+    - **Câmbio:** tipo e torque máximo em N·m, para o indicador "Torque × câmbio" do bloco 2.4.
+    - **Motor ou montagem (`ModeloMotor`):** geometria, biela e taxa, com cilindrada, relação biela/curso e diferença da ficha calculadas.
+87. **Bomba do catálogo no cálculo:**
+    - A entrada aceita a bomba, com a curva, no lugar da vazão digitada (nunca as duas).
+    - O núcleo lê a vazão na pressão exigida (base + turbo) e na tensão, e grava esse passo na memória de cálculo.
+    - Sem tensão, ou com a curva sem cobrir a condição: aviso amarelo, e a folga não é avaliada.
+    - Nenhuma fórmula mudou, então o núcleo continua 1.0.0.
+88. **Dinheiro em centavos inteiros** (`Dinheiro`, no núcleo): lê "1.234,56" e "R$ 1.234,56" e recusa "12.5", que é ambíguo. Serve ao preço de referência dos catálogos e ao orçamento do bloco 2.5.

@@ -22,6 +22,7 @@ import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.core.projeto.Meta;
@@ -104,7 +105,7 @@ class CalculoDimensionamentoTest {
     @Test
     void veDigitadaComoPercentualERecusadaComExplicacao() {
         EntradaDimensionamento entrada = new EntradaDimensionamento(Fixtures.casoB().motor(), Fixtures.casoB().meta(),
-                0.80, 95, 25, 300, Parametros.padrao(), null, null, null, null, null, null, null);
+                0.80, 95, 25, 300, Parametros.padrao(), null, null, null, null, null, null, null, null);
         assertTrue(erros(entrada).stream().anyMatch(e -> e.contains("0,95 = 95%")));
     }
 
@@ -234,6 +235,49 @@ class CalculoDimensionamentoTest {
                 .avaliacao(Indicador.FOLGA_BOMBA).orElseThrow().cor());
         assertEquals(Cor.VERMELHO, calcular(Fixtures.casoB().comBombaDisponivel(200.0))
                 .avaliacao(Indicador.FOLGA_BOMBA).orElseThrow().cor());
+    }
+
+    /** Bloco 2.3: bomba do catálogo; a vazão disponível sai da curva, na pressão exigida e na tensão. */
+    @Test
+    void bombaDoCatalogoPelaCurva() {
+        Bomba bomba = new Bomba("Bomba de teste", List.of(
+                new Bomba.Ponto(300, 13.5, 300), new Bomba.Ponto(600, 13.5, 250)), "teste", null);
+        EntradaDimensionamento entrada = Fixtures.casoB().comBomba(bomba).comTensao(13.5);
+        Resultado<Dimensionamento> r = resultado(entrada);
+        double pressao = r.valor().bomba().pressaoKpa();
+        double disponivel = bomba.vazaoLh(pressao, 13.5).orElseThrow();
+        assertEquals(300 - (pressao - 300) / 300 * 50, disponivel, 1e-9, "interpolação linear na pressão");
+
+        // Mesma folga que digitar a vazão lida na curva.
+        Dimensionamento digitado = calcular(Fixtures.casoB().comBombaDisponivel(disponivel));
+        assertEquals(digitado.bomba().folga(), r.valor().bomba().folga(), 1e-12);
+        assertEquals(digitado.avaliacao(Indicador.FOLGA_BOMBA), r.valor().avaliacao(Indicador.FOLGA_BOMBA));
+        assertTrue(r.memoria().stream().anyMatch(p -> p.grandeza().contains("Vazão da bomba Bomba de teste")),
+                "o passo da curva fica na memória de cálculo");
+    }
+
+    @Test
+    void bombaDoCatalogoSemTensaoOuForaDaCurvaSoAvisa() {
+        Bomba bomba = new Bomba("Bomba de teste", List.of(new Bomba.Ponto(300, 13.5, 300),
+                new Bomba.Ponto(400, 13.5, 280)), "teste", null);
+        Resultado<Dimensionamento> semTensao = resultado(Fixtures.casoB().comBomba(bomba));
+        assertTrue(temAviso(semTensao, NivelAviso.AMARELO, "Informe a tensão"));
+        assertFalse(semTensao.valor().avaliacao(Indicador.FOLGA_BOMBA).isPresent());
+
+        Resultado<Dimensionamento> foraDaCurva = resultado(Fixtures.casoB().comBomba(bomba).comTensao(13.5));
+        assertTrue(temAviso(foraDaCurva, NivelAviso.AMARELO, "não cobre"), "a pressão exigida passa de 400 kPa");
+        assertFalse(foraDaCurva.valor().avaliacao(Indicador.FOLGA_BOMBA).isPresent());
+    }
+
+    @Test
+    void bombaDigitadaEDoCatalogoJuntasSaoRecusadas() {
+        Bomba bomba = new Bomba("Bomba de teste", List.of(new Bomba.Ponto(300, 13.5, 300)), "teste", null);
+        EntradaDimensionamento as2 = new EntradaDimensionamento(Fixtures.casoB().motor(), Fixtures.casoB().meta(),
+                0.80, 0.95, 25, 300, Parametros.padrao(), null, null, 13.5, null, 250.0, null, null, bomba);
+        assertTrue(erros(as2).contains("Informe a vazão da bomba ou escolha a bomba do catálogo, não os dois."));
+        assertEquals(bomba, Fixtures.casoB().comBombaDisponivel(250.0).comBomba(bomba).bomba());
+        assertEquals(null, Fixtures.casoB().comBombaDisponivel(250.0).comBomba(bomba).vazaoBombaDisponivelLh(),
+                "escolher a bomba do catálogo tira a vazão digitada");
     }
 
     @Test

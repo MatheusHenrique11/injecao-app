@@ -21,6 +21,7 @@ import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.motor.SaidasExigidas;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
@@ -121,6 +122,9 @@ public final class CalculoDimensionamento {
         }
         if (entrada.vazaoBombaDisponivelLh() != null && !(entrada.vazaoBombaDisponivelLh() > 0)) {
             erros.add("A vazão da bomba deve ser maior que zero.");
+        }
+        if (entrada.vazaoBombaDisponivelLh() != null && entrada.bomba() != null) {
+            erros.add("Informe a vazão da bomba ou escolha a bomba do catálogo, não os dois.");
         }
         if (entrada.faixaSensorMapKpa() != null && !(entrada.faixaSensorMapKpa() > 0)) {
             erros.add("A faixa do sensor MAP deve ser maior que zero.");
@@ -665,12 +669,38 @@ public final class CalculoDimensionamento {
                     e("Bomba", vazao, "L/h"), e("folga verde", limiares.folgaBombaVerde(), "fração"));
             double folga = Double.NaN;
             Double disponivel = entrada.vazaoBombaDisponivelLh();
+            if (disponivel == null && entrada.bomba() != null) {
+                disponivel = vazaoPelaCurva(entrada.bomba(), pressao);
+            }
             if (disponivel != null) {
                 folga = memoria.passo("Folga da bomba", "folga = vazão disponível / vazão necessária − 1",
                         disponivel / vazao - 1.0, "fração", e("disponível", disponivel, "L/h"), e("necessária", vazao, "L/h"));
                 semaforo.add(Semaforo.folgaBomba(folga, limiares));
             }
             return new Dimensionamento.BombaNecessaria(vazao, pressao, comFolga, folga);
+        }
+
+        /**
+         * Vazão da bomba do catálogo na pressão exigida e na tensão informada, pela curva do fabricante (SPEC
+         * 7.3). Sem tensão, ou com a curva sem cobrir a condição, avisa e não avalia a folga.
+         */
+        private Double vazaoPelaCurva(Bomba bomba, double pressaoKpa) {
+            Double tensao = entrada.tensaoV();
+            if (tensao == null) {
+                memoria.aviso(NivelAviso.AMARELO, "Informe a tensão para ler a curva da bomba " + bomba.nome()
+                        + ": sem ela, a folga da bomba não é avaliada.");
+                return null;
+            }
+            OptionalDouble vazao = bomba.vazaoLh(pressaoKpa, tensao);
+            if (vazao.isEmpty()) {
+                memoria.aviso(NivelAviso.AMARELO, "A curva da bomba " + bomba.nome() + " não cobre "
+                        + formatar(pressaoKpa, 0) + " kPa a " + formatar(tensao, 1) + " V: a folga da bomba não é "
+                        + "avaliada. Confira a curva no catálogo.");
+                return null;
+            }
+            return memoria.passo("Vazão da bomba " + bomba.nome() + " na pressão exigida",
+                    "curva do fabricante (pressão × tensão × vazão), interpolada", vazao.getAsDouble(), "L/h",
+                    e("pressão", pressaoKpa, "kPa"), e("tensão", tensao, "V"));
         }
 
         // ---------- 8. Esforço ----------

@@ -120,7 +120,7 @@ public final class LeitorFormulario {
             return null;
         }
         return new EntradaDimensionamento(motor, meta, lambda, ve, temperatura, pressaoBase, parametros, bico,
-                secundario, null, marchaLenta, bomba, sensor, injecao);
+                secundario, null, marchaLenta, bomba, sensor, injecao, null);
     }
 
     private ConfiguracaoMotor motor() {
