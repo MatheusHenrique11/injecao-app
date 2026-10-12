@@ -28,7 +28,7 @@
       </Tab>
 
       <!-- ===================== 2. Meta e peças ===================== -->
-      <Tab text="2. Meta e peças">
+      <Tab fx:id="abaMeta" text="2. Meta e peças">
         <ScrollPane fitToWidth="true">
           <VBox styleClass="pagina">
 

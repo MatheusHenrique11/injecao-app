@@ -70,6 +70,7 @@ public class CalculadoraController {
     @FXML private MotorFormController motorController;
 
     // ---------- Meta e peças ----------
+    @FXML private Tab abaMeta;
     @FXML private TextField potencia;
     @FXML private ComboBox<PontoMedicao> pontoMedicao;
     @FXML private TextField perdaTransmissao;
@@ -352,6 +353,8 @@ public class CalculadoraController {
         boolean mudou = motorDoProjeto != null && !motorDoProjeto.equals(motor);
         motorDoProjeto = motor;
         abas.getTabs().remove(abaMotor);
+        abaMeta.setText("Meta e peças");
+        abaResultado.setText("Resultado");
         if (lambda.getText().isBlank() && motor.combustivel() != null && motor.aspiracao() != null) {
             lambda.setText(formatar(motor.combustivel().lambdaPadrao(motor.aspiracao().sobrealimentado()), 2));
         }
