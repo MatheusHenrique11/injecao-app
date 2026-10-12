@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo e limiares do semáforo. -->
+<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo e backup. -->
 <TabPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
          fx:id="abasConfiguracoes" fx:controller="br.com.calibra.app.ConfiguracoesController"
          tabClosingPolicy="UNAVAILABLE">
@@ -168,6 +168,40 @@
           <Button text="Descartar alterações" onAction="#descartarPadroes"/>
         </HBox>
         <VBox fx:id="mensagensPadroes" spacing="4.0"/>
+      </VBox>
+    </ScrollPane>
+  </Tab>
+
+  <!-- ===================== Backup ===================== -->
+  <Tab fx:id="abaBackup" text="Backup">
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina">
+        <Label styleClass="titulo-secao" text="Pasta de backup"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Use um HD externo ou pen drive para ter uma cópia fora do computador. Se ele não estiver ligado, o backup vai para a pasta padrão e o Calibra avisa."/>
+        <HBox spacing="10.0" alignment="CENTER_LEFT">
+          <Label text="Pasta atual:"/>
+          <Label fx:id="backupPasta" styleClass="negrito" wrapText="true"/>
+        </HBox>
+        <Label fx:id="backupAvisoPasta" styleClass="aviso-amarelo" wrapText="true"/>
+        <HBox spacing="10.0">
+          <Button fx:id="botaoEscolherPasta" text="Escolher pasta…" onAction="#escolherPastaBackup"/>
+          <Button fx:id="botaoPastaPadrao" text="Usar a pasta padrão" onAction="#usarPastaPadrao"/>
+          <Button text="Abrir a pasta" onAction="#abrirPastaBackup"/>
+        </HBox>
+
+        <Label styleClass="titulo-secao" text="Backups"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Automático: uma vez por dia, e ao fechar o app se algo mudou desde o último backup. Ficam os 30 mais recentes em cada pasta. O backup leva o banco de dados e os anexos (logo, imagens)."/>
+        <HBox spacing="10.0" alignment="CENTER_LEFT">
+          <Label text="Último backup:"/>
+          <Label fx:id="backupUltimo" styleClass="negrito"/>
+        </HBox>
+        <HBox spacing="10.0">
+          <Button fx:id="botaoBackupAgora" text="Fazer backup agora" onAction="#fazerBackupAgora"/>
+          <Button fx:id="botaoRestaurar" text="Restaurar um backup…" onAction="#restaurarBackup"/>
+        </HBox>
+        <VBox fx:id="mensagensBackup" spacing="4.0"/>
       </VBox>
     </ScrollPane>
   </Tab>

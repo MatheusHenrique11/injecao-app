@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
@@ -33,6 +34,7 @@
 
   <bottom>
     <HBox styleClass="barra-status" spacing="10.0">
+      <ProgressIndicator fx:id="progresso" prefWidth="18.0" prefHeight="18.0" visible="false" managed="false"/>
       <Label fx:id="rotuloStatus" styleClass="estado"/>
       <Region HBox.hgrow="ALWAYS"/>
       <Label fx:id="rotuloVersao" styleClass="dica"/>

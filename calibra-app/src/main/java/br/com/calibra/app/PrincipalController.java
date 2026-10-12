@@ -2,40 +2,59 @@ package br.com.calibra.app;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 import javafx.application.HostServices;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.memoria.VersaoNucleo;
+import br.com.calibra.dados.backup.InfoBackup;
 import br.com.calibra.dados.config.Chave;
 
 /**
- * Janela principal: navegação entre as telas, barra de status e versão (SPEC 10). Cada tela é carregada na
- * primeira vez que é aberta e continua com o que foi digitado quando se troca de tela.
+ * Janela principal: navegação entre as telas, barra de status com o backup e a versão (SPEC 10). Cada tela
+ * é carregada na primeira vez que é aberta e continua com o que foi digitado quando se troca de tela.
  */
 public class PrincipalController {
+
+    private static final Logger LOG = Logger.getLogger(PrincipalController.class.getName());
 
     @FXML private ToggleGroup navegacao;
     @FXML private ToggleButton navCalculadora;
     @FXML private ToggleButton navConfiguracoes;
     @FXML private StackPane conteudo;
+    @FXML private ProgressIndicator progresso;
     @FXML private Label rotuloStatus;
     @FXML private Label rotuloVersao;
 
     private ContextoApp contexto;
     private HostServices servicos;
     private Stage palco;
+    private ServicoBackup servicoBackup;
+    private final TarefasFundo tarefas = new TarefasFundo();
+    /** Último erro de backup em segundo plano; fica na barra até o próximo backup dar certo. */
+    private String erroDeBackup;
+    private boolean fechando;
 
     private Parent telaCalculadora;
     private CalculadoraController calculadora;
     private Parent telaConfiguracoes;
+    private ConfiguracoesController configuracoes;
 
     @FXML
     private void initialize() {
@@ -46,14 +65,30 @@ public class PrincipalController {
                 antes.setSelected(true);
             }
         });
+        tarefas.emAndamento().addListener((obs, antes, depois) -> {
+            atualizarStatus();
+            if (depois.intValue() == 0 && configuracoes != null) {
+                configuracoes.atualizarBackup();
+            }
+        });
     }
 
     void iniciar(ContextoApp contexto, HostServices servicos, Stage palco) {
         this.contexto = contexto;
         this.servicos = servicos;
         this.palco = palco;
+        this.servicoBackup = new ServicoBackup(contexto.backup(), contexto.configuracao(), contexto.relogio());
+        atualizarStatus();
         mostrarCalculadora();
     }
+
+    /** Backup automático (SPEC 10: diário): confere agora, ao abrir, e depois de hora em hora. */
+    void ligarBackupAutomatico() {
+        backupAutomatico();
+        tarefas.deHoraEmHora(this::backupAutomatico);
+    }
+
+    // ===================== Navegação =====================
 
     @FXML
     private void mostrarCalculadora() {
@@ -72,12 +107,13 @@ public class PrincipalController {
         if (telaConfiguracoes == null) {
             FXMLLoader carregador = carregador("configuracoes.fxml");
             telaConfiguracoes = carregar(carregador);
-            ConfiguracoesController configuracoes = carregador.getController();
+            configuracoes = carregador.getController();
             configuracoes.iniciar(contexto.configuracao(), contexto.pastas().anexos(), padroes -> {
                 if (calculadora != null) {
                     calculadora.usarPadroes(padroes);
                 }
             });
+            configuracoes.usarBackup(servicoBackup, tarefas, servicos, this::aposRestaurar);
         }
         mostrar(telaConfiguracoes, navConfiguracoes, "Configurações");
     }
@@ -89,6 +125,116 @@ public class PrincipalController {
             palco.setTitle("Calibra " + Versao.atual() + " — " + titulo);
         }
     }
+
+    /** Os dados mudaram todos: as telas são montadas de novo a partir do banco restaurado. */
+    private void aposRestaurar() {
+        telaCalculadora = null;
+        calculadora = null;
+        telaConfiguracoes = null;
+        configuracoes = null;
+        erroDeBackup = null;
+        mostrarConfiguracoes();
+        configuracoes.mostrarAbaBackup();
+        atualizarStatus();
+    }
+
+    // ===================== Backup =====================
+
+    private void backupAutomatico() {
+        tarefas.executar("Backup automático", servicoBackup::fazerAutomaticoSeVencido,
+                feito -> {
+                    erroDeBackup = null;
+                    atualizarStatus();
+                },
+                erro -> {
+                    erroDeBackup = "O backup automático falhou: " + ConfiguracoesController.mensagemDeErro(erro)
+                            + " O Calibra tenta de novo daqui a uma hora.";
+                    atualizarStatus();
+                });
+    }
+
+    /** Barra de status: o trabalho em andamento ou o último backup, com os avisos. */
+    private void atualizarStatus() {
+        boolean ocupado = tarefas.emAndamento().get() > 0;
+        progresso.setVisible(ocupado);
+        progresso.setManaged(ocupado);
+        rotuloStatus.getStyleClass().removeAll("erro", "aviso-amarelo");
+        if (ocupado) {
+            rotuloStatus.setText(tarefas.descricao().get());
+            return;
+        }
+        if (servicoBackup == null) {
+            rotuloStatus.setText("");
+            return;
+        }
+        if (erroDeBackup != null) {
+            rotuloStatus.setText(erroDeBackup);
+            rotuloStatus.getStyleClass().add("erro");
+            return;
+        }
+        Optional<InfoBackup> ultimo = servicoBackup.ultimo();
+        String texto = "Último backup: " + ultimo.map(ServicoBackup::descrever).orElse("nenhum ainda");
+        if (servicoBackup.avisoDaPasta().isPresent()) {
+            texto += " · a pasta de backup escolhida não está ligada: usando a pasta padrão";
+            rotuloStatus.getStyleClass().add("aviso-amarelo");
+        }
+        rotuloStatus.setText(texto);
+    }
+
+    // ===================== Fechar =====================
+
+    /**
+     * Fechar a janela (SPEC 10: backup ao fechar). Se algo mudou desde o último backup, ou se há backup
+     * rodando, mostra "Fazendo backup…" e só fecha no fim. Se o backup falhar, pergunta se sai mesmo assim.
+     */
+    void fechar() {
+        if (fechando) {
+            return;
+        }
+        fechando = true;
+        if (!servicoBackup.precisaBackupAoFechar() && tarefas.emAndamento().get() == 0) {
+            sair();
+            return;
+        }
+        Stage espera = JanelaProgresso.abrir(palco, "Fazendo backup antes de fechar…");
+        tarefas.executar("Backup ao fechar", servicoBackup::fazerAoFecharSePreciso,
+                feito -> {
+                    espera.close();
+                    sair();
+                },
+                erro -> {
+                    espera.close();
+                    if (sairMesmoAssim(ConfiguracoesController.mensagemDeErro(erro))) {
+                        sair();
+                    } else {
+                        fechando = false;
+                    }
+                });
+    }
+
+    private boolean sairMesmoAssim(String mensagem) {
+        ButtonType sair = new ButtonType("Sair sem backup", ButtonBar.ButtonData.OK_DONE);
+        ButtonType ficar = new ButtonType("Continuar no Calibra", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alerta = new Alert(AlertType.WARNING, mensagem + "\n\nSe sair agora, as mudanças desde o último "
+                + "backup ficam só no banco de dados deste computador.", sair, ficar);
+        alerta.initOwner(palco);
+        alerta.setTitle("Backup ao fechar");
+        alerta.setHeaderText("O backup ao fechar falhou. Sair mesmo assim?");
+        return alerta.showAndWait().filter(sair::equals).isPresent();
+    }
+
+    private void sair() {
+        LOG.info("Calibra fechando.");
+        encerrar();
+        Platform.exit();
+    }
+
+    /** Para a fila de trabalhos (ao sair do app). */
+    void encerrar() {
+        tarefas.encerrar();
+    }
+
+    // ===================== Utilidades =====================
 
     private static FXMLLoader carregador(String fxml) {
         return new FXMLLoader(PrincipalController.class.getResource(fxml));

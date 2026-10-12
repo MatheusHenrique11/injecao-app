@@ -25,10 +25,11 @@ public class CalibraApp extends Application {
     /** Altura da barra de título do Windows, que fica fora da cena. */
     private static final double BORDA_DA_JANELA = 40;
 
-    private ContextoApp contexto;
+    private PrincipalController principal;
 
     @Override
     public void start(Stage palco) throws IOException {
+        ContextoApp contexto;
         try {
             contexto = Partida.abrir(Partida.pastas(), Versao.atual(), Clock.systemDefaultZone());
         } catch (IOException | ErroDados erro) {
@@ -41,8 +42,12 @@ public class CalibraApp extends Application {
         }
         FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("principal.fxml"));
         Parent raiz = carregador.load();
-        PrincipalController principal = carregador.getController();
+        principal = carregador.getController();
         principal.iniciar(contexto, getHostServices(), palco);
+        palco.setOnCloseRequest(evento -> {
+            evento.consume();
+            principal.fechar();
+        });
         Rectangle2D area = Screen.getPrimary().getVisualBounds();
         double largura = raiz.prefWidth(-1);
         double altura = raiz.prefHeight(-1);
@@ -57,6 +62,14 @@ public class CalibraApp extends Application {
         palco.setMaximized(!cabe);
         palco.show();
         LOG.info(() -> "Tela aberta em " + Inicio.msDesdeOInicio() + " ms.");
+        principal.ligarBackupAutomatico();
+    }
+
+    @Override
+    public void stop() {
+        if (principal != null) {
+            principal.encerrar();
+        }
     }
 
     /** Endereço do calibra.css dentro do próprio app. */

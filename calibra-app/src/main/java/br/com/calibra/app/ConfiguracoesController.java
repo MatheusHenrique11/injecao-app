@@ -8,30 +8,47 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javafx.application.HostServices;
+import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CampoPadrao;
 import br.com.calibra.app.casos.FormularioPadroes;
 import br.com.calibra.app.casos.LogoOficina;
+import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.dados.ErroDados;
+import br.com.calibra.dados.backup.Backup;
+import br.com.calibra.dados.backup.BackupInvalidoException;
+import br.com.calibra.dados.backup.InfoBackup;
+import br.com.calibra.dados.backup.MotivoBackup;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.config.ConfiguracaoRepositorio;
 
-/** Tela de Configurações (SPEC 8.7): dados da oficina, padrões de cálculo e limiares do semáforo. */
+/** Tela de Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo e backup. */
 public class ConfiguracoesController {
 
     private static final Logger LOG = Logger.getLogger(ConfiguracoesController.class.getName());
@@ -77,12 +94,28 @@ public class ConfiguracoesController {
     @FXML private TextField limiarBmepAmarelo;
     @FXML private VBox mensagensPadroes;
 
+    // ---------- Backup ----------
+    @FXML private TabPane abasConfiguracoes;
+    @FXML private Tab abaBackup;
+    @FXML private Label backupPasta;
+    @FXML private Label backupAvisoPasta;
+    @FXML private Label backupUltimo;
+    @FXML private Button botaoEscolherPasta;
+    @FXML private Button botaoPastaPadrao;
+    @FXML private Button botaoBackupAgora;
+    @FXML private Button botaoRestaurar;
+    @FXML private VBox mensagensBackup;
+
     private final Map<CampoPadrao, TextField> camposPadrao = new EnumMap<>(CampoPadrao.class);
     private final Map<CampoPadrao, String> textosDaSpec = FormularioPadroes.textos(Parametros.padrao());
 
     private ConfiguracaoRepositorio configuracao;
     private Path anexos;
     private Consumer<Parametros> aoSalvarPadroes = padroes -> { };
+    private ServicoBackup servicoBackup;
+    private TarefasFundo tarefas;
+    private HostServices servicos;
+    private Runnable aposRestaurar = () -> { };
 
     private DadosOficina oficinaSalva = DadosOficina.vazia();
     private Parametros padroesSalvos = Parametros.padrao();
@@ -131,6 +164,28 @@ public class ConfiguracoesController {
         padroesSalvos = configuracao.ler(Chave.CALCULO);
         descartarOficina();
         descartarPadroes();
+    }
+
+    /**
+     * Liga a aba Backup.
+     *
+     * @param aposRestaurar chamado depois de restaurar um backup, para as telas lerem os dados restaurados
+     */
+    void usarBackup(ServicoBackup servicoBackup, TarefasFundo tarefas, HostServices servicos, Runnable aposRestaurar) {
+        this.servicoBackup = servicoBackup;
+        this.tarefas = tarefas;
+        this.servicos = servicos;
+        this.aposRestaurar = aposRestaurar;
+        BooleanBinding ocupado = tarefas.emAndamento().greaterThan(0);
+        botaoBackupAgora.disableProperty().bind(ocupado);
+        botaoRestaurar.disableProperty().bind(ocupado);
+        botaoEscolherPasta.disableProperty().bind(ocupado);
+        atualizarBackup();
+    }
+
+    /** Abre na aba Backup (depois de restaurar). */
+    void mostrarAbaBackup() {
+        abasConfiguracoes.getSelectionModel().select(abaBackup);
     }
 
     // ===================== Oficina =====================
@@ -272,6 +327,140 @@ public class ConfiguracoesController {
     private void preencherPadroes(Parametros parametros) {
         Map<CampoPadrao, String> textos = FormularioPadroes.textos(parametros);
         camposPadrao.forEach((campo, texto) -> texto.setText(textos.get(campo)));
+    }
+
+    // ===================== Backup =====================
+
+    /** Mostra a pasta, o aviso de pen drive desligado e o último backup. */
+    void atualizarBackup() {
+        if (servicoBackup == null) {
+            return;
+        }
+        Path pasta = servicoBackup.pasta();
+        backupPasta.setText(pasta + (pasta.equals(servicoBackup.pastaPadrao()) ? " (pasta padrão)" : ""));
+        String aviso = servicoBackup.avisoDaPasta().orElse("");
+        backupAvisoPasta.setText(aviso);
+        backupAvisoPasta.setVisible(!aviso.isEmpty());
+        backupAvisoPasta.setManaged(!aviso.isEmpty());
+        botaoPastaPadrao.setDisable(servicoBackup.configuracaoAtual().usaPastaPadrao());
+        backupUltimo.setText(servicoBackup.ultimo().map(ServicoBackup::descrever).orElse("nenhum nesta pasta"));
+    }
+
+    @FXML
+    private void escolherPastaBackup() {
+        DirectoryChooser escolha = new DirectoryChooser();
+        escolha.setTitle("Pasta de backup do Calibra");
+        File pasta = escolha.showDialog(janela());
+        if (pasta == null) {
+            return;
+        }
+        try {
+            servicoBackup.escolherPasta(pasta.toString());
+        } catch (IllegalArgumentException | ErroDados erro) {
+            mostrarErros(mensagensBackup, List.of(erro.getMessage()));
+            return;
+        }
+        atualizarBackup();
+        mostrarOk(mensagensBackup, "Os próximos backups vão para " + servicoBackup.pasta()
+                + ". Para ter uma cópia lá agora, clique em \"Fazer backup agora\".");
+    }
+
+    @FXML
+    private void usarPastaPadrao() {
+        try {
+            servicoBackup.usarPastaPadrao();
+        } catch (ErroDados erro) {
+            mostrarErros(mensagensBackup, List.of(erro.getMessage()));
+            return;
+        }
+        atualizarBackup();
+        mostrarOk(mensagensBackup, "Os próximos backups vão para a pasta padrão.");
+    }
+
+    @FXML
+    private void abrirPastaBackup() {
+        if (servicos != null) {
+            servicos.showDocument(servicoBackup.pasta().toUri().toString());
+        }
+    }
+
+    @FXML
+    private void fazerBackupAgora() {
+        mensagensBackup.getChildren().clear();
+        tarefas.executar("Fazendo backup", () -> servicoBackup.fazer(MotivoBackup.MANUAL),
+                feito -> mostrarOk(mensagensBackup, "Backup feito: " + feito.arquivo()),
+                erro -> mostrarErros(mensagensBackup, List.of(mensagemDeErro(erro))));
+    }
+
+    @FXML
+    private void restaurarBackup() {
+        mensagensBackup.getChildren().clear();
+        Optional<Path> escolhido = EscolhaBackup.mostrar(janela(), servicoBackup.listar(), servicoBackup.pasta());
+        if (escolhido.isEmpty()) {
+            return;
+        }
+        Path zip = escolhido.get();
+        Optional<InfoBackup> info = Backup.lerInfo(zip);
+        if (info.isEmpty()) {
+            mostrarErros(mensagensBackup, List.of("O arquivo " + zip.getFileName() + " não é um backup do Calibra."));
+            return;
+        }
+        if (!confirmarRestauracao(info.get())) {
+            return;
+        }
+        Stage espera = JanelaProgresso.abrir(janela(), "Restaurando o backup…");
+        tarefas.executar("Restaurando o backup", () -> servicoBackup.restaurar(zip),
+                seguranca -> {
+                    espera.close();
+                    avisar(AlertType.INFORMATION, "Backup restaurado",
+                            "Os dados voltaram a ser os do backup de " + ServicoBackup.descrever(info.get())
+                                    + ".\n\nOs dados de antes foram guardados no backup de segurança:\n"
+                                    + seguranca.arquivo());
+                    aposRestaurar.run();
+                },
+                erro -> {
+                    espera.close();
+                    String mensagem = mensagemDeErro(erro);
+                    if (erro instanceof BackupInvalidoException) {
+                        mensagem += "\n\nOs dados atuais não foram alterados.";
+                    }
+                    avisar(AlertType.ERROR, "O backup não foi restaurado", mensagem);
+                    mostrarErros(mensagensBackup, List.of(mensagemDeErro(erro)));
+                });
+    }
+
+    private boolean confirmarRestauracao(InfoBackup info) {
+        ButtonType restaurar = new ButtonType("Restaurar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        Alert alerta = new Alert(AlertType.CONFIRMATION, "Todos os dados atuais (projetos, cadastros e "
+                + "configurações) serão trocados pelos do backup.\n\nAntes, o Calibra guarda os dados atuais num "
+                + "backup de segurança na pasta padrão. Ele aparece na lista de backups se você quiser voltar.\n\n"
+                + "O que estiver digitado e não salvo nas telas será perdido.", restaurar, cancelar);
+        alerta.initOwner(janela());
+        alerta.setTitle("Restaurar backup");
+        alerta.setHeaderText("Restaurar o backup de " + ServicoBackup.descrever(info) + " (Calibra "
+                + info.manifesto().versaoApp() + ")?");
+        return alerta.showAndWait().filter(restaurar::equals).isPresent();
+    }
+
+    private void avisar(AlertType tipo, String titulo, String mensagem) {
+        Alert alerta = new Alert(tipo, mensagem, ButtonType.OK);
+        alerta.initOwner(janela());
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(titulo);
+        alerta.showAndWait();
+    }
+
+    /** Erro do banco ou do backup já vem explicado; o resto ganha uma mensagem geral (o detalhe vai no log). */
+    static String mensagemDeErro(Throwable erro) {
+        if (erro instanceof ErroDados && erro.getMessage() != null) {
+            return erro.getMessage();
+        }
+        return "Erro inesperado (" + erro.getClass().getSimpleName() + "). O detalhe foi gravado no log.";
+    }
+
+    private Window janela() {
+        return abasConfiguracoes.getScene() == null ? null : abasConfiguracoes.getScene().getWindow();
     }
 
     // ===================== Utilidades =====================

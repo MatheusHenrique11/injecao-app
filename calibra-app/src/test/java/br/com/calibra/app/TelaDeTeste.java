@@ -9,7 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import javax.imageio.ImageIO;
 
@@ -58,6 +60,20 @@ final class TelaDeTeste {
         if (falha.get() != null) {
             throw falha.get();
         }
+    }
+
+    /** Espera (até 30 s) uma condição conferida na thread do JavaFX, para trabalhos em segundo plano. */
+    static void esperar(BooleanSupplier condicao, String oQue) throws Throwable {
+        AtomicBoolean pronto = new AtomicBoolean();
+        long limite = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (System.nanoTime() < limite) {
+            naTelaDoJavaFx(() -> pronto.set(condicao.getAsBoolean()));
+            if (pronto.get()) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("esperei 30 s e não aconteceu: " + oQue);
     }
 
     /** Procura um nó pelo fx:id depois de aplicar o CSS (que cria o conteúdo das abas). */
