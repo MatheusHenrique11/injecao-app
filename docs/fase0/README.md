@@ -4,7 +4,7 @@ Atualizado em 08/10/2026.
 
 | # | Passo | Situação | Onde |
 |---|---|---|---|
-| 1 | Instalar Temurin 25, Scene Builder 25 e Git; repositório com o projeto Maven | Feito localmente, com os 5 módulos `calibra-*` da SPEC. Falta criar o repositório privado no GitHub e dar `git push` | raiz do projeto |
+| 1 | Instalar Temurin 25, Scene Builder 25 e Git; repositório com o projeto Maven | Feito, com os 5 módulos `calibra-*` da SPEC. Repositório privado no GitHub: `MatheusHenrique11/injecao-app` (primeiro envio em 12/10/2026) | raiz do projeto |
 | 2 | Manuais das injeções e anotações | FuelTech e Pandoo baixados e anotados. Injepro precisa ser baixado pelo navegador | [injecoes.md](injecoes.md), `manuais/` |
 | 3 | Três motores de referência | EA888 preenchido com o SSP 606. AP 2.0 e V8 com campos a preencher | [motores-de-referencia.md](motores-de-referencia.md) |
 | 4 | Planilha da cadeia de cálculo + exemplos | Refeita com as fórmulas da SPEC 7.1/7.2 e os golden A a D (inclui o exemplo do plano = golden B e o da Garrett = golden A). Aba Conferencia mostra OK/FALHA com 1% | [cadeia-de-calculo.xlsx](cadeia-de-calculo.xlsx) |
