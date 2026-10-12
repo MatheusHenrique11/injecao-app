@@ -134,6 +134,16 @@ class CalculoDimensionamentoTest {
         assertEquals(List.of("Informe os parâmetros do cálculo."), CalculoDimensionamento.validarParametros(null));
     }
 
+    /** O assistente de novo projeto confere a meta contra o motor com a mesma regra do cálculo. */
+    @Test
+    void validarMetaSozinha() {
+        ConfiguracaoMotor motor = Fixtures.casoB().motor();
+        assertTrue(CalculoDimensionamento.validarMeta(Meta.noVirabrequim(400, 7000, Uso.RUA), motor).isEmpty());
+        assertEquals(List.of("A rotação de potência máxima (8000 rpm) passa da rotação máxima do motor (7500 rpm)."),
+                CalculoDimensionamento.validarMeta(Meta.noVirabrequim(400, 8000, Uso.RUA), motor));
+        assertEquals(List.of("Informe a meta: potência, rotação e uso."), CalculoDimensionamento.validarMeta(null, motor));
+    }
+
     @Test
     void motorInvalidoBloqueiaOCalculo() {
         EntradaDimensionamento entrada = comMotor(Fixtures.casoC(), c -> c.modoInjecao(ModoInjecao.SEMISSEQUENCIAL));

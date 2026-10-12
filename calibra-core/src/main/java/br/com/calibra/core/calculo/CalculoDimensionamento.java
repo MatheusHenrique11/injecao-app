@@ -134,6 +134,13 @@ public final class CalculoDimensionamento {
         }
     }
 
+    /** Confere só a meta contra o motor (usado também pelo assistente de novo projeto). */
+    public static List<String> validarMeta(Meta meta, ConfiguracaoMotor motor) {
+        List<String> erros = new ArrayList<>();
+        validarMeta(meta, motor, erros);
+        return erros;
+    }
+
     private static void validarMeta(Meta meta, ConfiguracaoMotor motor, List<String> erros) {
         if (meta == null) {
             erros.add("Informe a meta: potência, rotação e uso.");

@@ -181,3 +181,14 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 70. **Apagar só cadastro sem vínculo:** cliente sem veículo; veículo sem projeto (SPEC 6.2). Projeto não é apagado, só arquivado. Apagar leva o histórico junto.
 71. **O banco recusa alterar ou apagar** versões do motor, cálculos e justificativas (gatilhos na V2). Mesmo um erro de programação não muda um resultado salvo (regra 2.5).
 72. **Migrações só de teste viraram V900 e V901** ("versões futuras"), para não colidir com as do app. Os testes usam a constante `BaseDeTeste.VERSAO_BANCO`, que sobe a cada migração nova.
+73. **O assistente de novo projeto confere tudo antes de gravar** e mostra todos os erros de uma vez: cliente, veículo, motor (SPEC 6.3) e meta contra o motor. Cliente, veículo, projeto e a v1 do motor são gravados juntos, tudo ou nada. Regras:
+    - cliente novo precisa de veículo novo;
+    - veículo já cadastrado precisa ser do cliente escolhido;
+    - cliente anonimizado não recebe projeto novo.
+74. **Salvar cálculo:**
+    - O resultado gravado é sempre o da entrada gravada, porque o app recalcula na hora de salvar.
+    - O salvamento é recusado se o motor do projeto mudou depois do cálculo.
+    - Grava uma justificativa por vermelho; as de outros indicadores ficam de fora.
+    - O primeiro cálculo passa o projeto de RASCUNHO para DIMENSIONADO, e a meta do cálculo vira a meta do projeto.
+75. **"Desatualizado — recalcular" mostra o motivo:** o motor está numa versão mais nova (ex.: "usou a v1 e o motor está na v2") ou o núcleo de cálculo é outro (o bloco 2.4 leva o núcleo à 1.1.0). Peça alterada no catálogo entra como motivo no bloco 2.3.
+76. **Salvar o motor sem mudança não cria versão nova:** a descrição é a mesma e nenhum campo mudou na comparação da tela (decisão 65).

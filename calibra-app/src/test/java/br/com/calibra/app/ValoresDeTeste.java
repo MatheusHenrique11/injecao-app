@@ -7,12 +7,12 @@ import java.util.Map;
  * Caso golden B da SPEC 7.6 digitado como na tela. Os campos que não entram na conta (taxa, válvulas,
  * roda fônica...) têm valores de teste. O diâmetro 82,83 mm fecha os 2.000 cm³ da spec.
  */
-final class ValoresDeTeste {
+public final class ValoresDeTeste {
 
     private ValoresDeTeste() {
     }
 
-    static Map<Campo, String> casoB() {
+    public static Map<Campo, String> casoB() {
         Map<Campo, String> v = new EnumMap<>(Campo.class);
         v.put(Campo.CILINDROS, "4");
         v.put(Campo.ARRANJO, "EM_LINHA");
