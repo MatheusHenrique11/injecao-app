@@ -129,3 +129,33 @@
     -fx-text-fill: #0d47a1;
     -fx-font-weight: bold;
 }
+
+/* Assistente: etapa atual em destaque. */
+.etapa {
+    -fx-text-fill: #777777;
+}
+
+.etapa-atual {
+    -fx-text-fill: #1565c0;
+    -fx-font-weight: bold;
+}
+
+/* Projeto: cabeçalho com o cliente, o veículo e o status. */
+.cabecalho-projeto {
+    -fx-padding: 10px 16px;
+    -fx-background-color: #f5f7f9;
+    -fx-border-color: transparent transparent #dde3e8 transparent;
+}
+
+.titulo-projeto {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.etiqueta-status {
+    -fx-padding: 4px 12px;
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #0d47a1;
+    -fx-background-radius: 12px;
+    -fx-font-weight: bold;
+}

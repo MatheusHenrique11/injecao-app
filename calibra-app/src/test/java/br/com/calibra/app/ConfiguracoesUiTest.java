@@ -67,6 +67,7 @@ class ConfiguracoesUiTest {
         principal.iniciar(contexto, null, new Stage());
         cena = new Scene(raiz, 1380, 860);
         cena.getStylesheets().add(CalibraApp.folhaDeEstilo());
+        TelaDeTeste.<ToggleButton>achar(cena, "navCalculadora").fire();
         assertEquals("10,5", TelaDeTeste.<TextField>achar(cena, "kAr").getText(), "começa com o padrão da SPEC");
         assertTrue(contemTexto(cena.getRoot(), "Último backup: nenhum ainda"));
     }

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Assistente de novo projeto (SPEC 8.2): Cliente → Veículo → Motor → Meta e uso. A etapa Injeção entra no bloco 2.3. -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.AssistenteController">
+  <fx:define>
+    <ToggleGroup fx:id="grupoCliente"/>
+    <ToggleGroup fx:id="grupoVeiculo"/>
+  </fx:define>
+
+  <top>
+    <VBox styleClass="pagina">
+      <Label styleClass="titulo-secao" text="Novo projeto"/>
+      <HBox spacing="10.0" alignment="CENTER_LEFT">
+        <Label fx:id="etapa1" text="1. Cliente"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa2" text="2. Veículo"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa3" text="3. Motor"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa4" text="4. Meta e uso"/>
+      </HBox>
+    </VBox>
+  </top>
+
+  <center>
+    <ScrollPane fx:id="rolagem" fitToWidth="true">
+      <StackPane>
+        <!-- ===================== 1. Cliente ===================== -->
+        <VBox fx:id="painelCliente" styleClass="pagina">
+          <RadioButton fx:id="clienteExistente" text="Cliente já cadastrado" toggleGroup="$grupoCliente"/>
+          <VBox fx:id="caixaClienteExistente" spacing="6.0">
+            <TextField fx:id="buscaCliente" promptText="Buscar por nome, telefone ou documento"/>
+            <ListView fx:id="listaClientes" prefHeight="180.0"/>
+          </VBox>
+          <RadioButton fx:id="clienteNovo" text="Cliente novo" toggleGroup="$grupoCliente"/>
+          <VBox fx:id="caixaClienteNovo">
+            <fx:include fx:id="formCliente" source="cliente.fxml"/>
+          </VBox>
+        </VBox>
+
+        <!-- ===================== 2. Veículo ===================== -->
+        <VBox fx:id="painelVeiculo" styleClass="pagina">
+          <RadioButton fx:id="veiculoExistente" text="Veículo já cadastrado do cliente" toggleGroup="$grupoVeiculo"/>
+          <ListView fx:id="listaVeiculos" prefHeight="140.0"/>
+          <RadioButton fx:id="veiculoNovo" text="Veículo novo" toggleGroup="$grupoVeiculo"/>
+          <VBox fx:id="caixaVeiculoNovo">
+            <fx:include fx:id="formVeiculo" source="veiculo.fxml"/>
+          </VBox>
+        </VBox>
+
+        <!-- ===================== 3. Motor ===================== -->
+        <VBox fx:id="painelMotor">
+          <HBox styleClass="pagina" spacing="10.0" alignment="CENTER_LEFT">
+            <Label text="Descrição do motor (opcional)"/>
+            <TextField fx:id="descricaoMotor" promptText="ex.: AP 2.0 8V, EA888 2.0 TSI" HBox.hgrow="ALWAYS"/>
+          </HBox>
+          <fx:include fx:id="formMotor" source="motor.fxml"/>
+        </VBox>
+
+        <!-- ===================== 4. Meta e uso ===================== -->
+        <VBox fx:id="painelMeta" styleClass="pagina">
+          <GridPane styleClass="grade">
+            <columnConstraints>
+              <ColumnConstraints minWidth="230.0"/>
+              <ColumnConstraints minWidth="230.0" hgrow="SOMETIMES"/>
+              <ColumnConstraints minWidth="230.0"/>
+              <ColumnConstraints minWidth="230.0" hgrow="SOMETIMES"/>
+            </columnConstraints>
+            <Label text="Potência meta (cv)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <TextField fx:id="potencia" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+            <Label text="Medida em" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+            <ComboBox fx:id="pontoMedicao" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+            <Label text="Perda de transmissão (%)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <TextField fx:id="perdaTransmissao" promptText="só com meta na roda" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            <Label text="Uso" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+            <ComboBox fx:id="uso" promptText="Escolha" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+            <Label text="Rotação de potência máxima (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <TextField fx:id="rpmPotencia" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            <Label text="Rotação de torque máximo (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+            <TextField fx:id="rpmTorque" promptText="opcional por enquanto" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+          </GridPane>
+          <Label styleClass="dica" wrapText="true"
+                 text="A meta pode ser ajustada depois, na aba Dimensionamento do projeto. A rotação de torque máximo será obrigatória para gerar o mapa base."/>
+        </VBox>
+      </StackPane>
+    </ScrollPane>
+  </center>
+
+  <bottom>
+    <VBox>
+      <VBox fx:id="mensagens" styleClass="pagina" spacing="4.0"/>
+      <HBox styleClass="rodape" spacing="10.0">
+        <Button text="Cancelar" cancelButton="true" onAction="#cancelar"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="botaoVoltar" text="← _Voltar" onAction="#voltar"/>
+        <Button fx:id="botaoProximo" text="_Próximo →" defaultButton="true" onAction="#proximo"/>
+        <Button fx:id="botaoCriar" text="_Criar projeto" onAction="#criar"/>
+      </HBox>
+    </VBox>
+  </bottom>
+</BorderPane>

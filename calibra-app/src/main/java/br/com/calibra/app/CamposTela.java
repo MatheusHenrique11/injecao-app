@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
 import javafx.util.StringConverter;
 
@@ -78,6 +79,34 @@ final class CamposTela {
 
     private void mudou() {
         aoMudar.forEach(Runnable::run);
+    }
+
+    /** Texto da escolha vazia numa caixa opcional. */
+    static final String NAO_INFORMADO = "(não informado)";
+
+    /**
+     * Caixa de escolha opcional: a primeira opção é "(não informado)", que deixa o valor vazio. Serve para
+     * desfazer uma escolha feita por engano.
+     */
+    static <T> void configurarOpcional(ComboBox<T> combo, List<T> itens, Function<T, String> rotulo) {
+        configurarOpcional(combo, itens, rotulo, NAO_INFORMADO);
+    }
+
+    /** Caixa de escolha opcional com outro texto para a escolha vazia (ex.: "Todos" num filtro). */
+    static <T> void configurarOpcional(ComboBox<T> combo, List<T> itens, Function<T, String> rotulo,
+            String textoVazio) {
+        List<T> comVazio = new ArrayList<>();
+        comVazio.add(null);
+        comVazio.addAll(itens);
+        configurar(combo, comVazio, item -> item == null ? textoVazio : rotulo.apply(item));
+        combo.setCellFactory(lista -> new ListCell<>() {
+            @Override
+            protected void updateItem(T item, boolean vazio) {
+                super.updateItem(item, vazio);
+                setText(vazio ? null : item == null ? textoVazio : rotulo.apply(item));
+            }
+        });
+        combo.setPromptText(textoVazio);
     }
 
     /** Escolhas de uma caixa, mostradas pelo rótulo em português. */

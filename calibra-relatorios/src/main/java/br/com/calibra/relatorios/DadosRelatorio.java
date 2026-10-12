@@ -15,13 +15,15 @@ import br.com.calibra.core.semaforo.Justificativa;
  * @param justificativas uma para cada indicador vermelho (regra 2.4)
  * @param versaoApp versão do Calibra que gerou o PDF
  * @param geradoEm data e hora da geração
+ * @param projeto cliente, veículo e motor do projeto; null na calculadora avulsa
  */
 public record DadosRelatorio(
         EntradaDimensionamento entrada,
         Resultado<Dimensionamento> resultado,
         List<Justificativa> justificativas,
         String versaoApp,
-        LocalDateTime geradoEm) {
+        LocalDateTime geradoEm,
+        IdentificacaoProjeto projeto) {
 
     public DadosRelatorio {
         Objects.requireNonNull(entrada, "entrada");
@@ -29,5 +31,11 @@ public record DadosRelatorio(
         Objects.requireNonNull(versaoApp, "versaoApp");
         Objects.requireNonNull(geradoEm, "geradoEm");
         justificativas = justificativas == null ? List.of() : List.copyOf(justificativas);
+    }
+
+    /** Memória de cálculo da calculadora avulsa, sem projeto. */
+    public DadosRelatorio(EntradaDimensionamento entrada, Resultado<Dimensionamento> resultado,
+            List<Justificativa> justificativas, String versaoApp, LocalDateTime geradoEm) {
+        this(entrada, resultado, justificativas, versaoApp, geradoEm, null);
     }
 }

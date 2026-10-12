@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Formulário do cliente (SPEC 6.1): dados pessoais mínimos e consentimento (regra 2.8). -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.ClienteFormController" spacing="8.0">
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="170.0"/>
+      <ColumnConstraints minWidth="280.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="130.0"/>
+      <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Nome" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="nome" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Telefone" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="telefone" promptText="(00) 00000-0000" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="E-mail (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="email" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <Label text="CPF ou CNPJ (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+    <TextField fx:id="documento" promptText="só para documento" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+    <Label text="Observações" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"
+              GridPane.columnSpan="3"/>
+  </GridPane>
+
+  <Label styleClass="negrito" text="Consentimento (LGPD)"/>
+  <CheckBox fx:id="consentiu" text="O cliente autorizou o uso dos dados para a finalidade abaixo"/>
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <Label text="Data"/>
+    <DatePicker fx:id="consentimentoData" prefWidth="150.0"/>
+    <Label text="Finalidade"/>
+    <TextField fx:id="consentimentoFinalidade" HBox.hgrow="ALWAYS"/>
+  </HBox>
+  <Label styleClass="dica" wrapText="true"
+         text="Guarde só o necessário: nome e telefone bastam; CPF ou CNPJ só se for emitir documento. O cliente pode pedir a anonimização a qualquer momento."/>
+</VBox>

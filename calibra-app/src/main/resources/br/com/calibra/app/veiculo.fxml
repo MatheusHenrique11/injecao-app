@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Formulário do veículo (SPEC 6.2): os campos de identificação mudam conforme o tipo (terrestre ou náutico). -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.VeiculoFormController" spacing="8.0">
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Tipo" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="tipo" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Cor (opcional)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="cor" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Marca" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="marca" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <Label text="Modelo" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+    <TextField fx:id="modelo" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+    <Label text="Versão (opcional)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <TextField fx:id="versao" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+    <Label text="Ano de fabricação / modelo" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+    <HBox spacing="6.0" GridPane.rowIndex="2" GridPane.columnIndex="3">
+      <TextField fx:id="anoFabricacao" promptText="fabricação" prefWidth="120.0"/>
+      <TextField fx:id="anoModelo" promptText="modelo" prefWidth="120.0"/>
+    </HBox>
+  </GridPane>
+
+  <GridPane fx:id="secaoTerrestre" styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Placa (opcional)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="placa" promptText="ABC1D23" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Chassi (opcional)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="chassi" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Tração (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="tracao" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+  </GridPane>
+
+  <GridPane fx:id="secaoNautica" styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label text="Nome da embarcação (opcional)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="nomeEmbarcacao" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Número de inscrição (opcional)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="numeroInscricao" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Número do casco (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="numeroCasco" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+  </GridPane>
+
+  <GridPane styleClass="grade">
+    <columnConstraints>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+      <ColumnConstraints minWidth="200.0"/>
+      <ColumnConstraints minWidth="260.0" hgrow="SOMETIMES"/>
+    </columnConstraints>
+    <Label fx:id="rotuloUso" text="Uso acumulado (km)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="usoAcumulado" promptText="opcional" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+    <Label text="Peso (kg, opcional)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+    <TextField fx:id="pesoKg" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+    <Label text="Câmbio (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="cambio" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    <CheckBox fx:id="cambioControlado" text="Câmbio controlado pela injeção" GridPane.rowIndex="1"
+              GridPane.columnIndex="2" GridPane.columnSpan="2"/>
+
+    <Label text="Observações" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"
+              GridPane.columnSpan="3"/>
+  </GridPane>
+</VBox>

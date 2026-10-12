@@ -195,3 +195,22 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 77. **Formulário do motor separado da calculadora** (`motor.fxml` e `MotorFormController`). A calculadora o inclui na aba 1 sem mudar nada na tela; o assistente e a aba Motor do projeto usam o mesmo formulário.
     - **Ajudante comum:** `CamposTela` lê e escreve os campos como texto, para a calculadora e o formulário do motor.
     - **`EscritorFormulario`:** é o caminho de volta do `LeitorFormulario`, que mostra na tela um motor ou um cálculo salvo. Os números vão com até 4 casas; escrever e ler de volta dá a mesma entrada (teste).
+78. **A tela inicial passa a ser Projetos** (a lista; SPEC 8.1). O menu fica Projetos · Calculadora · Configurações, e Catálogos entra no bloco 2.3. A área de projetos lembra o que estava aberto (lista, assistente ou projeto) quando se volta pelo menu.
+79. **Assistente em quatro etapas**, cada uma conferida antes de seguir:
+    - **Cliente:** já cadastrado (com busca) ou novo.
+    - **Veículo:** um do cliente ou novo.
+    - **Motor:** inclui a descrição opcional (ex.: "AP 2.0 8V").
+    - **Meta e uso.**
+    - A etapa Injeção entra no bloco 2.3.
+80. **Projeto em abas: Resumo · Veículo · Motor · Dimensionamento.** Peças e orçamento entram no bloco 2.5; Mapa base, Sessões de acerto e Relatório, nas fases 3 e 4.
+    - **Resumo:** cliente (editar, histórico e anonimizar, este com confirmação e aviso de que não tem volta), veículo, motor, meta, último cálculo, status com histórico e observações do projeto.
+    - **Cabeçalho:** arquivar e reativar o projeto.
+81. **A aba Dimensionamento é a calculadora sem a aba do motor:**
+    - **Motor:** é a versão atual do projeto, usada direto, sem passar pelo texto da tela. O cálculo aponta exatamente para a versão usada.
+    - **Botões e abas:** ganha "Salvar cálculo no projeto" e a aba "Cálculos salvos".
+    - **Ao abrir:** vem com as entradas do último cálculo salvo, ou com a meta do projeto se ainda não houver cálculo.
+    - **Motor mudou:** o resultado da tela fica desatualizado, e o último cálculo salvo ganha a faixa "desatualizado — recalcular", que também aparece no nome da aba.
+82. **PDF da memória do projeto:** o cabeçalho leva o número do projeto, o cliente, o veículo e a versão do motor. Os "Cálculos salvos" geram o PDF de um cálculo antigo, com as justificativas gravadas.
+83. **Mensagens de "salvo" aparecem na própria tela, sem janela.** Só confirmações e erros abrem janela: incomoda menos e não trava o teste automático.
+84. **Arquivar veículo:** existe no banco e foi testado (o veículo sai da lista do assistente), mas ainda não tem botão. Por enquanto todo veículo nasce com um projeto. O botão entra quando houver uma tela de clientes e veículos.
+85. **Testes de interface:** o cache do JavaFX dos testes fica em `target/javafx-cache` (configuração do surefire no POM). Na pasta temporária do teste, a DLL de fonte ficava presa e a pasta não era apagada no fim.

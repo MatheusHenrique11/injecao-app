@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Projeto (SPEC 8.3): Resumo · Veículo · Motor · Dimensionamento. Peças e orçamento entram no bloco 2.5. -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.ProjetoController">
+  <top>
+    <HBox styleClass="cabecalho-projeto" spacing="12.0" alignment="CENTER_LEFT">
+      <Button fx:id="botaoVoltarProjetos" text="← Projetos" onAction="#voltar"/>
+      <VBox>
+        <Label fx:id="titulo" styleClass="titulo-projeto"/>
+        <Label fx:id="subtitulo" styleClass="dica"/>
+      </VBox>
+      <Region HBox.hgrow="ALWAYS"/>
+      <Label fx:id="status" styleClass="etiqueta-status"/>
+      <Button fx:id="botaoArquivar" text="Arquivar projeto" onAction="#arquivarOuReativar"/>
+    </HBox>
+  </top>
+
+  <center>
+    <TabPane fx:id="abas" tabClosingPolicy="UNAVAILABLE">
+
+      <!-- ===================== Resumo ===================== -->
+      <Tab fx:id="abaResumo" text="Resumo">
+        <ScrollPane fitToWidth="true">
+          <VBox styleClass="pagina">
+            <Label styleClass="titulo-secao" text="Cliente"/>
+            <GridPane styleClass="grade">
+              <columnConstraints>
+                <ColumnConstraints minWidth="170.0"/>
+                <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+              </columnConstraints>
+              <Label text="Nome" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+              <Label fx:id="clienteNome" styleClass="negrito" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+              <Label text="Contato" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+              <Label fx:id="clienteContato" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+              <Label text="Consentimento" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+              <Label fx:id="clienteConsentimento" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            </GridPane>
+            <HBox spacing="10.0">
+              <Button fx:id="botaoEditarCliente" text="Editar cliente…" onAction="#editarCliente"/>
+              <Button text="Histórico do cliente…" onAction="#historicoCliente"/>
+              <Button fx:id="botaoAnonimizar" text="Anonimizar cliente…" onAction="#anonimizarCliente"/>
+            </HBox>
+
+            <Label styleClass="titulo-secao" text="Veículo e motor"/>
+            <Label fx:id="resumoVeiculo" wrapText="true"/>
+            <Label fx:id="resumoMotor" wrapText="true"/>
+            <Label fx:id="resumoMeta" wrapText="true"/>
+
+            <Label styleClass="titulo-secao" text="Último cálculo"/>
+            <Label fx:id="resumoCalculo" wrapText="true"/>
+
+            <Label styleClass="titulo-secao" text="Status"/>
+            <ListView fx:id="historicoStatus" prefHeight="130.0"/>
+
+            <Label styleClass="titulo-secao" text="Observações do projeto"/>
+            <TextArea fx:id="observacoes" prefRowCount="3" wrapText="true"/>
+            <HBox spacing="10.0">
+              <Button text="Salvar observações" onAction="#salvarObservacoes"/>
+              <Label fx:id="mensagemObservacoes" styleClass="ok"/>
+            </HBox>
+          </VBox>
+        </ScrollPane>
+      </Tab>
+
+      <!-- ===================== Veículo ===================== -->
+      <Tab fx:id="abaVeiculo" text="Veículo">
+        <ScrollPane fitToWidth="true">
+          <VBox styleClass="pagina">
+            <fx:include fx:id="formVeiculo" source="veiculo.fxml"/>
+            <HBox spacing="10.0">
+              <Button fx:id="botaoSalvarVeiculo" text="Salvar veículo" onAction="#salvarVeiculo"/>
+              <Button text="Descartar alterações" onAction="#descartarVeiculo"/>
+            </HBox>
+            <VBox fx:id="mensagensVeiculo" spacing="4.0"/>
+            <Label styleClass="titulo-secao" text="Histórico do veículo"/>
+            <Label styleClass="dica" text="Cada salvamento grava o campo, o valor antigo, o novo, a data e a hora (SPEC 6.2)."/>
+            <TableView fx:id="historicoVeiculo" prefHeight="260.0">
+              <placeholder>
+                <Label styleClass="dica" text="Sem mudanças ainda."/>
+              </placeholder>
+              <columns>
+                <TableColumn fx:id="colunaVeiculoData" text="Data e hora" prefWidth="140.0"/>
+                <TableColumn fx:id="colunaVeiculoCampo" text="Campo" prefWidth="210.0"/>
+                <TableColumn fx:id="colunaVeiculoAntes" text="Antes" prefWidth="260.0"/>
+                <TableColumn fx:id="colunaVeiculoDepois" text="Depois" prefWidth="260.0"/>
+              </columns>
+            </TableView>
+          </VBox>
+        </ScrollPane>
+      </Tab>
+
+      <!-- ===================== Motor ===================== -->
+      <Tab fx:id="abaMotor" text="Motor">
+        <ScrollPane fx:id="rolagemMotor" fitToWidth="true">
+          <VBox>
+            <HBox styleClass="pagina" spacing="10.0" alignment="CENTER_LEFT">
+              <Label text="Descrição do motor"/>
+              <TextField fx:id="descricaoMotor" promptText="ex.: AP 2.0 8V" HBox.hgrow="ALWAYS"/>
+              <Label fx:id="versaoAtual" styleClass="negrito"/>
+            </HBox>
+            <fx:include fx:id="formMotor" source="motor.fxml"/>
+            <VBox styleClass="pagina">
+              <HBox spacing="10.0">
+                <Button fx:id="botaoSalvarMotor" text="Salvar como versão nova" onAction="#salvarMotor"/>
+                <Button text="Descartar alterações" onAction="#descartarMotor"/>
+              </HBox>
+              <VBox fx:id="mensagensMotorProjeto" spacing="4.0"/>
+
+              <Label styleClass="titulo-secao" text="Versões do motor"/>
+              <Label styleClass="dica" wrapText="true"
+                     text="Cada gravação cria uma versão nova (v1, v2...). Versões não mudam nem são apagadas; cálculos de versões antigas aparecem como desatualizados."/>
+              <TableView fx:id="versoes" prefHeight="190.0">
+                <columns>
+                  <TableColumn fx:id="colunaVersao" text="Versão" prefWidth="80.0"/>
+                  <TableColumn fx:id="colunaVersaoData" text="Salva em" prefWidth="140.0"/>
+                  <TableColumn fx:id="colunaVersaoDescricao" text="Descrição" prefWidth="220.0"/>
+                  <TableColumn fx:id="colunaVersaoMudancas" text="O que mudou da anterior" prefWidth="460.0"/>
+                </columns>
+              </TableView>
+              <HBox spacing="10.0">
+                <Button fx:id="botaoPontoDePartida" text="Usar a versão escolhida como ponto de partida"
+                        onAction="#usarComoPontoDePartida"/>
+              </HBox>
+
+              <Label styleClass="titulo-secao" text="Comparar versões"/>
+              <HBox spacing="10.0" alignment="CENTER_LEFT">
+                <ComboBox fx:id="compararA" prefWidth="120.0"/>
+                <Label text="com"/>
+                <ComboBox fx:id="compararB" prefWidth="120.0"/>
+              </HBox>
+              <TableView fx:id="comparacao" prefHeight="230.0">
+                <placeholder>
+                  <Label fx:id="comparacaoVazia" styleClass="dica" text="Escolha duas versões."/>
+                </placeholder>
+                <columns>
+                  <TableColumn fx:id="colunaComparacaoCampo" text="Campo" prefWidth="260.0"/>
+                  <TableColumn fx:id="colunaComparacaoA" text="A" prefWidth="300.0"/>
+                  <TableColumn fx:id="colunaComparacaoB" text="B" prefWidth="300.0"/>
+                </columns>
+              </TableView>
+            </VBox>
+          </VBox>
+        </ScrollPane>
+      </Tab>
+
+      <!-- ===================== Dimensionamento ===================== -->
+      <Tab fx:id="abaDimensionamento" text="Dimensionamento">
+        <BorderPane fx:id="painelDimensionamento"/>
+      </Tab>
+    </TabPane>
+  </center>
+</BorderPane>

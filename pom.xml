@@ -136,6 +136,9 @@
                             <pdfbox.fontcache>${project.build.directory}</pdfbox.fontcache>
                             <!-- O sqlite-jdbc extrai a DLL dele; nos testes, também em target/. -->
                             <org.sqlite.tmpdir>${project.build.directory}</org.sqlite.tmpdir>
+                            <!-- O JavaFX extrai DLLs (fontes); se fossem para a pasta temporária do teste, ela não
+                                 poderia ser apagada no fim, porque a DLL fica presa. -->
+                            <javafx.cachedir>${project.build.directory}/javafx-cache</javafx.cachedir>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

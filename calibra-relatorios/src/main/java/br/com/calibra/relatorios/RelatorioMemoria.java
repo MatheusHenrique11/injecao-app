@@ -83,6 +83,14 @@ public final class RelatorioMemoria {
         pdf.titulo("Calibra — Memória de cálculo");
         pdf.subtitulo("Gerado em " + dados.geradoEm().format(DATA_HORA) + SEPARADOR + "Calibra " + dados.versaoApp()
                 + SEPARADOR + "núcleo " + dados.resultado().versaoNucleo());
+        IdentificacaoProjeto projeto = dados.projeto();
+        if (projeto != null) {
+            pdf.espaco(4f);
+            pdf.item("Projeto", "#" + projeto.projetoId());
+            pdf.item("Cliente", projeto.cliente());
+            pdf.item("Veículo", projeto.veiculo());
+            pdf.item("Motor", projeto.motor());
+        }
         pdf.espaco(6f);
         pdf.caixa(RESPONSABILIDADE);
     }

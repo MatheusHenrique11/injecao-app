@@ -2,9 +2,6 @@ package br.com.calibra.app;
 
 import static br.com.calibra.core.util.NumeroBr.formatar;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -13,6 +10,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import br.com.calibra.app.casos.CampoPadrao;
@@ -25,35 +23,34 @@ import br.com.calibra.core.calculo.Dimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.memoria.Resultado;
+import br.com.calibra.core.motor.ConfiguracaoMotor;
+import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.core.semaforo.Cor;
 import br.com.calibra.core.semaforo.Indicador;
 import br.com.calibra.core.semaforo.Justificativa;
 import br.com.calibra.relatorios.DadosRelatorio;
-import br.com.calibra.relatorios.RelatorioMemoria;
+import br.com.calibra.relatorios.IdentificacaoProjeto;
 import javafx.application.HostServices;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 
 /**
  * Tela da calculadora (fase 1): o motor vem do formulário {@link MotorFormController}; aqui ficam a meta, as
  * peças, o resultado e o PDF.
  */
 public class CalculadoraController {
-
-    private static final DateTimeFormatter NOME_ARQUIVO = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmm");
 
     /** Campos da calculadora que começam com um padrão de Configurações. */
     private static final Map<CampoPadrao, List<Campo>> CAMPOS_COM_PADRAO = Map.of(
@@ -114,14 +111,19 @@ public class CalculadoraController {
     @FXML private TabPane abas;
     @FXML private Tab abaResultado;
     @FXML private VBox painelResultado;
+    @FXML private HBox rodape;
     @FXML private Button botaoCalcular;
     @FXML private Button botaoPdf;
     @FXML private Label rotuloEstado;
 
     private final CamposTela campos = new CamposTela();
     private final PainelResultado painel = new PainelResultado();
+    private final List<Runnable> aoMudarResultado = new ArrayList<>();
     /** Padrões de cálculo e limiares do semáforo em uso; sem Configurações (teste), os da SPEC. */
     private Parametros padroes = Parametros.padrao();
+    /** Motor da versão atual do projeto; null na calculadora avulsa, que lê o motor da aba 1. */
+    private ConfiguracaoMotor motorDoProjeto;
+    private Supplier<IdentificacaoProjeto> identificacao = () -> null;
     private HostServices servicos;
     private EntradaDimensionamento ultimaEntrada;
     private Resultado<Dimensionamento> ultimoResultado;
@@ -235,7 +237,8 @@ public class CalculadoraController {
         perdaTransmissao.setDisable(pontoMedicao.getValue() != PontoMedicao.RODA);
         kAr.setDisable(caminhoAr.getValue() != CaminhoAr.K_AR);
         bsfc.setDisable(caminhoAr.getValue() != CaminhoAr.BSFC);
-        boolean duasBancadas = motorController.bicosPorCilindro() == 2;
+        int bicos = motorDoProjeto != null ? motorDoProjeto.bicosPorCilindro() : motorController.bicosPorCilindro();
+        boolean duasBancadas = bicos == 2;
         bico2Vazao.setDisable(!duasBancadas);
         bico2PressaoTeste.setDisable(!duasBancadas);
         bico2DensidadeTeste.setDisable(!duasBancadas);
@@ -256,13 +259,16 @@ public class CalculadoraController {
         faixaDesatualizado.setMaxWidth(Double.MAX_VALUE);
         painelResultado.getChildren().addFirst(faixaDesatualizado);
         rotuloEstado.setText("Resultado desatualizado: calcule de novo.");
+        avisarMudancaDeResultado();
     }
 
     // ===================== Ações =====================
 
     @FXML
     private void calcular() {
-        LeitorFormulario.Leitura leitura = LeitorFormulario.ler(valoresDosCampos(), padroes);
+        LeitorFormulario.Leitura leitura = motorDoProjeto == null
+                ? LeitorFormulario.ler(valoresDosCampos(), padroes)
+                : LeitorFormulario.lerComMotor(campos.valores(), padroes, motorDoProjeto);
         if (!leitura.erros().isEmpty()) {
             mostrarErros(leitura.erros());
             return;
@@ -278,6 +284,7 @@ public class CalculadoraController {
             rotuloEstado.setText("Calculado às " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
                     + (vermelhos > 0 ? " · " + vermelhos + " item(ns) vermelho(s) precisam de justificativa para o PDF" : ""));
             abas.getSelectionModel().select(abaResultado);
+            avisarMudancaDeResultado();
         } catch (EntradaInvalidaException erro) {
             mostrarErros(erro.erros());
         } catch (CalculoNaoConvergiuException erro) {
@@ -292,6 +299,7 @@ public class CalculadoraController {
         painelResultado.getChildren().setAll(PainelResultado.erros(erros));
         rotuloEstado.setText(erros.size() + " problema(s) para corrigir.");
         abas.getSelectionModel().select(abaResultado);
+        avisarMudancaDeResultado();
     }
 
     @FXML
@@ -317,65 +325,103 @@ public class CalculadoraController {
             painel.justificativas().get(faltando.getFirst()).requestFocus();
             return;
         }
-        Optional<File> arquivo = escolherArquivo(agora);
-        if (arquivo.isEmpty()) {
-            return;
-        }
         DadosRelatorio dados = new DadosRelatorio(ultimaEntrada, ultimoResultado, justificativas, Versao.atual(),
-                agora);
-        Path destino = arquivo.get().toPath();
-        Task<Void> tarefa = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                RelatorioMemoria.gerar(dados, destino);
-                return null;
-            }
-        };
-        tarefa.setOnSucceeded(evento -> {
-            botaoPdf.setDisable(desatualizado);
-            rotuloEstado.setText("PDF salvo em " + destino);
-            oferecerAbrir(destino);
-        });
-        tarefa.setOnFailed(evento -> {
-            botaoPdf.setDisable(desatualizado);
-            rotuloEstado.setText("O PDF não foi gerado.");
-            Throwable erro = tarefa.getException();
-            avisar(Alert.AlertType.ERROR, "Não foi possível gerar o PDF",
-                    (erro == null ? "Erro desconhecido." : erro.getMessage())
-                            + "\nSe o arquivo estiver aberto em outro programa, feche-o e tente de novo.");
-        });
+                agora, identificacao.get());
         botaoPdf.setDisable(true);
-        rotuloEstado.setText("Gerando o PDF…");
-        Thread linha = new Thread(tarefa, "gerar-pdf");
-        linha.setDaemon(true);
-        linha.start();
-    }
-
-    private Optional<File> escolherArquivo(LocalDateTime agora) {
-        FileChooser escolha = new FileChooser();
-        escolha.setTitle("Salvar memória de cálculo");
-        escolha.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
-        escolha.setInitialFileName("memoria-calibra-" + agora.format(NOME_ARQUIVO) + ".pdf");
-        Path documentos = Path.of(System.getProperty("user.home"), "Documents");
-        if (Files.isDirectory(documentos)) {
-            escolha.setInitialDirectory(documentos.toFile());
-        }
-        return Optional.ofNullable(escolha.showSaveDialog(painelResultado.getScene().getWindow()));
-    }
-
-    private void oferecerAbrir(Path arquivo) {
-        ButtonType abrir = new ButtonType("Abrir", ButtonBar.ButtonData.OK_DONE);
-        ButtonType fechar = new ButtonType("Fechar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION, "PDF salvo em:\n" + arquivo, abrir, fechar);
-        alerta.setTitle("Memória de cálculo");
-        alerta.setHeaderText("PDF gerado.");
-        Optional<ButtonType> resposta = alerta.showAndWait();
-        if (resposta.isPresent() && resposta.get() == abrir && servicos != null) {
-            servicos.showDocument(arquivo.toUri().toString());
+        boolean gerando = PdfMemoria.gerar(painelResultado.getScene().getWindow(), servicos, dados,
+                "memoria-calibra", rotuloEstado::setText, () -> botaoPdf.setDisable(desatualizado));
+        if (!gerando) {
+            botaoPdf.setDisable(desatualizado);
         }
     }
 
     // ===================== Utilidades =====================
+
+    // ===================== Modo projeto =====================
+
+    /** O cálculo que está na tela, em dia com os campos, e o que foi escrito nas justificativas dos vermelhos. */
+    record CalculoNaTela(EntradaDimensionamento entrada, Resultado<Dimensionamento> resultado,
+            Map<Indicador, String> justificativas) {
+    }
+
+    /**
+     * Modo projeto (aba Dimensionamento): tira a aba do motor e passa a calcular com este motor, a versão atual
+     * do projeto. Se o motor mudar depois de um cálculo, o resultado da tela fica desatualizado.
+     */
+    void usarMotorDoProjeto(ConfiguracaoMotor motor) {
+        boolean mudou = motorDoProjeto != null && !motorDoProjeto.equals(motor);
+        motorDoProjeto = motor;
+        abas.getTabs().remove(abaMotor);
+        if (lambda.getText().isBlank() && motor.combustivel() != null && motor.aspiracao() != null) {
+            lambda.setText(formatar(motor.combustivel().lambdaPadrao(motor.aspiracao().sobrealimentado()), 2));
+        }
+        atualizarHabilitados();
+        if (mudou) {
+            marcarDesatualizado();
+        }
+    }
+
+    /** Cliente, veículo e motor que vão no cabeçalho do PDF. */
+    void usarIdentificacao(Supplier<IdentificacaoProjeto> fornecedor) {
+        identificacao = fornecedor;
+    }
+
+    /** Preenche meta, ar, parâmetros e peças com as entradas de um cálculo salvo; o motor fica o do projeto. */
+    void preencherEntrada(EntradaDimensionamento entrada) {
+        campos.preencher(EscritorFormulario.semMotor(entrada));
+    }
+
+    /** Preenche só a meta (projeto sem cálculo salvo). */
+    void preencherMeta(Meta meta) {
+        campos.preencher(EscritorFormulario.meta(meta));
+    }
+
+    /** O cálculo da tela, se houver e se os campos não mudaram depois dele. */
+    Optional<CalculoNaTela> calculoNaTela() {
+        if (ultimoResultado == null || desatualizado) {
+            return Optional.empty();
+        }
+        Map<Indicador, String> textos = new EnumMap<>(Indicador.class);
+        painel.justificativas().forEach((indicador, campo) -> textos.put(indicador, campo.getText()));
+        return Optional.of(new CalculoNaTela(ultimaEntrada, ultimoResultado, textos));
+    }
+
+    /** Põe o cursor na justificativa de um vermelho. */
+    void focarJustificativa(Indicador indicador) {
+        abas.getSelectionModel().select(abaResultado);
+        TextField campo = painel.justificativas().get(indicador);
+        if (campo != null) {
+            campo.requestFocus();
+        }
+    }
+
+    /** Botão a mais no rodapé (ex.: "Salvar cálculo no projeto"). */
+    void adicionarAcao(Node acao) {
+        rodape.getChildren().add(rodape.getChildren().indexOf(botaoPdf) + 1, acao);
+    }
+
+    /** Aba a mais (ex.: o histórico de cálculos do projeto). */
+    void adicionarAba(Tab aba) {
+        abas.getTabs().add(aba);
+    }
+
+    void mostrarAba(Tab aba) {
+        abas.getSelectionModel().select(aba);
+    }
+
+    /** Mensagem na barra de baixo (ex.: "Cálculo salvo no projeto"). */
+    void mostrarEstado(String texto) {
+        rotuloEstado.setText(texto);
+    }
+
+    /** Avisa quando o resultado da tela muda: calculado, com erro ou desatualizado. */
+    void aoMudarResultado(Runnable acao) {
+        aoMudarResultado.add(acao);
+    }
+
+    private void avisarMudancaDeResultado() {
+        aoMudarResultado.forEach(Runnable::run);
+    }
 
     /** Texto de todos os campos (motor, meta e peças), para o {@link LeitorFormulario}. */
     Map<Campo, String> valoresDosCampos() {

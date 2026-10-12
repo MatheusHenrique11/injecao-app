@@ -63,7 +63,17 @@ public final class LeitorFormulario {
      */
     public static Leitura ler(Map<Campo, String> valores, Parametros padroes) {
         LeitorFormulario leitor = new LeitorFormulario(valores);
-        EntradaDimensionamento entrada = leitor.entrada(padroes);
+        EntradaDimensionamento entrada = leitor.entrada(padroes, null);
+        return new Leitura(leitor.erros.isEmpty() ? entrada : null, leitor.erros);
+    }
+
+    /**
+     * Lê a meta, o ar, os parâmetros e as peças, com um motor já pronto (a versão gravada no projeto). O motor não
+     * passa pelo texto da tela, então a entrada aponta exatamente para a versão usada.
+     */
+    public static Leitura lerComMotor(Map<Campo, String> valores, Parametros padroes, ConfiguracaoMotor motor) {
+        LeitorFormulario leitor = new LeitorFormulario(valores);
+        EntradaDimensionamento entrada = leitor.entrada(padroes, motor);
         return new Leitura(leitor.erros.isEmpty() ? entrada : null, leitor.erros);
     }
 
@@ -73,10 +83,25 @@ public final class LeitorFormulario {
         return new LeituraMotor(leitor.erros.isEmpty() ? motor : null, leitor.erros);
     }
 
+    /** Resultado da leitura só da meta. */
+    public record LeituraMeta(Meta meta, List<String> erros) {
+
+        public LeituraMeta {
+            erros = List.copyOf(erros);
+        }
+    }
+
+    /** Lê só os campos da meta (potência, onde é medida, perda, rotações e uso). */
+    public static LeituraMeta lerMeta(Map<Campo, String> valores) {
+        LeitorFormulario leitor = new LeitorFormulario(valores);
+        Meta meta = leitor.meta();
+        return new LeituraMeta(leitor.erros.isEmpty() ? meta : null, leitor.erros);
+    }
+
     // ===================== Montagem =====================
 
-    private EntradaDimensionamento entrada(Parametros padroes) {
-        ConfiguracaoMotor motor = motor();
+    private EntradaDimensionamento entrada(Parametros padroes, ConfiguracaoMotor motorPronto) {
+        ConfiguracaoMotor motor = motorPronto != null ? motorPronto : motor();
         Meta meta = meta();
         double lambda = numero(Campo.LAMBDA);
         double ve = numero(Campo.VE);

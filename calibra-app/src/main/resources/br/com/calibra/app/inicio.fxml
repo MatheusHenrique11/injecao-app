@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Início (SPEC 8.1): lista de projetos com busca por cliente, placa ou embarcação, motor e status. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.InicioController" styleClass="pagina">
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <Label styleClass="titulo-secao" text="Projetos"/>
+    <Region HBox.hgrow="ALWAYS"/>
+    <Button fx:id="botaoNovo" text="_Novo projeto…" defaultButton="true" onAction="#novoProjeto"/>
+  </HBox>
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <TextField fx:id="busca" promptText="Buscar por cliente, placa, embarcação ou motor" HBox.hgrow="ALWAYS"/>
+    <Label text="Status"/>
+    <ComboBox fx:id="filtroStatus" prefWidth="170.0"/>
+    <CheckBox fx:id="mostrarArquivados" text="Mostrar arquivados"/>
+  </HBox>
+  <TableView fx:id="tabela" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label fx:id="vazio" styleClass="dica" wrapText="true"
+             text="Nenhum projeto ainda. Clique em &quot;Novo projeto&quot; para cadastrar o cliente, o veículo e o motor."/>
+    </placeholder>
+    <columns>
+      <TableColumn fx:id="colunaCliente" text="Cliente" prefWidth="220.0"/>
+      <TableColumn fx:id="colunaVeiculo" text="Veículo" prefWidth="220.0"/>
+      <TableColumn fx:id="colunaIdentificacao" text="Placa / embarcação" prefWidth="150.0"/>
+      <TableColumn fx:id="colunaMotor" text="Motor" prefWidth="300.0"/>
+      <TableColumn fx:id="colunaStatus" text="Status" prefWidth="120.0"/>
+      <TableColumn fx:id="colunaAtualizado" text="Atualizado em" prefWidth="140.0"/>
+    </columns>
+  </TableView>
+  <Label styleClass="dica" text="Duplo clique ou Enter abre o projeto."/>
+</VBox>

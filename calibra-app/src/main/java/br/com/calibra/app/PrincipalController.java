@@ -21,6 +21,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.dados.backup.InfoBackup;
@@ -30,11 +31,12 @@ import br.com.calibra.dados.config.Chave;
  * Janela principal: navegação entre as telas, barra de status com o backup e a versão (SPEC 10). Cada tela
  * é carregada na primeira vez que é aberta e continua com o que foi digitado quando se troca de tela.
  */
-public class PrincipalController {
+public class PrincipalController implements Navegacao {
 
     private static final Logger LOG = Logger.getLogger(PrincipalController.class.getName());
 
     @FXML private ToggleGroup navegacao;
+    @FXML private ToggleButton navProjetos;
     @FXML private ToggleButton navCalculadora;
     @FXML private ToggleButton navConfiguracoes;
     @FXML private StackPane conteudo;
@@ -51,6 +53,13 @@ public class PrincipalController {
     private String erroDeBackup;
     private boolean fechando;
 
+    private CasosProjeto casosProjeto;
+    private Parent telaInicio;
+    private InicioController inicio;
+    /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
+    private Parent telaProjetos;
+    private String tituloProjetos;
+    private ProjetoController projetoAberto;
     private Parent telaCalculadora;
     private CalculadoraController calculadora;
     private Parent telaConfiguracoes;
@@ -78,8 +87,9 @@ public class PrincipalController {
         this.servicos = servicos;
         this.palco = palco;
         this.servicoBackup = new ServicoBackup(contexto.backup(), contexto.configuracao(), contexto.relogio());
+        this.casosProjeto = new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp());
         atualizarStatus();
-        mostrarCalculadora();
+        voltarParaProjetos();
     }
 
     /** Backup automático (SPEC 10: diário): confere agora, ao abrir, e depois de hora em hora. */
@@ -89,6 +99,57 @@ public class PrincipalController {
     }
 
     // ===================== Navegação =====================
+
+    /** Mostra o que estava aberto na área de projetos (a lista, o assistente ou um projeto). */
+    @FXML
+    private void mostrarProjetos() {
+        if (telaProjetos == null) {
+            voltarParaProjetos();
+            return;
+        }
+        mostrar(telaProjetos, navProjetos, tituloProjetos);
+    }
+
+    @Override
+    public void voltarParaProjetos() {
+        if (telaInicio == null) {
+            FXMLLoader carregador = carregador("inicio.fxml");
+            telaInicio = carregar(carregador);
+            inicio = carregador.getController();
+            inicio.iniciar(casosProjeto, this);
+        } else {
+            inicio.atualizar();
+        }
+        projetoAberto = null;
+        abrirNaAreaDeProjetos(telaInicio, "Projetos");
+        inicio.focarBusca();
+    }
+
+    @Override
+    public void novoProjeto() {
+        FXMLLoader carregador = carregador("assistente.fxml");
+        Parent tela = carregar(carregador);
+        AssistenteController assistente = carregador.getController();
+        assistente.iniciar(casosProjeto, this, contexto.relogio());
+        projetoAberto = null;
+        abrirNaAreaDeProjetos(tela, "Novo projeto");
+    }
+
+    @Override
+    public void abrirProjeto(long projetoId) {
+        FXMLLoader carregador = carregador("projeto.fxml");
+        Parent tela = carregar(carregador);
+        ProjetoController projeto = carregador.getController();
+        projeto.iniciar(casosProjeto, this, servicos, contexto.configuracao().ler(Chave.CALCULO), projetoId);
+        projetoAberto = projeto;
+        abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
+    }
+
+    private void abrirNaAreaDeProjetos(Parent tela, String titulo) {
+        telaProjetos = tela;
+        tituloProjetos = titulo;
+        mostrar(tela, navProjetos, titulo);
+    }
 
     @FXML
     private void mostrarCalculadora() {
@@ -112,6 +173,9 @@ public class PrincipalController {
                 if (calculadora != null) {
                     calculadora.usarPadroes(padroes);
                 }
+                if (projetoAberto != null) {
+                    projetoAberto.usarPadroes(padroes);
+                }
             });
             configuracoes.usarBackup(servicoBackup, tarefas, servicos, this::aposRestaurar);
         }
@@ -128,6 +192,10 @@ public class PrincipalController {
 
     /** Os dados mudaram todos: as telas são montadas de novo a partir do banco restaurado. */
     private void aposRestaurar() {
+        telaInicio = null;
+        inicio = null;
+        telaProjetos = null;
+        projetoAberto = null;
         telaCalculadora = null;
         calculadora = null;
         telaConfiguracoes = null;

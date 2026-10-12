@@ -112,6 +112,26 @@ class RelatorioMemoriaTest {
         }
     }
 
+    /** Bloco 2.2: a memória salva num projeto leva o cliente, o veículo e a versão do motor no cabeçalho. */
+    @Test
+    void memoriaDoProjetoTemClienteVeiculoEMotor(@TempDir Path pasta) throws IOException {
+        DadosRelatorio avulso = dados(justificativaDoDc());
+        DadosRelatorio doProjeto = new DadosRelatorio(avulso.entrada(), avulso.resultado(), avulso.justificativas(),
+                avulso.versaoApp(), avulso.geradoEm(),
+                new IdentificacaoProjeto(12, "João da Silva", "VW Gol GTi · ABC1D23", "v2 · AP 2.0 turbo"));
+        Path destino = pasta.resolve("memoria-projeto.pdf");
+        RelatorioMemoria.gerar(doProjeto, destino);
+        String texto = texto(destino.toFile());
+        assertTrue(texto.contains("#12"), "número do projeto");
+        assertTrue(texto.contains("João da Silva"), "cliente");
+        assertTrue(texto.contains("VW Gol GTi · ABC1D23"), "veículo");
+        assertTrue(texto.contains("v2 · AP 2.0 turbo"), "versão do motor");
+
+        Path semProjeto = pasta.resolve("memoria-avulsa.pdf");
+        RelatorioMemoria.gerar(avulso, semProjeto);
+        assertFalse(texto(semProjeto.toFile()).contains("João da Silva"), "a calculadora avulsa não tem projeto");
+    }
+
     @Test
     void naoGeraComVermelhoSemJustificativa(@TempDir Path pasta) {
         IllegalStateException erro = assertThrows(IllegalStateException.class,
