@@ -6,7 +6,8 @@ package br.com.calibra.core.memoria;
  */
 public final class VersaoNucleo {
 
-    public static final String ATUAL = "1.0.0";
+    /** 1.1.0: mapa do compressor, ponto de torque, meta pela pressão e torque × câmbio (fase 2, bloco 2.4). */
+    public static final String ATUAL = "1.1.0";
 
     private VersaoNucleo() {
     }

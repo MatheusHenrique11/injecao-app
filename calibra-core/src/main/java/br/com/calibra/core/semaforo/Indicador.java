@@ -9,7 +9,8 @@ public enum Indicador {
     VELOCIDADE_PISTAO("Velocidade média do pistão"),
     SAIDAS_INJECAO("Saídas da injeção"),
     FAIXA_SENSOR_MAP("Faixa do sensor MAP"),
-    ASPIRADO_MAP_PATM("Aspirado: MAP necessário ÷ P_atm local");
+    ASPIRADO_MAP_PATM("Aspirado: MAP necessário ÷ P_atm local"),
+    TORQUE_CAMBIO("Torque × câmbio");
 
     private final String rotulo;
 

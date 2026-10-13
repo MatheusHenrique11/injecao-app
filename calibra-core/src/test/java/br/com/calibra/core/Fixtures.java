@@ -2,6 +2,8 @@ package br.com.calibra.core;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
@@ -12,8 +14,12 @@ import br.com.calibra.core.motor.Construcao;
 import br.com.calibra.core.motor.RodaFonica;
 import br.com.calibra.core.motor.SugestoesMotor;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.MapaCompressor;
+import br.com.calibra.core.pecas.Turbo;
+import br.com.calibra.core.pecas.UnidadeVazao;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.Uso;
+import br.com.calibra.core.unidades.Conversoes;
 
 /**
  * Dados de teste. Os valores que não afetam a conta testada (taxa, válvulas, roda fônica...) são
@@ -88,6 +94,42 @@ public final class Fixtures {
         return EntradaDimensionamento.de(motor, Meta.noVirabrequim(450, 6500, Uso.RUA), 0.87, 0.90, 25, 300,
                 Parametros.padrao())
                 .comBico(Bico.informado("260 cm³/min", 260, 300, 0.70, 1.0));
+    }
+
+    /**
+     * Mapa de compressor FICTÍCIO, desenhado à mão só para os testes (nenhum mapa de fabricante entra no projeto). Em
+     * kg/s × PR, com a referência da Garrett (545 °R e 13,95 psia). O ponto de potência do caso B (≈ 0,310 kg/s
+     * corrigidos a PR 2,91) cai na ilha central de 77%, a ≈ 137.500 rpm.
+     */
+    public static MapaCompressor mapaFicticio() {
+        return mapaFicticio(0.70, 0.74, 0.77, 160_000.0);
+    }
+
+    /** O mapa fictício com outras eficiências nas ilhas (de fora para dentro) e outra rotação máxima. */
+    public static MapaCompressor mapaFicticio(double ilhaFora, double ilhaMeio, double ilhaCentro, Double rotacaoMaxima) {
+        return new MapaCompressor(UnidadeVazao.LB_MIN, 545.0 / 1.8, Conversoes.psiParaKpa(13.95),
+                List.of(p(0.10, 1.3), p(0.16, 2.0), p(0.22, 2.8), p(0.26, 3.4)),
+                List.of(p(0.38, 1.3), p(0.42, 2.0), p(0.44, 2.8), p(0.44, 3.4)),
+                List.of(new MapaCompressor.Ilha(ilhaFora, List.of(p(0.17, 1.6), p(0.40, 1.6), p(0.42, 2.6), p(0.36, 3.2),
+                                p(0.24, 3.2), p(0.19, 2.4))),
+                        new MapaCompressor.Ilha(ilhaMeio, List.of(p(0.22, 2.0), p(0.36, 2.0), p(0.38, 2.7), p(0.30, 3.0),
+                                p(0.24, 2.6))),
+                        new MapaCompressor.Ilha(ilhaCentro, List.of(p(0.27, 2.4), p(0.34, 2.4), p(0.35, 2.9),
+                                p(0.30, 3.0), p(0.27, 2.8)))),
+                List.of(new MapaCompressor.LinhaRotacao(80_000, List.of(p(0.12, 1.6), p(0.30, 1.55), p(0.40, 1.4))),
+                        new MapaCompressor.LinhaRotacao(110_000, List.of(p(0.17, 2.3), p(0.33, 2.25), p(0.43, 2.0))),
+                        new MapaCompressor.LinhaRotacao(140_000, List.of(p(0.23, 3.0), p(0.36, 2.95), p(0.44, 2.7))),
+                        new MapaCompressor.LinhaRotacao(160_000, List.of(p(0.26, 3.4), p(0.38, 3.35), p(0.44, 3.1)))),
+                rotacaoMaxima);
+    }
+
+    private static MapaCompressor.PontoMapa p(double vazaoKgS, double razaoPressao) {
+        return new MapaCompressor.PontoMapa(vazaoKgS, razaoPressao);
+    }
+
+    /** Turbo fictício com um mapa (ou sem, com mapa null). */
+    public static Turbo turbo(String nome, MapaCompressor mapa) {
+        return new Turbo(nome, mapa, 0.63, null, "Mapa fictício de teste", null);
     }
 
     /** Tolerância dos casos golden da SPEC 7.6: 1% sobre o valor esperado. */

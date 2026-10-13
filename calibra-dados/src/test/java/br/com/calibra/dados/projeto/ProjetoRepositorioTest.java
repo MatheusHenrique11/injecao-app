@@ -17,6 +17,7 @@ import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.Dimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.memoria.Resultado;
+import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.projeto.StatusProjeto;
@@ -179,7 +180,7 @@ class ProjetoRepositorioTest {
         assertEquals(resultado, salvo.resultado());
         assertEquals(List.of(justificativa), salvo.justificativas());
         assertEquals(1, salvo.numeroVersaoMotor());
-        assertEquals("1.0.0", salvo.versaoNucleo());
+        assertEquals(VersaoNucleo.ATUAL, salvo.versaoNucleo());
         assertEquals(calculo, base.banco.ler(c -> calculos.ultimo(c, id)).orElseThrow().id());
 
         ResumoCalculo resumo = base.banco.ler(c -> calculos.doProjeto(c, id)).getFirst();

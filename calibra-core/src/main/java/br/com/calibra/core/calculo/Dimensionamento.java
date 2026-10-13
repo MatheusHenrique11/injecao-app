@@ -4,12 +4,17 @@ import java.util.List;
 import java.util.Optional;
 
 import br.com.calibra.core.motor.SaidasExigidas;
+import br.com.calibra.core.pecas.MapaCompressor;
 import br.com.calibra.core.semaforo.Avaliacao;
 import br.com.calibra.core.semaforo.Indicador;
 
 /**
  * Resultado do dimensionamento, em unidades métricas. NaN = não se aplica (ex.: PR no aspirado);
  * null = parte não calculada (ex.: bico avaliado quando nenhum bico foi informado).
+ *
+ * @param pontoTorque ponto de torque máximo; null sem a rotação de torque (núcleo 1.1.0)
+ * @param compressor pontos de operação do compressor; null no aspirado (núcleo 1.1.0)
+ * @param noMapa os pontos no mapa do turbo escolhido; null sem turbo com mapa (núcleo 1.1.0)
  */
 public record Dimensionamento(
         Potencia potencia,
@@ -24,7 +29,10 @@ public record Dimensionamento(
         SensorMap sensorMap,
         PontoOperacao pontoOperacao,
         List<Avaliacao> semaforo,
-        List<String> recomendacoes) {
+        List<String> recomendacoes,
+        PontoTorque pontoTorque,
+        PontosCompressor compressor,
+        NoMapa noMapa) {
 
     public Dimensionamento {
         semaforo = List.copyOf(semaforo);
@@ -129,5 +137,45 @@ public record Dimensionamento(
 
     /** Ponto de operação do compressor na potência máxima (só sobrealimentado). */
     public record PontoOperacao(double vazaoArKgS, double vazaoArLbMin, double razaoPressao) {
+    }
+
+    /**
+     * Ponto de torque máximo (núcleo 1.1.0): o mesmo MAP da potência, na rotação de torque e com a VE do torque.
+     *
+     * @param potenciaKw potência estimada nesse ponto, no virabrequim
+     */
+    public record PontoTorque(int rpm, double ve, double vazaoArKgS, double vazaoArLbMin, double potenciaKw,
+            double torqueNm) {
+    }
+
+    /**
+     * Pontos de operação do compressor, por turbo (núcleo 1.1.0). A vazão corrigida depende do mapa (a referência é
+     * a do fabricante): use {@link #vazaoCorrigida}.
+     *
+     * @param temperaturaEntradaK T1: a temperatura ambiente
+     * @param pressaoEntradaKpa P1 = P_atm − perda antes do compressor
+     * @param turbosEmParalelo 2 no biturbo (cada turbo com metade da vazão), 1 nos outros
+     * @param vazaoTorqueKgS vazão por turbo no torque máximo; null sem a rotação de torque
+     */
+    public record PontosCompressor(double temperaturaEntradaK, double pressaoEntradaKpa, int turbosEmParalelo,
+            double vazaoPotenciaKgS, Double vazaoTorqueKgS, double razaoPressao) {
+
+        /** A vazão corrigida pela referência de um mapa. */
+        public double vazaoCorrigida(double vazaoKgS, MapaCompressor mapa) {
+            return Formulas.vazaoCorrigida(vazaoKgS, temperaturaEntradaK, pressaoEntradaKpa,
+                    mapa.temperaturaReferenciaK(), mapa.pressaoReferenciaKpa());
+        }
+
+        /** Os pontos de potência e de torque no mapa (o de torque é null sem a rotação de torque). */
+        public NoMapa noMapa(String turbo, MapaCompressor mapa) {
+            MapaCompressor.PontoNoMapa potencia = mapa.avaliar(vazaoCorrigida(vazaoPotenciaKgS, mapa), razaoPressao);
+            MapaCompressor.PontoNoMapa torque = vazaoTorqueKgS == null ? null
+                    : mapa.avaliar(vazaoCorrigida(vazaoTorqueKgS, mapa), razaoPressao);
+            return new NoMapa(turbo, potencia, torque);
+        }
+    }
+
+    /** Os pontos no mapa do turbo escolhido (o de torque é null sem a rotação de torque). */
+    public record NoMapa(String turbo, MapaCompressor.PontoNoMapa potencia, MapaCompressor.PontoNoMapa torque) {
     }
 }

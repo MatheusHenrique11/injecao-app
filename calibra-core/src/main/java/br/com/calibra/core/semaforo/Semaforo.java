@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import br.com.calibra.core.pecas.MapaCompressor;
+
 /**
  * Classificação de cada indicador da SPEC 7.4. Fronteiras: "até X" inclui X no verde;
  * "X ou mais" inclui X no verde.
@@ -66,8 +68,108 @@ public final class Semaforo {
 
     /** Sem mapa do compressor cadastrado o ponto não pode ser conferido: amarelo (SPEC 7.4). */
     public static Avaliacao compressorSemMapa() {
+        return compressorSemMapa(null);
+    }
+
+    /**
+     * Sem mapa do compressor cadastrado o ponto não pode ser conferido: amarelo (SPEC 7.4).
+     *
+     * @param turbo o turbo escolhido sem mapa; null sem turbo escolhido
+     */
+    public static Avaliacao compressorSemMapa(String turbo) {
+        String inicio = turbo == null ? "Turbo sem mapa cadastrado" : "Turbo " + turbo + " sem mapa cadastrado";
         return new Avaliacao(Indicador.MAPA_COMPRESSOR, Cor.AMARELO, Double.NaN, "",
-                "Turbo sem mapa cadastrado: conferir o ponto de operação (vazão e PR) no mapa do compressor do fabricante.");
+                inicio + ": conferir o ponto de operação (vazão e PR) no mapa do compressor do fabricante.");
+    }
+
+    /**
+     * Pontos de potência e de torque no mapa do compressor (núcleo 1.1.0); vale a pior cor dos dois. Vermelho: fora
+     * do mapa. Amarelo: perto do surge, do choke ou da rotação máxima, acima das linhas de rotação desenhadas ou fora
+     * das ilhas centrais. Verde: eficiência no ponto até a queda permitida abaixo do pico do mapa.
+     *
+     * @param torque null sem a rotação de torque máximo
+     */
+    public static Avaliacao mapaCompressor(String turbo, MapaCompressor mapa, MapaCompressor.PontoNoMapa potencia,
+            MapaCompressor.PontoNoMapa torque, LimiaresSemaforo l) {
+        Cor cor = Cor.VERDE;
+        List<String> partes = new ArrayList<>();
+        for (MapaCompressor.PontoNoMapa ponto : torque == null ? List.of(potencia) : List.of(potencia, torque)) {
+            String nome = ponto == potencia ? "potência" : "torque";
+            List<String> amarelos = new ArrayList<>();
+            Cor doPonto = corNoMapa(ponto, mapa, l, amarelos);
+            cor = pior(cor, doPonto);
+            String descricao = doPonto == Cor.VERMELHO ? "fora do mapa (" + ponto.foraDoMapa() + ")"
+                    : doPonto == Cor.AMARELO ? String.join("; ", amarelos) : descreverVerde(ponto, mapa);
+            partes.add(nome + ": " + descricao);
+        }
+        String mensagem = "Turbo " + turbo + " — " + String.join(" · ", partes) + "."
+                + (torque == null ? " Ponto de torque não conferido: informe a rotação de torque máximo." : "");
+        double valor = potencia.eficiencia() == null ? Double.NaN : potencia.eficiencia();
+        return new Avaliacao(Indicador.MAPA_COMPRESSOR, cor, valor, "fração", mensagem);
+    }
+
+    private static Cor corNoMapa(MapaCompressor.PontoNoMapa ponto, MapaCompressor mapa, LimiaresSemaforo l,
+            List<String> amarelos) {
+        if (!ponto.dentro()) {
+            return Cor.VERMELHO;
+        }
+        if (ponto.margemSurge() < l.compressorMargemSurge() - FOLGA_NUMERICA) {
+            amarelos.add("a " + percentual(ponto.margemSurge(), 0) + " do surge (amarelo abaixo de "
+                    + percentual(l.compressorMargemSurge(), 0) + ")");
+        }
+        if (ponto.margemChoke() < l.compressorMargemChoke() - FOLGA_NUMERICA) {
+            amarelos.add("a " + percentual(ponto.margemChoke(), 0) + " do choke (amarelo abaixo de "
+                    + percentual(l.compressorMargemChoke(), 0) + ")");
+        }
+        Double maxima = mapa.rotacaoMaximaRpm();
+        if (ponto.rotacaoRpm() != null && maxima != null
+                && ponto.rotacaoRpm() > l.compressorRotacaoFator() * maxima + FOLGA_NUMERICA) {
+            amarelos.add("turbo a " + formatar(ponto.rotacaoRpm(), 0) + " rpm, acima de "
+                    + percentual(l.compressorRotacaoFator(), 0) + " da rotação máxima (" + formatar(maxima, 0) + " rpm)");
+        }
+        if (ponto.acimaDasLinhas()) {
+            amarelos.add("acima da maior linha de rotação desenhada: conferir no mapa do fabricante");
+        }
+        Double pico = mapa.eficienciaPico();
+        if (pico == null) {
+            amarelos.add("mapa sem ilhas de eficiência marcadas");
+        } else if (ponto.eficiencia() == null) {
+            amarelos.add("fora das ilhas de eficiência marcadas");
+        } else if (ponto.eficiencia() < pico - l.compressorEficienciaPontos() - FOLGA_NUMERICA) {
+            amarelos.add("eficiência de " + percentual(ponto.eficiencia(), 0) + ", mais de "
+                    + formatar(l.compressorEficienciaPontos() * 100, 0) + " pontos abaixo do pico do mapa ("
+                    + percentual(pico, 0) + ")");
+        }
+        return amarelos.isEmpty() ? Cor.VERDE : Cor.AMARELO;
+    }
+
+    private static String descreverVerde(MapaCompressor.PontoNoMapa ponto, MapaCompressor mapa) {
+        return "eficiência de " + percentual(ponto.eficiencia(), 0) + " (pico " + percentual(mapa.eficienciaPico(), 0)
+                + "), " + percentual(ponto.margemSurge(), 0) + " de folga do surge e " + percentual(ponto.margemChoke(), 0)
+                + " do choke";
+    }
+
+    private static Cor pior(Cor a, Cor b) {
+        return a.ordinal() >= b.ordinal() ? a : b;
+    }
+
+    /**
+     * Maior torque estimado contra o torque máximo do câmbio (núcleo 1.1.0): verde até 90%, amarelo até 100%,
+     * vermelho acima.
+     */
+    public static Avaliacao torqueCambio(double torqueNm, String cambio, double limiteNm, LimiaresSemaforo l) {
+        double razao = torqueNm / limiteNm;
+        String inicio = "Torque estimado de " + formatar(torqueNm, 0) + " N·m = " + percentual(razao, 0)
+                + " do limite do câmbio " + cambio + " (" + formatar(limiteNm, 0) + " N·m)";
+        if (ate(razao, l.cambioVerdeAte())) {
+            return new Avaliacao(Indicador.TORQUE_CAMBIO, Cor.VERDE, razao, "fração", inicio + ".");
+        }
+        if (ate(razao, l.cambioAmareloAte())) {
+            return new Avaliacao(Indicador.TORQUE_CAMBIO, Cor.AMARELO, razao, "fração",
+                    inicio + ": perto do limite (verde até " + percentual(l.cambioVerdeAte(), 0) + ").");
+        }
+        return new Avaliacao(Indicador.TORQUE_CAMBIO, Cor.VERMELHO, razao, "fração",
+                inicio + ": acima do que o câmbio aguenta. Reforçar o câmbio ou limitar o torque.");
     }
 
     /**

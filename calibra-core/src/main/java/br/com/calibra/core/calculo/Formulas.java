@@ -92,6 +92,47 @@ public final class Formulas {
         return vazaoArLbMin * CONSTANTE_MAP_GARRETT * (460.0 + tmF) / (ve * (rpm / 2.0) * cilindradaPol3);
     }
 
+    public static final String TEXTO_WA_PELO_MAP = "Wa = MAP × VE × (RPM/2) × Vd[pol³] / (639,6 × (460 + Tm[°F]))";
+
+    /**
+     * A fórmula do MAP ao contrário (núcleo 1.1.0): vazão de ar em lb/min com o MAP conhecido, em psia. Serve à meta
+     * pela pressão e ao ponto de torque máximo.
+     */
+    public static double vazaoArPeloMap(double mapPsia, double tmF, double ve, double rpm, double cilindradaPol3) {
+        return mapPsia * ve * (rpm / 2.0) * cilindradaPol3 / (CONSTANTE_MAP_GARRETT * (460.0 + tmF));
+    }
+
+    public static final String TEXTO_MAP_PELA_PRESSAO = "MAP = P_atm + pressão relativa";
+
+    /** MAP absoluto a partir da pressão relativa do turbo (meta pela pressão), na mesma unidade das duas. */
+    public static double mapPelaPressao(double patm, double pressaoRelativa) {
+        return patm + pressaoRelativa;
+    }
+
+    public static final String TEXTO_POTENCIA_POR_KAR = "P_hp = Wa × k_ar";
+
+    /** Potência em hp pela vazão de ar em lb/min (inverso de Wa = P_hp / k_ar). */
+    public static double potenciaPorKar(double vazaoArLbMin, double kAr) {
+        return vazaoArLbMin * kAr;
+    }
+
+    public static final String TEXTO_POTENCIA_POR_BSFC = "P_hp = 60 × Wa / (AFR × BSFC)";
+
+    /** Potência em hp pela vazão de ar em lb/min (inverso de Wa = P_hp × AFR × BSFC / 60). */
+    public static double potenciaPorBsfc(double vazaoArLbMin, double afr, double bsfc) {
+        return 60.0 * vazaoArLbMin / (afr * bsfc);
+    }
+
+    public static final String TEXTO_VAZAO_CORRIGIDA = "Wc = Wa × raiz(T1 / T_ref) / (P1 / P_ref)";
+
+    /**
+     * Vazão corrigida para o mapa do compressor: T1 e P1 na entrada do compressor, T_ref e P_ref as do próprio mapa
+     * (temperaturas absolutas; pressões absolutas na mesma unidade). A vazão sai na unidade de Wa.
+     */
+    public static double vazaoCorrigida(double vazaoAr, double t1K, double p1, double tReferenciaK, double pReferencia) {
+        return vazaoAr * Math.sqrt(t1K / tReferenciaK) / (p1 / pReferencia);
+    }
+
     public static final String TEXTO_RAZAO_PRESSAO = "PR = (MAP + dP_perdas) / (P_atm − dP_admissao)";
 
     /** Razão de pressão do compressor; todas as pressões em psi (absolutas, menos as perdas). */

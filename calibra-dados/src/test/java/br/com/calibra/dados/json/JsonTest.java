@@ -23,6 +23,7 @@ import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.memoria.Resultado;
+import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.motor.RodaFonica;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
@@ -53,7 +54,7 @@ class JsonTest {
         Resultado<Dimensionamento> lido = Json.ler(Json.escrever(resultado), RESULTADO);
         assertEquals(resultado, lido);
         assertFalse(lido.memoria().isEmpty());
-        assertEquals("1.0.0", lido.versaoNucleo());
+        assertEquals(VersaoNucleo.ATUAL, lido.versaoNucleo());
     }
 
     static List<Combustivel> combustiveis() {

@@ -292,3 +292,26 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - A lista traz só câmbios terrestres ou só náuticos, conforme o veículo.
     - O caso de uso recusa câmbio do catálogo de tipo diferente do veículo.
 112. **Fotos dos testes de interface:** o cache de imagem dos nós é desligado antes da foto. Fora de janela, a área com rolagem mostrava o painel antigo (ex.: a etapa anterior do assistente).
+
+## 13/10/2026 — Fase 2 (bloco 2.4: turbo, meta pela pressão e torque × câmbio)
+
+113. **Núcleo 1.1.0.** Entram o mapa do compressor, o ponto de torque máximo, a meta pela pressão e o indicador torque × câmbio, cada fórmula com teste. Os casos golden A a D continuam iguais. Cálculo salvo com o núcleo 1.0.0 passa a aparecer como "desatualizado — o núcleo de cálculo mudou" (regra 2.5); o que estava gravado continua legível.
+114. **Mapa do compressor no núcleo (`MapaCompressor`):**
+    - Pontos em kg/s × PR (SI). O eixo original (lb/min ou kg/s) fica guardado só para mostrar o mapa como o fabricante desenhou.
+    - A temperatura e a pressão de referência ficam no próprio mapa; a vazão corrigida de cada turbo usa as dele: Wc = Wa × raiz(T1/T_ref) ÷ (P1/P_ref), com T1 = temperatura ambiente e P1 = P_atm − perda antes do compressor.
+    - **Fora do mapa:** acima do topo das linhas de surge e de choke, à esquerda do surge, à direita do choke ou acima da rotação máxima.
+    - Abaixo do primeiro ponto marcado, o surge e o choke valem o primeiro ponto (as linhas descem quase retas até PR 1).
+    - **Rotação no ponto:** cada linha de rotação dá a sua PR na vazão do ponto, e a rotação é interpolada entre as duas linhas vizinhas. Acima da maior linha desenhada: se ela é a rotação máxima, fora do mapa; se não, amarelo ("conferir no mapa do fabricante").
+    - **Eficiência no ponto:** a da ilha mais interna que contém o ponto; o pico é a maior ilha marcada.
+115. **Semáforo do compressor** (resposta do dono do produto no plano; limiares em Configurações, "a validar"):
+    - Vermelho fora do mapa; amarelo com menos de 10% de vazão sobre o surge, menos de 5% até o choke, acima de 95% da rotação máxima, acima das linhas desenhadas, fora das ilhas ou mais de 5 pontos abaixo do pico; verde no resto.
+    - Avalia os pontos de potência e de torque, e vale a pior cor. Sem turbo com mapa: amarelo, como antes.
+    - **Limiares novos** (compressor e câmbio): um JSON gravado antes deles chega com zero nesses campos, e o zero vira o padrão.
+116. **Ponto de torque máximo:** o mesmo MAP e a mesma Tm da potência, na rotação de torque, com a VE do torque (campo novo; sem ela, vale a VE da potência). A vazão sai da fórmula do MAP ao contrário; a potência, do k_ar ou do BSFC ao contrário; e daí o torque estimado.
+117. **Meta pela pressão** (só sobrealimentado):
+    - MAP = P_atm + pressão relativa; PR, T2 e Tm sem iteração (o MAP é conhecido); a vazão de ar pela fórmula do MAP ao contrário; a potência pelo k_ar ou pelo BSFC; e o resto da cadeia normal.
+    - Na meta pela pressão, a potência da meta fica vazia (NaN) e sai do cálculo. Com a perda de transmissão informada, o cálculo também estima a potência na roda.
+    - Ida e volta testada: potência → MAP → potência, com diferença menor que 0,1%.
+118. **Biturbo:** os pontos do compressor usam metade da vazão por turbo, considerando os dois em paralelo (a memória diz isso; o aviso de "confirmar a montagem" continua).
+119. **Torque × câmbio:** compara o maior torque estimado (na potência ou no torque máximo) com o torque máximo do câmbio do catálogo: verde até 90%, amarelo até 100%, vermelho acima. Sem câmbio ou sem limite cadastrado, só um aviso de informação.
+120. **Seleção de turbo (`SelecaoTurbo`):** só os turbos cujo mapa contém os pontos de potência e de torque, do mais eficiente no ponto de potência para o menos (fora das ilhas por último). Turbo sem mapa fica de fora, com aviso. Junto da escolha aparece o compromisso do A/R da caixa quente (SPEC 7.3).

@@ -22,7 +22,10 @@ import br.com.calibra.core.motor.SaidasExigidas;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.MapaCompressor;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.semaforo.Avaliacao;
@@ -104,6 +107,16 @@ public final class CalculoDimensionamento {
         if (!(entrada.ve() > 0 && entrada.ve() <= 1.5)) {
             erros.add("A VE deve ficar entre 0 e 1,5 (use fração: 0,95 = 95%).");
         }
+        if (entrada.veTorque() != null && !(entrada.veTorque() > 0 && entrada.veTorque() <= 1.5)) {
+            erros.add("A VE do torque máximo deve ficar entre 0 e 1,5 (use fração: 0,95 = 95%).");
+        }
+        if (entrada.turbo() != null) {
+            entrada.turbo().validar().forEach(erro -> erros.add("Turbo " + entrada.turbo().nome() + ": " + erro));
+        }
+        if (entrada.cambio() != null && entrada.cambio().torqueMaximoNm() != null
+                && !(entrada.cambio().torqueMaximoNm() > 0)) {
+            erros.add("O torque máximo do câmbio deve ser maior que zero.");
+        }
         if (!Double.isFinite(entrada.temperaturaAmbienteC())) {
             erros.add("Informe a temperatura ambiente.");
         }
@@ -150,7 +163,14 @@ public final class CalculoDimensionamento {
             erros.add("Informe a meta: potência, rotação e uso.");
             return;
         }
-        if (!(meta.potenciaKw() > 0)) {
+        if (meta.pelaPressao()) {
+            if (!(meta.pressaoRelativaKpa() > 0)) {
+                erros.add("A pressão do turbo da meta deve ser maior que zero.");
+            }
+            if (motor.aspiracao() != null && !motor.aspiracao().sobrealimentado()) {
+                erros.add("A meta pela pressão só vale para motor sobrealimentado; no aspirado, informe a potência.");
+            }
+        } else if (!(meta.potenciaKw() > 0)) {
             erros.add("A potência meta deve ser maior que zero.");
         }
         if (meta.pontoMedicao() == null) {
@@ -315,21 +335,105 @@ public final class CalculoDimensionamento {
                 memoria.aviso(NivelAviso.AMARELO, combustivel.avisoLambda());
             }
 
-            Dimensionamento.Potencia potencia = potencia();
-            Dimensionamento.Combustao combustao = combustao(potencia);
-            Dimensionamento.LadoDoAr ladoDoAr = ladoDoAr(combustao);
+            Dimensionamento.Potencia potencia;
+            Dimensionamento.Combustao combustao;
+            Dimensionamento.LadoDoAr ladoDoAr;
+            if (entrada.meta().pelaPressao()) {
+                ArPelaPressao ar = ladoDoArPelaPressao();
+                potencia = potenciaPelaVazao(ar.vazaoArLbMin());
+                combustao = combustao(potencia, ar.vazaoArLbMin());
+                ladoDoAr = ar.ladoDoAr();
+            } else {
+                potencia = potencia();
+                combustao = combustao(potencia, null);
+                ladoDoAr = ladoDoAr(combustao);
+            }
             Dimensionamento.PorInjecao porInjecao = porInjecao(combustao, ladoDoAr);
             Dimensionamento.BicoNecessario bicoNecessario = bicoNecessario(combustao);
             Dimensionamento.BicoAvaliado bicoAvaliado = avaliarBico(combustao, porInjecao);
             Dimensionamento.BombaNecessaria bomba = bomba(combustao, ladoDoAr);
             Dimensionamento.Esforco esforco = esforco(potencia, ladoDoAr);
+            Dimensionamento.PontoTorque pontoTorque = pontoTorque(combustao, ladoDoAr);
             SaidasExigidas.Saidas saidas = saidas();
             Dimensionamento.SensorMap sensorMap = sensorMap(ladoDoAr);
             Dimensionamento.PontoOperacao pontoOperacao = pontoOperacao(combustao, ladoDoAr);
-            recomendar(esforco, bicoNecessario, bicoAvaliado, bomba, saidas, sensorMap);
+            Dimensionamento.PontosCompressor compressor = compressor(combustao, ladoDoAr, pontoTorque);
+            Dimensionamento.NoMapa noMapa = noMapa(compressor);
+            torqueCambio(esforco, pontoTorque);
+            recomendar(esforco, bicoNecessario, bicoAvaliado, bomba, saidas, sensorMap, compressor);
 
             return memoria.resultado(new Dimensionamento(potencia, combustao, ladoDoAr, porInjecao, bicoNecessario,
-                    bicoAvaliado, bomba, esforco, saidas, sensorMap, pontoOperacao, semaforo, recomendacoes));
+                    bicoAvaliado, bomba, esforco, saidas, sensorMap, pontoOperacao, semaforo, recomendacoes,
+                    pontoTorque, compressor, noMapa));
+        }
+
+        // ---------- 1b. Meta pela pressão (núcleo 1.1.0) ----------
+
+        /** O lado do ar com o MAP conhecido e a vazão de ar que sai dele. */
+        private record ArPelaPressao(Dimensionamento.LadoDoAr ladoDoAr, double vazaoArLbMin) {
+        }
+
+        /**
+         * Meta pela pressão: MAP = P_atm + pressão; daí PR, T2 e Tm sem iteração (o MAP é conhecido) e a vazão de ar
+         * pela fórmula do MAP ao contrário.
+         */
+        private ArPelaPressao ladoDoArPelaPressao() {
+            Geometria g = geometria();
+            double pressao = entrada.meta().pressaoRelativaKpa();
+            double mapKpa = memoria.passo("MAP pela pressão alvo", Formulas.TEXTO_MAP_PELA_PRESSAO,
+                    Formulas.mapPelaPressao(g.patmKpa(), pressao), "kPa", e("P_atm", g.patmKpa(), "kPa"),
+                    e("pressão relativa", pressao, "kPa"));
+            double mapPsia = Conversoes.kpaParaPsi(mapKpa);
+            double patmPsia = Conversoes.kpaParaPsi(g.patmKpa());
+            double perdasPsi = Conversoes.kpaParaPsi(p.perdaDescargaKpa());
+            double admissaoPsi = Conversoes.kpaParaPsi(p.perdaAdmissaoKpa());
+            double tAmbiente = entrada.temperaturaAmbienteC();
+            double t1K = Conversoes.cParaK(tAmbiente);
+            double pr = memoria.passo("Razão de pressão do compressor PR", Formulas.TEXTO_RAZAO_PRESSAO,
+                    Formulas.razaoPressao(mapPsia, perdasPsi, patmPsia, admissaoPsi), "",
+                    e("MAP", mapPsia, "psia"), e("dP_perdas", perdasPsi, "psi"), e("P_atm", patmPsia, "psia"),
+                    e("dP_admissao", admissaoPsi, "psi"));
+            double t2K = pr > 1.0 ? memoria.passo("Temperatura na saída do compressor T2", Formulas.TEXTO_T2,
+                    Formulas.temperaturaSaidaCompressorK(t1K, pr, p.etaC()), "K",
+                    e("T1", t1K, "K"), e("PR", pr, ""), e("eta_c", p.etaC(), "")) : t1K;
+            double t2C = Conversoes.kParaC(t2K);
+            double tmC = memoria.passo("Temperatura no coletor Tm (sem iteração: o MAP é conhecido)", Formulas.TEXTO_TM,
+                    Formulas.temperaturaColetor(t2C, p.eps(), tAmbiente), "°C",
+                    e("T2", t2C, "°C"), e("eps", p.eps(), ""), e("T_amb", tAmbiente, "°C"));
+            double tmF = Conversoes.cParaF(tmC);
+            double waLbMin = memoria.passo("Vazão de ar Wa pelo MAP", Formulas.TEXTO_WA_PELO_MAP,
+                    Formulas.vazaoArPeloMap(mapPsia, tmF, entrada.ve(), rpm, g.vdPol3()), "lb/min",
+                    e("MAP", mapPsia, "psia"), e("VE", entrada.ve(), ""), e("RPM", rpm, "rpm"),
+                    e("Vd", g.vdPol3(), "pol³"), e("Tm", tmF, "°F"));
+            return new ArPelaPressao(new Dimensionamento.LadoDoAr(true, g.cilindradaCc(), g.patmKpa(), mapKpa, pr, t2C,
+                    tmC, 0, mapKpa / g.patmKpa()), waLbMin);
+        }
+
+        /** Potência pela vazão de ar (meta pela pressão): k_ar ou BSFC ao contrário. */
+        private Dimensionamento.Potencia potenciaPelaVazao(double waLbMin) {
+            double hp = hpPelaVazao(waLbMin, "Potência pela vazão de ar");
+            double cv = Conversoes.hpParaCv(hp);
+            double kw = memoria.passo("Potência no virabrequim (estimada)", "P_kW = P_hp / 0,98632 × 0,73550",
+                    Conversoes.cvParaKw(cv), "kW", e("P_hp", hp, "hp"));
+            Meta meta = entrada.meta();
+            if (meta.pontoMedicao() == PontoMedicao.RODA && meta.perdaTransmissaoPct() != null) {
+                double perda = meta.perdaTransmissaoPct() / 100.0;
+                memoria.passo("Potência na roda (estimada)", "P_roda = P_vira × (1 − perda)", kw * (1.0 - perda), "kW",
+                        e("P_vira", kw, "kW"), e("perda", perda, "fração"));
+            }
+            return new Dimensionamento.Potencia(kw, cv, hp, cv / (motor.cilindradaCc() / 1000.0));
+        }
+
+        /** hp pela vazão de ar, no caminho escolhido (k_ar ou BSFC). */
+        private double hpPelaVazao(double waLbMin, String grandeza) {
+            if (p.caminhoAr() == CaminhoAr.K_AR) {
+                return memoria.passo(grandeza, Formulas.TEXTO_POTENCIA_POR_KAR, Formulas.potenciaPorKar(waLbMin, p.kAr()),
+                        "hp", e("Wa", waLbMin, "lb/min"), e("k_ar", p.kAr(), "hp por lb/min"));
+            }
+            double afrAlvo = combustivel.afrEstequiometrico() * entrada.lambdaAlvo();
+            return memoria.passo(grandeza, Formulas.TEXTO_POTENCIA_POR_BSFC,
+                    Formulas.potenciaPorBsfc(waLbMin, afrAlvo, p.bsfc()), "hp", e("Wa", waLbMin, "lb/min"),
+                    e("AFR", afrAlvo, ":1"), e("BSFC", p.bsfc(), "lb/hp·h"));
         }
 
         // ---------- 1. Potência ----------
@@ -352,7 +456,8 @@ public final class CalculoDimensionamento {
 
         // ---------- 2. Ar e combustível ----------
 
-        private Dimensionamento.Combustao combustao(Dimensionamento.Potencia potencia) {
+        /** @param waConhecida vazão de ar já calculada (meta pela pressão); null = sai da potência */
+        private Dimensionamento.Combustao combustao(Dimensionamento.Potencia potencia, Double waConhecida) {
             double afrEst = memoria.passo("AFR estequiométrico (" + combustivel.codigo() + ")",
                     combustivel.composicao().formula(), combustivel.afrEstequiometrico(), ":1",
                     combustivel.composicao().entradas().toArray(new Entrada[0]));
@@ -361,7 +466,9 @@ public final class CalculoDimensionamento {
                     e("AFR_est", afrEst, ":1"), e("lambda", lambda, ""));
             double hp = potencia.hp();
             double waLbMin;
-            if (p.caminhoAr() == CaminhoAr.K_AR) {
+            if (waConhecida != null) {
+                waLbMin = waConhecida;
+            } else if (p.caminhoAr() == CaminhoAr.K_AR) {
                 waLbMin = memoria.passo("Vazão de ar Wa", Formulas.TEXTO_WA_KAR, Formulas.vazaoArPorKar(hp, p.kAr()),
                         "lb/min", e("P_hp", hp, "hp"), e("k_ar", p.kAr(), "hp por lb/min"));
             } else {
@@ -387,6 +494,17 @@ public final class CalculoDimensionamento {
         // ---------- 3. Cilindrada, atmosfera e lado do ar ----------
 
         private Dimensionamento.LadoDoAr ladoDoAr(Dimensionamento.Combustao combustao) {
+            Geometria g = geometria();
+            return sobrealimentado
+                    ? ladoDoArSobrealimentado(combustao.vazaoArLbMin(), g.vdPol3(), g.cilindradaCc(), g.patmKpa())
+                    : ladoDoArAspirado(combustao.vazaoArLbMin(), g.vdPol3(), g.cilindradaCc(), g.patmKpa());
+        }
+
+        /** Cilindrada (cm³ e pol³) e pressão atmosférica local. */
+        private record Geometria(double cilindradaCc, double vdPol3, double patmKpa) {
+        }
+
+        private Geometria geometria() {
             double cilindradaCc = memoria.passo("Cilindrada", "Vd = π/4 × D² × S × n", motor.cilindradaCc(), "cm³",
                     e("D", motor.diametroMm(), "mm"), e("S", motor.cursoMm(), "mm"),
                     e("n", motor.numeroCilindros(), "cilindros"));
@@ -402,9 +520,7 @@ public final class CalculoDimensionamento {
                     Conversoes.litrosParaPol3(cilindradaL), "pol³", e("Vd", cilindradaL, "L"));
             double patmKpa = memoria.passo("Pressão atmosférica local", Formulas.TEXTO_PRESSAO_ATMOSFERICA,
                     Formulas.pressaoAtmosfericaKpa(motor.altitudeLocalM()), "kPa", e("h", motor.altitudeLocalM(), "m"));
-            return sobrealimentado
-                    ? ladoDoArSobrealimentado(combustao.vazaoArLbMin(), vdPol3, cilindradaCc, patmKpa)
-                    : ladoDoArAspirado(combustao.vazaoArLbMin(), vdPol3, cilindradaCc, patmKpa);
+            return new Geometria(cilindradaCc, vdPol3, patmKpa);
         }
 
         private Dimensionamento.LadoDoAr ladoDoArSobrealimentado(double waLbMin, double vdPol3, double cilindradaCc,
@@ -723,6 +839,53 @@ public final class CalculoDimensionamento {
             return new Dimensionamento.Esforco(bmep, torque, velocidade);
         }
 
+        // ---------- 8b. Ponto de torque máximo e torque × câmbio (núcleo 1.1.0) ----------
+
+        /**
+         * Ponto de torque máximo: o mesmo MAP da potência, na rotação de torque e com a VE do torque (a da potência,
+         * se não informada). A vazão sai da fórmula do MAP ao contrário; dela, a potência e o torque estimados.
+         */
+        private Dimensionamento.PontoTorque pontoTorque(Dimensionamento.Combustao combustao,
+                Dimensionamento.LadoDoAr ladoDoAr) {
+            Integer rpmTorque = entrada.meta().rotacaoTorqueMaximo();
+            if (rpmTorque == null) {
+                memoria.aviso(NivelAviso.INFORMACAO, "Ponto de torque máximo não calculado: informe a rotação de "
+                        + "torque máximo.");
+                return null;
+            }
+            double veTorque = entrada.veNoTorque();
+            double mapPsia = Conversoes.kpaParaPsi(ladoDoAr.mapKpa());
+            double tmF = Conversoes.cParaF(ladoDoAr.tmC());
+            double vdPol3 = Conversoes.litrosParaPol3(ladoDoAr.cilindradaCc() / 1000.0);
+            double waLbMin = memoria.passo("Vazão de ar no torque máximo (mesmo MAP da potência)",
+                    Formulas.TEXTO_WA_PELO_MAP, Formulas.vazaoArPeloMap(mapPsia, tmF, veTorque, rpmTorque, vdPol3),
+                    "lb/min", e("MAP", mapPsia, "psia"), e("VE do torque", veTorque, ""), e("RPM", rpmTorque, "rpm"),
+                    e("Vd", vdPol3, "pol³"), e("Tm", tmF, "°F"));
+            double hp = hpPelaVazao(waLbMin, "Potência no torque máximo");
+            double kw = Conversoes.hpParaKw(hp);
+            double torque = memoria.passo("Torque estimado no torque máximo", Formulas.TEXTO_TORQUE,
+                    Formulas.torqueNm(kw, rpmTorque), "N·m", e("P", kw, "kW"), e("RPM", rpmTorque, "rpm"));
+            return new Dimensionamento.PontoTorque(rpmTorque, veTorque, Conversoes.lbMinParaKgS(waLbMin), waLbMin, kw,
+                    torque);
+        }
+
+        /** O maior torque estimado contra o torque máximo do câmbio; sem câmbio ou sem limite, só um aviso. */
+        private void torqueCambio(Dimensionamento.Esforco esforco, Dimensionamento.PontoTorque pontoTorque) {
+            Cambio cambio = entrada.cambio();
+            if (cambio == null || cambio.torqueMaximoNm() == null) {
+                memoria.aviso(NivelAviso.INFORMACAO, cambio == null
+                        ? "Torque × câmbio não avaliado: escolha o câmbio do catálogo com o torque máximo cadastrado."
+                        : "Torque × câmbio não avaliado: o câmbio " + cambio.nome() + " não tem torque máximo "
+                                + "cadastrado no catálogo.");
+                return;
+            }
+            double maior = pontoTorque == null ? esforco.torqueNm()
+                    : memoria.passo("Maior torque estimado", "maior entre o torque na potência e no torque máximo",
+                            Math.max(esforco.torqueNm(), pontoTorque.torqueNm()), "N·m",
+                            e("na potência", esforco.torqueNm(), "N·m"), e("no torque", pontoTorque.torqueNm(), "N·m"));
+            semaforo.add(Semaforo.torqueCambio(maior, cambio.nome(), cambio.torqueMaximoNm(), limiares));
+        }
+
         // ---------- 9. Saídas, sensor MAP e ponto de operação ----------
 
         private SaidasExigidas.Saidas saidas() {
@@ -770,7 +933,6 @@ public final class CalculoDimensionamento {
             if (!sobrealimentado) {
                 return null;
             }
-            semaforo.add(Semaforo.compressorSemMapa());
             if (motor.aspiracao() == Aspiracao.BITURBO) {
                 memoria.aviso(NivelAviso.INFORMACAO, "Biturbo: se os turbos trabalham em paralelo, cada um recebe "
                         + "metade da vazão (" + formatar(combustao.vazaoArLbMin() / 2.0, 2)
@@ -780,11 +942,57 @@ public final class CalculoDimensionamento {
                     ladoDoAr.razaoPressao());
         }
 
+        /**
+         * Pontos do compressor por turbo (núcleo 1.1.0): entrada a T1 = T_amb e P1 = P_atm − perda antes do
+         * compressor. No biturbo, cada turbo leva metade da vazão (considerado em paralelo).
+         */
+        private Dimensionamento.PontosCompressor compressor(Dimensionamento.Combustao combustao,
+                Dimensionamento.LadoDoAr ladoDoAr, Dimensionamento.PontoTorque pontoTorque) {
+            if (!sobrealimentado) {
+                return null;
+            }
+            double t1K = Conversoes.cParaK(entrada.temperaturaAmbienteC());
+            double p1Kpa = memoria.passo("Pressão na entrada do compressor", "P1 = P_atm − perda antes do compressor",
+                    ladoDoAr.patmKpa() - p.perdaAdmissaoKpa(), "kPa", e("P_atm", ladoDoAr.patmKpa(), "kPa"),
+                    e("perda", p.perdaAdmissaoKpa(), "kPa"));
+            int paralelo = motor.aspiracao() == Aspiracao.BITURBO ? 2 : 1;
+            Double torque = pontoTorque == null ? null : pontoTorque.vazaoArKgS() / paralelo;
+            return new Dimensionamento.PontosCompressor(t1K, p1Kpa, paralelo, combustao.vazaoArKgS() / paralelo, torque,
+                    ladoDoAr.razaoPressao());
+        }
+
+        /** Os pontos de potência e de torque no mapa do turbo escolhido; sem turbo com mapa, semáforo amarelo. */
+        private Dimensionamento.NoMapa noMapa(Dimensionamento.PontosCompressor pontos) {
+            if (pontos == null) {
+                return null;
+            }
+            Turbo turbo = entrada.turbo();
+            if (turbo == null || turbo.mapa() == null) {
+                semaforo.add(Semaforo.compressorSemMapa(turbo == null ? null : turbo.nome()));
+                return null;
+            }
+            MapaCompressor mapa = turbo.mapa();
+            Dimensionamento.NoMapa noMapa = pontos.noMapa(turbo.nome(), mapa);
+            memoria.passo("Vazão corrigida no ponto de potência (" + turbo.nome() + ")", Formulas.TEXTO_VAZAO_CORRIGIDA,
+                    noMapa.potencia().vazaoCorrigidaKgS(), "kg/s", e("Wa", pontos.vazaoPotenciaKgS(), "kg/s"),
+                    e("T1", pontos.temperaturaEntradaK(), "K"), e("P1", pontos.pressaoEntradaKpa(), "kPa"),
+                    e("T_ref", mapa.temperaturaReferenciaK(), "K"), e("P_ref", mapa.pressaoReferenciaKpa(), "kPa"));
+            if (noMapa.torque() != null) {
+                memoria.passo("Vazão corrigida no ponto de torque (" + turbo.nome() + ")", Formulas.TEXTO_VAZAO_CORRIGIDA,
+                        noMapa.torque().vazaoCorrigidaKgS(), "kg/s", e("Wa", pontos.vazaoTorqueKgS(), "kg/s"),
+                        e("T1", pontos.temperaturaEntradaK(), "K"), e("P1", pontos.pressaoEntradaKpa(), "kPa"),
+                        e("T_ref", mapa.temperaturaReferenciaK(), "K"), e("P_ref", mapa.pressaoReferenciaKpa(), "kPa"));
+            }
+            semaforo.add(Semaforo.mapaCompressor(turbo.nome(), mapa, noMapa.potencia(), noMapa.torque(), limiares));
+            return noMapa;
+        }
+
         // ---------- 10. Recomendações ----------
 
         private void recomendar(Dimensionamento.Esforco esforco, Dimensionamento.BicoNecessario bicoNecessario,
                 Dimensionamento.BicoAvaliado bicoAvaliado, Dimensionamento.BombaNecessaria bomba,
-                SaidasExigidas.Saidas saidas, Dimensionamento.SensorMap sensorMap) {
+                SaidasExigidas.Saidas saidas, Dimensionamento.SensorMap sensorMap,
+                Dimensionamento.PontosCompressor compressor) {
             String intercooler = Recomendacoes.intercooler(motor.aspiracao(), entrada.meta().uso());
             if (intercooler != null) {
                 recomendacoes.add(intercooler);
@@ -812,6 +1020,18 @@ public final class CalculoDimensionamento {
                 injecao += " (mais " + saidas.bicosExtras() + " para os bicos extras)";
             }
             recomendacoes.add(injecao + " e " + saidas.ignicao() + " de ignição.");
+            if (compressor != null) {
+                String turbo = "Turbo: compressor para " + formatar(Conversoes.kgSParaLbMin(compressor.vazaoPotenciaKgS()), 1)
+                        + " lb/min a PR " + formatar(compressor.razaoPressao(), 2) + " na potência";
+                if (compressor.vazaoTorqueKgS() != null) {
+                    turbo += " e " + formatar(Conversoes.kgSParaLbMin(compressor.vazaoTorqueKgS()), 1)
+                            + " lb/min no torque máximo";
+                }
+                if (compressor.turbosEmParalelo() > 1) {
+                    turbo += " (por turbo, em paralelo)";
+                }
+                recomendacoes.add(turbo + ". " + Turbo.COMPROMISSO_AR);
+            }
         }
     }
 }
