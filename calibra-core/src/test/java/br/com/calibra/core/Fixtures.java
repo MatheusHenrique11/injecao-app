@@ -129,7 +129,7 @@ public final class Fixtures {
 
     /** Turbo fictício com um mapa (ou sem, com mapa null). */
     public static Turbo turbo(String nome, MapaCompressor mapa) {
-        return new Turbo(nome, mapa, 0.63, null, "Mapa fictício de teste", null);
+        return new Turbo(nome, mapa, 0.63, null, null, "Mapa fictício de teste", null);
     }
 
     /** Tolerância dos casos golden da SPEC 7.6: 1% sobre o valor esperado. */

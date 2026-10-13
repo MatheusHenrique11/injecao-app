@@ -23,6 +23,7 @@ import javafx.stage.Stage;
 
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosProjeto;
+import br.com.calibra.app.casos.ImagensTurbo;
 import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.dados.backup.InfoBackup;
@@ -183,7 +184,7 @@ public class PrincipalController implements Navegacao {
             FXMLLoader carregador = carregador("catalogos.fxml");
             telaCatalogos = carregar(carregador);
             catalogos = carregador.getController();
-            catalogos.iniciar(casosCatalogo);
+            catalogos.iniciar(casosCatalogo, new ImagensTurbo(contexto.pastas().anexos(), contexto.relogio()));
         } else {
             catalogos.atualizar();
         }

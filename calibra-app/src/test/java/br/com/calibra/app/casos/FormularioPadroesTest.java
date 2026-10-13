@@ -52,6 +52,12 @@ class FormularioPadroesTest {
         assertEquals("13", textos.get(CampoPadrao.BMEP_ASPIRADO));
         assertEquals("22", textos.get(CampoPadrao.BMEP_SOBREALIMENTADO));
         assertEquals("15", textos.get(CampoPadrao.BMEP_AMARELO_PCT));
+        assertEquals("90", textos.get(CampoPadrao.CAMBIO_VERDE_PCT));
+        assertEquals("100", textos.get(CampoPadrao.CAMBIO_AMARELO_PCT));
+        assertEquals("10", textos.get(CampoPadrao.COMPRESSOR_SURGE_PCT));
+        assertEquals("5", textos.get(CampoPadrao.COMPRESSOR_CHOKE_PCT));
+        assertEquals("95", textos.get(CampoPadrao.COMPRESSOR_ROTACAO_PCT));
+        assertEquals("5", textos.get(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS));
         assertEquals(CampoPadrao.values().length, textos.size(), "todo campo tem texto");
     }
 
@@ -128,6 +134,30 @@ class FormularioPadroesTest {
         assertEquals(2, leitura.erros().size(), leitura.erros()::toString);
         assertTrue(leitura.erros().get(0).startsWith("DC do bico: limites fora de ordem"), leitura.erros()::toString);
         assertTrue(leitura.erros().get(1).startsWith("Folga da bomba: limites fora de ordem"), leitura.erros()::toString);
+    }
+
+    @Test
+    void limiaresDoCambioEDoCompressor() {
+        Map<CampoPadrao, String> textos = FormularioPadroes.textos(Parametros.padrao());
+        textos.put(CampoPadrao.CAMBIO_VERDE_PCT, "85");
+        textos.put(CampoPadrao.CAMBIO_AMARELO_PCT, "95");
+        textos.put(CampoPadrao.COMPRESSOR_SURGE_PCT, "12");
+        textos.put(CampoPadrao.COMPRESSOR_CHOKE_PCT, "8");
+        textos.put(CampoPadrao.COMPRESSOR_ROTACAO_PCT, "92");
+        textos.put(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS, "4");
+        LimiaresSemaforo l = FormularioPadroes.ler(textos, Parametros.padrao()).parametros().limiares();
+        assertEquals(0.85, l.cambioVerdeAte(), 1e-12);
+        assertEquals(0.95, l.cambioAmareloAte(), 1e-12);
+        assertEquals(0.12, l.compressorMargemSurge(), 1e-12);
+        assertEquals(0.08, l.compressorMargemChoke(), 1e-12);
+        assertEquals(0.92, l.compressorRotacaoFator(), 1e-12);
+        assertEquals(0.04, l.compressorEficienciaPontos(), 1e-12);
+
+        List<String> cambio = erros(CampoPadrao.CAMBIO_VERDE_PCT, "110");
+        assertTrue(cambio.getFirst().startsWith("Torque × câmbio: limites fora de ordem"), cambio::toString);
+        List<String> rotacao = erros(CampoPadrao.COMPRESSOR_ROTACAO_PCT, "101");
+        assertTrue(rotacao.getFirst().contains("no máximo 100%"), rotacao::toString);
+        assertTrue(erros(CampoPadrao.COMPRESSOR_SURGE_PCT, "0").getFirst().contains("maior que zero"));
     }
 
     @Test

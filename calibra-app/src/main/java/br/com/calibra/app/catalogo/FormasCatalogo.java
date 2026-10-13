@@ -14,6 +14,7 @@ public final class FormasCatalogo {
             new FormularioCatalogo<>(new FormaBico()),
             new FormularioCatalogo<>(new FormaBomba()),
             new FormularioCatalogo<>(new FormaInjecao()),
+            new FormularioCatalogo<>(new FormaTurbo()),
             new FormularioCatalogo<>(new FormaCombustivel()),
             new FormularioCatalogo<>(new FormaIntercooler()),
             new FormularioCatalogo<>(new FormaSensor()),

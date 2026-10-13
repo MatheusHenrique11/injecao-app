@@ -16,9 +16,9 @@ import java.util.function.Function;
 public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigatorio, List<Opcao> opcoes,
         List<String> colunas, String dica, boolean fixoNaEdicao, Condicao mostrarSe) {
 
-    /** Como o campo é digitado. */
+    /** Como o campo é digitado. OCULTO não aparece no formulário: só leva o valor junto (ex.: o mapa do turbo). */
     public enum Tipo {
-        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA
+        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA, OCULTO
     }
 
     /** Uma opção de escolha: o valor gravado (nome da constante) e o rótulo da tela. */
@@ -69,6 +69,11 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
 
     public static CampoForm data(String chave, String rotulo) {
         return new CampoForm(chave, rotulo, Tipo.DATA, false);
+    }
+
+    /** Valor que vai junto sem aparecer no formulário; o rótulo aparece no histórico de versões. */
+    public static CampoForm oculto(String chave, String rotulo) {
+        return new CampoForm(chave, rotulo, Tipo.OCULTO, false);
     }
 
     /** Escolha entre as constantes de um enum, mostradas pelo rótulo. */

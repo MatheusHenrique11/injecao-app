@@ -12,14 +12,18 @@ import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
+import br.com.calibra.core.pecas.CalibracaoImagem;
 import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Intercooler;
+import br.com.calibra.core.pecas.MapaCompressor;
 import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.core.pecas.TipoIntercooler;
 import br.com.calibra.core.pecas.TipoSensor;
+import br.com.calibra.core.pecas.Turbo;
+import br.com.calibra.core.pecas.UnidadeVazao;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 
@@ -94,8 +98,29 @@ public final class ExemplosCatalogo {
                 1984.0, Aspiracao.ASPIRADO, "Descrição de teste.", FONTE, DATA), info("Motor teste 2.0"));
     }
 
+    /** Mapa pequeno e fictício (kg/s × PR), com a referência da Garrett. */
+    public static MapaCompressor mapaFicticio() {
+        return new MapaCompressor(UnidadeVazao.LB_MIN, 545.0 / 1.8, 96.18,
+                List.of(ponto(0.10, 1.3), ponto(0.16, 2.0), ponto(0.22, 2.8)),
+                List.of(ponto(0.38, 1.3), ponto(0.42, 2.0), ponto(0.44, 2.8)),
+                List.of(new MapaCompressor.Ilha(0.74, List.of(ponto(0.20, 1.8), ponto(0.36, 1.8), ponto(0.30, 2.6)))),
+                List.of(new MapaCompressor.LinhaRotacao(120_000, List.of(ponto(0.17, 2.3), ponto(0.43, 2.0)))),
+                150_000.0);
+    }
+
+    private static MapaCompressor.PontoMapa ponto(double vazao, double pr) {
+        return new MapaCompressor.PontoMapa(vazao, pr);
+    }
+
+    public static Exemplo<Turbo> turbo() {
+        CalibracaoImagem calibracao = new CalibracaoImagem(100, 10, 700, 60, 500, 1.0, 100, 3.0);
+        return new Exemplo<>(TipoCatalogo.TURBO, new Turbo("Turbo teste 60", mapaFicticio(), 0.63, "turbo-1.png",
+                calibracao, FONTE, DATA), info("Turbo teste 60"));
+    }
+
     /** Um exemplo de cada tipo, na ordem das abas. */
     public static List<Exemplo<?>> umDeCada() {
-        return List.of(bicoComTabela(), bomba(), injecao(), combustivel(), intercooler(), sensor(), cambio(), motor());
+        return List.of(bicoComTabela(), bomba(), injecao(), turbo(), combustivel(), intercooler(), sensor(), cambio(),
+                motor());
     }
 }

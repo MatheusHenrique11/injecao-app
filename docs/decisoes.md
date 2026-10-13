@@ -315,3 +315,18 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 118. **Biturbo:** os pontos do compressor usam metade da vazão por turbo, considerando os dois em paralelo (a memória diz isso; o aviso de "confirmar a montagem" continua).
 119. **Torque × câmbio:** compara o maior torque estimado (na potência ou no torque máximo) com o torque máximo do câmbio do catálogo: verde até 90%, amarelo até 100%, vermelho acima. Sem câmbio ou sem limite cadastrado, só um aviso de informação.
 120. **Seleção de turbo (`SelecaoTurbo`):** só os turbos cujo mapa contém os pontos de potência e de torque, do mais eficiente no ponto de potência para o menos (fora das ilhas por último). Turbo sem mapa fica de fora, com aviso. Junto da escolha aparece o compromisso do A/R da caixa quente (SPEC 7.3).
+121. **Turbo no catálogo** (tipo `TURBO`, sem migração: o tipo é texto livre na tabela):
+    - O mapa, o nome da imagem e a calibração ficam no JSON da versão, como as outras peças.
+    - O formulário mostra só o A/R da caixa quente. O mapa vai junto, oculto, para não se perder ao editar o resto.
+    - Na comparação de versões, o mapa aparece resumido ("5 pontos de surge, 5 de choke, 3 ilhas…").
+    - Turbo novo começa sem mapa ("sem mapa" na lista); no cálculo, continua amarelo "turbo sem mapa".
+122. **Digitalizador do mapa** ("Mapa do compressor…" na lista de turbos):
+    - A imagem é copiada para `anexos\turbos\turbo-<id>-<data>.<ext>` e vai no backup. Aceita PNG, JPG, GIF e BMP; o turbo guarda só o nome do arquivo.
+    - Cada eixo se calibra com dois pontos da escala, em escala **linear** (a dos mapas de compressor que conhecemos). Escala logarítmica não é aceita por enquanto.
+    - O surge e o choke são uma linha só cada: voltar a eles continua a mesma linha. Cada ilha (com a eficiência) e cada linha de rotação (com o rpm) é um elemento novo.
+    - Desfazer (Ctrl+Z) tira o último ponto clicado. Salvar confere o mapa no núcleo e grava uma versão nova do turbo.
+    - Reabrir mostra a mesma imagem, a calibração e o desenho, para continuar.
+123. **Referência do mapa com unidade:** a temperatura (°C, K, °F ou °R) e a pressão absoluta (kPa, psia ou bar) se digitam como estão na legenda do fabricante. Ficam gravadas em K e kPa e reabrem em °C e kPa.
+124. **Nenhum mapa de fabricante no repositório:** o teste de interface desenha um mapa fictício (com a legenda "MAPA FICTÍCIO PARA TESTE") e digitaliza esse.
+125. **Limiares novos em Configurações** (em %, "a validar"): folga do surge (10), folga do choke (5), rotação do turbo (95% da máxima), queda de eficiência no verde (5 pontos) e torque × câmbio (verde até 90, amarelo até 100). O verde do câmbio não pode passar do amarelo; a rotação vai até 100%.
+126. **Ações extras na lista de um catálogo:** cada tipo pode ganhar botões próprios, desligados enquanto nenhum item está escolhido. O turbo usa isso para o digitalizador.

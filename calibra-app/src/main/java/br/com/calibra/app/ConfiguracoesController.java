@@ -92,6 +92,12 @@ public class ConfiguracoesController {
     @FXML private TextField limiarBmepAspirado;
     @FXML private TextField limiarBmepSobrealimentado;
     @FXML private TextField limiarBmepAmarelo;
+    @FXML private TextField limiarCambioVerde;
+    @FXML private TextField limiarCambioAmarelo;
+    @FXML private TextField limiarCompressorSurge;
+    @FXML private TextField limiarCompressorChoke;
+    @FXML private TextField limiarCompressorRotacao;
+    @FXML private TextField limiarCompressorEficiencia;
     @FXML private VBox mensagensPadroes;
 
     // ---------- Backup ----------
@@ -147,6 +153,12 @@ public class ConfiguracoesController {
         camposPadrao.put(CampoPadrao.BMEP_ASPIRADO, limiarBmepAspirado);
         camposPadrao.put(CampoPadrao.BMEP_SOBREALIMENTADO, limiarBmepSobrealimentado);
         camposPadrao.put(CampoPadrao.BMEP_AMARELO_PCT, limiarBmepAmarelo);
+        camposPadrao.put(CampoPadrao.CAMBIO_VERDE_PCT, limiarCambioVerde);
+        camposPadrao.put(CampoPadrao.CAMBIO_AMARELO_PCT, limiarCambioAmarelo);
+        camposPadrao.put(CampoPadrao.COMPRESSOR_SURGE_PCT, limiarCompressorSurge);
+        camposPadrao.put(CampoPadrao.COMPRESSOR_CHOKE_PCT, limiarCompressorChoke);
+        camposPadrao.put(CampoPadrao.COMPRESSOR_ROTACAO_PCT, limiarCompressorRotacao);
+        camposPadrao.put(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS, limiarCompressorEficiencia);
         camposPadrao.forEach((campo, texto) -> texto.textProperty().addListener((obs, antes, depois) ->
                 texto.pseudoClassStateChanged(EDITADO, !Objects.equals(depois, textosDaSpec.get(campo)))));
     }

@@ -45,6 +45,11 @@ public interface FormaCatalogo<T> {
     default void duplicar(ValoresForm valores) {
     }
 
+    /** Como um campo oculto aparece no histórico de versões (ex.: o mapa do turbo, resumido). */
+    default String exibirOculto(String chave, String valor) {
+        return valor;
+    }
+
     /** false quando o nome sai dos próprios dados ({@link #nomeDerivado}): a tela não mostra o campo Nome. */
     default boolean nomeDigitado() {
         return true;

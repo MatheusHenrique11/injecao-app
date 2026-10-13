@@ -12,10 +12,11 @@ import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Intercooler;
 import br.com.calibra.core.pecas.Sensor;
+import br.com.calibra.core.pecas.Turbo;
 
 /**
- * Um tipo de catálogo (SPEC 8.5) e o record do núcleo que guarda os dados técnicos dos itens dele. Os turbos
- * entram no bloco 2.4; os modelos de VE e de ignição, na fase 3.
+ * Um tipo de catálogo (SPEC 8.5) e o record do núcleo que guarda os dados técnicos dos itens dele. Os modelos de
+ * VE e de ignição entram na fase 3.
  *
  * @param <T> o record do núcleo
  */
@@ -35,9 +36,11 @@ public final class TipoCatalogo<T> {
             new TipoCatalogo<>("SENSOR", "Sensores", "sensor", Sensor.class, null);
     public static final TipoCatalogo<Cambio> CAMBIO =
             new TipoCatalogo<>("CAMBIO", "Câmbios", "câmbio", Cambio.class, null);
+    /** Turbos com o mapa do compressor (bloco 2.4). */
+    public static final TipoCatalogo<Turbo> TURBO = new TipoCatalogo<>("TURBO", "Turbos", "turbo", Turbo.class, null);
 
     private static final List<TipoCatalogo<?>> TODOS =
-            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO);
+            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO);
 
     private final String codigo;
     private final String plural;

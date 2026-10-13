@@ -28,7 +28,13 @@ public enum CampoPadrao {
     ASPIRADO_AMARELO("o limite do amarelo do aspirado", 2, 3),
     BMEP_ASPIRADO("a BMEP de referência do aspirado", 0, 1),
     BMEP_SOBREALIMENTADO("a BMEP de referência do sobrealimentado", 0, 1),
-    BMEP_AMARELO_PCT("o amarelo da BMEP", 0, 1);
+    BMEP_AMARELO_PCT("o amarelo da BMEP", 0, 1),
+    CAMBIO_VERDE_PCT("o limite do verde do torque × câmbio", 0, 1),
+    CAMBIO_AMARELO_PCT("o limite do amarelo do torque × câmbio", 0, 1),
+    COMPRESSOR_SURGE_PCT("a folga mínima do surge", 0, 1),
+    COMPRESSOR_CHOKE_PCT("a folga mínima do choke", 0, 1),
+    COMPRESSOR_ROTACAO_PCT("o limite da rotação do turbo", 0, 1),
+    COMPRESSOR_EFICIENCIA_PONTOS("a queda de eficiência no verde", 0, 1);
 
     private final String nome;
     private final int minimoCasas;

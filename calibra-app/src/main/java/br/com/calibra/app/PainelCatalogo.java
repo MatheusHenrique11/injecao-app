@@ -1,5 +1,6 @@
 package br.com.calibra.app;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -53,6 +54,8 @@ final class PainelCatalogo<T> extends VBox {
     private final Button arquivar = new Button("Arquivar");
     private final Button versoes = new Button("Versões…");
     private final Label mensagem = new Label();
+    private final HBox barra = new HBox(10);
+    private final List<Button> acoesDoItem = new ArrayList<>();
 
     PainelCatalogo(CasosCatalogo casos, FormularioCatalogo<T> formulario) {
         super(8);
@@ -76,7 +79,7 @@ final class PainelCatalogo<T> extends VBox {
         versoes.setOnAction(evento -> versoes());
         Region espaco = new Region();
         HBox.setHgrow(espaco, Priority.SOMETIMES);
-        HBox barra = new HBox(10, busca, mostrarArquivados, espaco, novo, editar, duplicar, arquivar, versoes);
+        barra.getChildren().setAll(busca, mostrarArquivados, espaco, novo, editar, duplicar, arquivar, versoes);
         barra.setAlignment(Pos.CENTER_LEFT);
 
         montarTabela();
@@ -303,7 +306,25 @@ final class PainelCatalogo<T> extends VBox {
         duplicar.setDisable(nenhum);
         arquivar.setDisable(nenhum);
         versoes.setDisable(nenhum);
+        acoesDoItem.forEach(botao -> botao.setDisable(nenhum));
         arquivar.setText(item != null && item.arquivado() ? "Reativar" : "Arquivar");
+    }
+
+    /**
+     * Botão a mais na barra, que age sobre o item escolhido (ex.: "Mapa do compressor…" nos turbos). Se a ação gravar
+     * uma versão nova, a lista é lida de novo.
+     */
+    void adicionarAcao(String texto, String id, Function<ItemCatalogo<T>, Optional<ItemCatalogo<T>>> acao) {
+        Button botao = new Button(texto);
+        botao.setId(id);
+        botao.setOnAction(evento -> escolhido().flatMap(acao).ifPresent(gravado -> {
+            atualizar();
+            selecionar(gravado.id());
+            mensagem.setText("Gravado: " + gravado.info().nome() + " (v" + gravado.versao() + ").");
+        }));
+        acoesDoItem.add(botao);
+        barra.getChildren().add(botao);
+        atualizarBotoes();
     }
 
     private void selecionar(long id) {

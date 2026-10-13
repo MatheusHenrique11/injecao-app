@@ -59,6 +59,12 @@ public final class FormularioPadroes {
         valores.put(CampoPadrao.BMEP_ASPIRADO, l.bmepReferenciaAspiradoBar());
         valores.put(CampoPadrao.BMEP_SOBREALIMENTADO, l.bmepReferenciaSobrealimentadoBar());
         valores.put(CampoPadrao.BMEP_AMARELO_PCT, (l.bmepFatorAmarelo() - 1) * 100);
+        valores.put(CampoPadrao.CAMBIO_VERDE_PCT, l.cambioVerdeAte() * 100);
+        valores.put(CampoPadrao.CAMBIO_AMARELO_PCT, l.cambioAmareloAte() * 100);
+        valores.put(CampoPadrao.COMPRESSOR_SURGE_PCT, l.compressorMargemSurge() * 100);
+        valores.put(CampoPadrao.COMPRESSOR_CHOKE_PCT, l.compressorMargemChoke() * 100);
+        valores.put(CampoPadrao.COMPRESSOR_ROTACAO_PCT, l.compressorRotacaoFator() * 100);
+        valores.put(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS, l.compressorEficienciaPontos() * 100);
         Map<CampoPadrao, String> textos = new EnumMap<>(CampoPadrao.class);
         valores.forEach((campo, valor) ->
                 textos.put(campo, NumeroBr.formatar(valor, campo.minimoCasas(), campo.maximoCasas())));
@@ -121,12 +127,23 @@ public final class FormularioPadroes {
         exigirAte(sensorAmarelo, sensorVerde, "Faixa do sensor MAP", "o do amarelo não pode passar do do verde");
         exigirAte(aspiradoVerde, aspiradoAmarelo, "Aspirado (MAP ÷ P_atm)",
                 "o do verde não pode passar do do amarelo");
+        double cambioVerde = positivo(CampoPadrao.CAMBIO_VERDE_PCT);
+        double cambioAmarelo = positivo(CampoPadrao.CAMBIO_AMARELO_PCT);
+        exigirAte(cambioVerde, cambioAmarelo, "Torque × câmbio", "o do verde não pode passar do do amarelo");
+        double surge = positivo(CampoPadrao.COMPRESSOR_SURGE_PCT);
+        double choke = positivo(CampoPadrao.COMPRESSOR_CHOKE_PCT);
+        double rotacao = positivo(CampoPadrao.COMPRESSOR_ROTACAO_PCT);
+        double eficiencia = positivo(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS);
+        if (rotacao > 100) {
+            erros.add("A rotação do turbo é um percentual da rotação máxima: no máximo 100%.");
+        }
         if (!erros.isEmpty()) {
             return null;
         }
         return new LimiaresSemaforo(dcVerde / 100, dcAmarelo / 100, folgaVerde / 100, folgaAmarelo / 100,
                 bmepAspirado, bmepSobrealimentado, 1 + bmepAmarelo / 100, pistaoVerde, pistaoAmarelo, sensorVerde,
-                sensorAmarelo, aspiradoVerde, aspiradoAmarelo);
+                sensorAmarelo, aspiradoVerde, aspiradoAmarelo, surge / 100, choke / 100, rotacao / 100,
+                eficiencia / 100, cambioVerde / 100, cambioAmarelo / 100);
     }
 
     /** Confere a ordem dos dois limites de um indicador; campos com erro de digitação já foram anotados. */

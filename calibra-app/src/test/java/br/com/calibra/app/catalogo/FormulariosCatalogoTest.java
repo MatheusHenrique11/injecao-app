@@ -23,6 +23,7 @@ import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.TempoMorto;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.catalogo.VersaoCatalogo;
@@ -252,6 +253,30 @@ class FormulariosCatalogoTest {
         assertTrue(campos.contains("Etanol na gasolina (% em volume)"));
         assertFalse(campos.contains("AFR estequiométrico"), "campo que não se aplica fica de fora");
         assertFalse(campos.contains("Aviso sobre a lambda"), "campo vazio em todas as versões fica de fora");
+    }
+
+    @Test
+    void turboComecaSemMapaEOHistoricoMostraOMapaNovo() {
+        FormularioCatalogo<Turbo> turbos = FormasCatalogo.de(TipoCatalogo.TURBO);
+        ValoresForm novo = turbos.novo();
+        novo.texto(FormularioCatalogo.NOME, "Turbo sem mapa").texto(FormularioCatalogo.FONTE, "Ficha de teste");
+        Leitura<Turbo> lido = turbos.ler(novo);
+        assertEquals(List.of(), lido.erros());
+        assertNull(lido.dados().mapa(), "o mapa se desenha depois, no digitalizador");
+        assertEquals(List.of("—", "sem mapa", "—", "—"), turbos.resumo(lido.dados()));
+
+        Exemplo<Turbo> comMapa = ExemplosCatalogo.turbo();
+        assertEquals(List.of("0,63", "digitalizado", "74%", "150.000 rpm"), turbos.resumo(comMapa.dados()));
+        Turbo antes = comMapa.dados().comMapa(null, null, null);
+        LocalDateTime agora = LocalDateTime.of(2026, 10, 13, 10, 0);
+        List<LinhaHistorico> linhas = turbos.historico(List.of(
+                new VersaoCatalogo<>(3L, 2, comMapa.dados(), comMapa.info(), agora),
+                new VersaoCatalogo<>(3L, 1, antes, comMapa.info(), agora.minusDays(1))));
+        LinhaHistorico mapa = linha(linhas, "Mapa do compressor");
+        assertEquals(List.of("3 pontos de surge, 3 de choke, 1 ilhas, 1 linhas de rotação; máxima 150.000 rpm", "—"),
+                mapa.valores());
+        assertEquals(List.of(true, false), mapa.mudou());
+        assertEquals(List.of("calibrada", "—"), linha(linhas, "Calibração da imagem").valores());
     }
 
     private static LinhaHistorico linha(List<LinhaHistorico> linhas, String campo) {

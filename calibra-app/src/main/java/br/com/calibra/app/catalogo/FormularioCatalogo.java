@@ -176,10 +176,14 @@ public final class FormularioCatalogo<T> {
         return linhas;
     }
 
-    /** O valor de um campo como aparece no histórico: o rótulo da escolha, "sim"/"não", as linhas da tabela. */
-    static String exibir(CampoForm campo, ValoresForm valores) {
+    /**
+     * O valor de um campo como aparece no histórico: o rótulo da escolha, "sim"/"não", as linhas da tabela e, no campo
+     * oculto, o resumo que o tipo der.
+     */
+    String exibir(CampoForm campo, ValoresForm valores) {
         String texto = valores.texto(campo.chave()).strip();
         return switch (campo.tipo()) {
+            case OCULTO -> texto.isEmpty() ? VAZIO : forma.exibirOculto(campo.chave(), texto);
             case MARCAR -> Boolean.parseBoolean(texto) ? "sim" : "não";
             case ESCOLHA -> campo.opcoes().stream().filter(opcao -> opcao.valor().equals(texto))
                     .map(CampoForm.Opcao::rotulo).findFirst().orElse(texto.isEmpty() ? VAZIO : texto);

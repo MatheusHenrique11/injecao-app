@@ -8,6 +8,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.ImagensTurbo;
 import br.com.calibra.app.catalogo.FormasCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
@@ -19,7 +20,8 @@ public class CatalogosController {
 
     private final List<PainelCatalogo<?>> paineis = new ArrayList<>();
 
-    void iniciar(CasosCatalogo casos) {
+    /** @param imagens onde ficam as imagens dos mapas dos turbos (digitalizador) */
+    void iniciar(CasosCatalogo casos, ImagensTurbo imagens) {
         for (FormularioCatalogo<?> formulario : FormasCatalogo.todos()) {
             PainelCatalogo<?> painel = painel(casos, formulario);
             paineis.add(painel);
@@ -27,6 +29,9 @@ public class CatalogosController {
             aba.setId("aba" + formulario.tipo().codigo());
             abas.getTabs().add(aba);
         }
+        painel(TipoCatalogo.TURBO).adicionarAcao("Mapa do compressor…", "mapaDoCompressor",
+                item -> new JanelaDigitalizador(abas.getScene() == null ? null : abas.getScene().getWindow(), casos,
+                        imagens, item).mostrar());
     }
 
     /** Lê as listas de novo (ao voltar para a tela). */

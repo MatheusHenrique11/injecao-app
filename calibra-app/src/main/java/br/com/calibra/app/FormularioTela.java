@@ -59,6 +59,9 @@ final class FormularioTela {
         for (CampoForm campo : lista) {
             CampoTela tela = montar(campo);
             campos.put(campo.chave(), tela);
+            if (campo.tipo() == CampoForm.Tipo.OCULTO) {
+                continue;
+            }
             Label rotulo = new Label(campo.tipo() == CampoForm.Tipo.MARCAR ? "" : campo.rotulo());
             rotulo.setLabelFor(tela.controle());
             GridPane.setValignment(rotulo, campo.tipo() == CampoForm.Tipo.TABELA || campo.tipo() == CampoForm.Tipo.AREA
@@ -196,6 +199,14 @@ final class FormularioTela {
             case TABELA -> {
                 EditorTabela tabela = new EditorTabela(campo.rotulo(), campo.colunas());
                 return new CampoTela(campo, () -> "", texto -> { }, tabela, nos, tabela);
+            }
+            case OCULTO -> {
+                // Só guarda o valor: não entra na grade (o controle fica fora da tela e desligado).
+                String[] valor = {""};
+                Region nada = new Region();
+                nada.setDisable(true);
+                return new CampoTela(campo, () -> valor[0], texto -> valor[0] = texto == null ? "" : texto, null, nos,
+                        nada);
             }
             default -> throw new IllegalStateException("Tipo de campo sem tela: " + campo.tipo());
         }

@@ -12,9 +12,10 @@ import java.util.Objects;
  * @param mapa null enquanto o mapa não foi digitalizado (o semáforo fica amarelo: "turbo sem mapa")
  * @param arCaixaQuente A/R da caixa quente; opcional
  * @param imagemMapa nome do arquivo da imagem do mapa, na pasta de anexos dos turbos; null sem imagem
+ * @param calibracao como a imagem se liga aos eixos do mapa; null sem imagem calibrada
  */
-public record Turbo(String nome, MapaCompressor mapa, Double arCaixaQuente, String imagemMapa, String fonte,
-        LocalDate data) {
+public record Turbo(String nome, MapaCompressor mapa, Double arCaixaQuente, String imagemMapa,
+        CalibracaoImagem calibracao, String fonte, LocalDate data) {
 
     /** O compromisso da caixa quente (SPEC 7.3), mostrado junto da escolha do turbo. */
     public static final String COMPROMISSO_AR = "A/R da caixa quente: menor faz a pressão chegar mais cedo e limita o "
@@ -25,6 +26,11 @@ public record Turbo(String nome, MapaCompressor mapa, Double arCaixaQuente, Stri
         Objects.requireNonNull(fonte, "fonte");
     }
 
+    /** O mesmo turbo com o mapa digitalizado sobre a imagem. */
+    public Turbo comMapa(MapaCompressor novoMapa, String novaImagem, CalibracaoImagem novaCalibracao) {
+        return new Turbo(nome, novoMapa, arCaixaQuente, novaImagem, novaCalibracao, fonte, data);
+    }
+
     public List<String> validar() {
         List<String> erros = new ArrayList<>();
         if (arCaixaQuente != null && !(arCaixaQuente > 0)) {
@@ -32,6 +38,9 @@ public record Turbo(String nome, MapaCompressor mapa, Double arCaixaQuente, Stri
         }
         if (mapa != null) {
             erros.addAll(mapa.validar());
+        }
+        if (calibracao != null) {
+            erros.addAll(calibracao.validar());
         }
         return erros;
     }

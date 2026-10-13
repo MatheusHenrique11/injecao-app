@@ -139,6 +139,35 @@
           <TextField fx:id="limiarAspiradoVerde" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
           <TextField fx:id="limiarAspiradoAmarelo" GridPane.rowIndex="5" GridPane.columnIndex="2"/>
           <Label styleClass="dica" text="verde até o 1º; amarelo até o 2º; acima, vermelho" GridPane.rowIndex="5" GridPane.columnIndex="3"/>
+
+          <Label text="Torque × câmbio (% do torque máximo do câmbio)" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarCambioVerde" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+          <TextField fx:id="limiarCambioAmarelo" GridPane.rowIndex="6" GridPane.columnIndex="2"/>
+          <Label styleClass="dica" text="verde até o 1º; amarelo até o 2º; acima, vermelho (a validar)" GridPane.rowIndex="6" GridPane.columnIndex="3"/>
+        </GridPane>
+
+        <Label styleClass="negrito" text="Mapa do compressor (a validar)"/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="300.0"/>
+            <ColumnConstraints minWidth="150.0" prefWidth="150.0"/>
+            <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label text="Folga mínima do surge (%)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarCompressorSurge" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" text="amarelo com menos que isto de vazão acima do surge, na mesma PR" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+          <Label text="Folga mínima do choke (%)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarCompressorChoke" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" text="amarelo com menos que isto de vazão até o choke, na mesma PR" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+
+          <Label text="Rotação do turbo (% da máxima)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarCompressorRotacao" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" text="amarelo acima disto (rotação interpolada entre as linhas do mapa)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+
+          <Label text="Queda de eficiência no verde (pontos)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <TextField fx:id="limiarCompressorEficiencia" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+          <Label styleClass="dica" wrapText="true" text="verde até isto abaixo do pico do mapa; fora do mapa é vermelho" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
         </GridPane>
 
         <Label styleClass="negrito" text="BMEP"/>
