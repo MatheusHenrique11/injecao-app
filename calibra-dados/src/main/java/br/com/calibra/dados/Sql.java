@@ -53,6 +53,20 @@ public final class Sql {
         return linha.wasNull() ? null : valor;
     }
 
+    /** Id ou outro número longo que pode faltar. */
+    public static Long longo(ResultSet linha, String coluna) throws SQLException {
+        long valor = linha.getLong(coluna);
+        return linha.wasNull() ? null : valor;
+    }
+
+    public static void longo(PreparedStatement comando, int posicao, Long valor) throws SQLException {
+        if (valor == null) {
+            comando.setNull(posicao, Types.INTEGER);
+        } else {
+            comando.setLong(posicao, valor);
+        }
+    }
+
     public static void inteiro(PreparedStatement comando, int posicao, Integer valor) throws SQLException {
         if (valor == null) {
             comando.setNull(posicao, Types.INTEGER);

@@ -50,8 +50,8 @@ public final class Cadastros {
         /** Cliente, veículo, projeto e motor v1 do caso B, numa conexão. Devolve o id do projeto. */
         public long projetoCasoB(Connection conexao, String nomeCliente, String placa) throws SQLException {
             long cliente = clientes.inserir(conexao, cliente(nomeCliente));
-            long veiculo = veiculos.inserir(conexao, cliente, carro(placa));
-            long projeto = projetos.inserir(conexao, veiculo, CasoBDados.entrada().meta(), "");
+            long veiculo = veiculos.inserir(conexao, cliente, carro(placa), null);
+            long projeto = projetos.inserir(conexao, veiculo, CasoBDados.entrada().meta(), "", null);
             motores.salvarVersao(conexao, projeto, "AP 2.0 turbo", CasoBDados.entrada().motor());
             return projeto;
         }

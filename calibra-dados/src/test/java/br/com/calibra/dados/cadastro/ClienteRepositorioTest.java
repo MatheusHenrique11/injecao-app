@@ -86,8 +86,8 @@ class ClienteRepositorioTest {
     void anonimizarApagaDadosPessoaisDoClienteDosVeiculosEDoHistorico() {
         long[] ids = base.banco.transacao(c -> {
             long cliente = clientes.inserir(c, Cadastros.cliente("João da Silva"));
-            long carro = repositorios.veiculos().inserir(c, cliente, Cadastros.carro("ABC1D23"));
-            long lancha = repositorios.veiculos().inserir(c, cliente, Cadastros.lancha("Maré Alta"));
+            long carro = repositorios.veiculos().inserir(c, cliente, Cadastros.carro("ABC1D23"), null);
+            long lancha = repositorios.veiculos().inserir(c, cliente, Cadastros.lancha("Maré Alta"), null);
             return new long[] {cliente, carro, lancha};
         });
         long cliente = ids[0];
@@ -101,7 +101,7 @@ class ClienteRepositorioTest {
             Veiculo gol = repositorios.veiculos().buscar(c, carro).orElseThrow().veiculo();
             repositorios.veiculos().atualizar(c, carro, new Veiculo(gol.tipo(), gol.marca(), gol.modelo(),
                     gol.versao(), gol.anoFabricacao(), gol.anoModelo(), "XYZ9A87", gol.chassi(), "", "", "",
-                    gol.usoAcumulado(), gol.cambio(), false, gol.tracao(), gol.pesoKg(), "Vermelho", ""));
+                    gol.usoAcumulado(), gol.cambio(), false, gol.tracao(), gol.pesoKg(), "Vermelho", ""), null);
             clientes.anonimizar(c, cliente);
             return null;
         });
@@ -142,7 +142,7 @@ class ClienteRepositorioTest {
     void clienteComVeiculoNaoEApagadoSemVeiculoE() {
         long comVeiculo = base.banco.transacao(c -> {
             long id = clientes.inserir(c, Cadastros.cliente("João da Silva"));
-            repositorios.veiculos().inserir(c, id, Cadastros.carro("ABC1D23"));
+            repositorios.veiculos().inserir(c, id, Cadastros.carro("ABC1D23"), null);
             return id;
         });
         OperacaoRecusadaException erro = assertThrows(OperacaoRecusadaException.class,

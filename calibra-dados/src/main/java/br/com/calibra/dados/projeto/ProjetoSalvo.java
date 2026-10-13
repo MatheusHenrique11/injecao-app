@@ -9,6 +9,7 @@ import br.com.calibra.core.projeto.StatusProjeto;
  * Um projeto gravado (SPEC 6.4). O cliente é o dono do veículo.
  *
  * @param statusAntesDeArquivar para onde o projeto volta ao ser reativado; null se não está arquivado
+ * @param injecaoItemId injeção escolhida do catálogo; null até ser escolhida (SPEC 6.4: opcional até o mapa base)
  */
 public record ProjetoSalvo(
         long id,
@@ -17,6 +18,7 @@ public record ProjetoSalvo(
         StatusProjeto statusAntesDeArquivar,
         Meta meta,
         String observacoes,
+        Long injecaoItemId,
         LocalDateTime criadoEm,
         LocalDateTime atualizadoEm) {
 }

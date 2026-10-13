@@ -228,3 +228,15 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - Sem tensão, ou com a curva sem cobrir a condição: aviso amarelo, e a folga não é avaliada.
     - Nenhuma fórmula mudou, então o núcleo continua 1.0.0.
 88. **Dinheiro em centavos inteiros** (`Dinheiro`, no núcleo): lê "1.234,56" e "R$ 1.234,56" e recusa "12.5", que é ambíguo. Serve ao preço de referência dos catálogos e ao orçamento do bloco 2.5.
+89. **Catálogo em duas tabelas (migração V3):**
+    - **`catalogo_item`:** a versão atual, com nome e busca em colunas. Os dados técnicos ficam em JSON, no record do núcleo de cada tipo.
+    - **`catalogo_versao`:** todas as versões; o banco recusa alterar ou apagar.
+    - Editar grava uma versão nova. Item nunca é apagado, só arquivado: sai das escolhas e continua nos cálculos antigos.
+90. **Todo item de catálogo tem:** nome, fonte (obrigatória), data, "a verificar", preço de referência (em centavos) e observações. O combustível guarda no próprio registro o número da versão do catálogo, que o motor e o cálculo levam junto (SPEC 7.2).
+91. **Sementes num JSON legível** (`sementes/catalogo.json`), gravadas uma vez pela migração V4, que é em Java porque lê o JSON.
+    - **Proteção:** o checksum da V4 é o do arquivo. Se alguém editar o arquivo depois de publicado, o Flyway acusa; semente nova entra numa migração nova.
+    - **Combustíveis:** os 6 da SPEC 7.2, iguais aos do código (o teste confere), sem "a verificar".
+    - **Motores:** 19 da pesquisa (o plano falava em 17; entraram também C20XE, Opala 250-S e Fiat 2.0 20V aspirado, que têm geometria e fonte). Mais 6 montagens do AP. Todos com fonte e "a verificar".
+    - **Sem fonte, sem valor:** campo que a pesquisa não trouxe fica vazio (válvulas, biela, taxa, aspiração). A ordem de ignição não entra; o formulário sugere uma, com "confirmar no manual".
+92. **O cálculo salvo grava as peças do catálogo que usou** (tabela `calculo_peca`: papel, item e versão; o banco recusa alterar ou apagar). É a base do "desatualizado" por peça.
+93. **Câmbio do catálogo no veículo e injeção escolhida no projeto:** colunas `cambio_item_id` e `injecao_item_id`, opcionais. A troca do câmbio entra no histórico do veículo, com o nome do item.

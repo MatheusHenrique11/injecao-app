@@ -36,7 +36,7 @@ public final class VeiculoRepositorio {
 
     private static final String COLUNAS = "id, cliente_id, tipo, marca, modelo, versao, ano_fabricacao, ano_modelo, "
             + "placa, chassi, nome_embarcacao, numero_inscricao, numero_casco, uso_acumulado, cambio, "
-            + "cambio_controlado, tracao, peso_kg, cor, observacoes, arquivado, criado_em, atualizado_em";
+            + "cambio_controlado, tracao, peso_kg, cor, observacoes, arquivado, cambio_item_id, criado_em, atualizado_em";
 
     private final Clock relogio;
 
@@ -44,17 +44,19 @@ public final class VeiculoRepositorio {
         this.relogio = Objects.requireNonNull(relogio, "relogio");
     }
 
-    public long inserir(Connection conexao, long clienteId, Veiculo veiculo) throws SQLException {
+    /** @param cambioItemId câmbio do catálogo (SPEC 6.2, bloco 2.3); null se não escolhido */
+    public long inserir(Connection conexao, long clienteId, Veiculo veiculo, Long cambioItemId) throws SQLException {
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement insercao = conexao.prepareStatement(
                 "INSERT INTO veiculo (tipo, marca, modelo, versao, ano_fabricacao, ano_modelo, placa, chassi, "
                         + "nome_embarcacao, numero_inscricao, numero_casco, uso_acumulado, cambio, cambio_controlado, "
-                        + "tracao, peso_kg, cor, observacoes, busca, cliente_id, criado_em, atualizado_em) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        + "tracao, peso_kg, cor, observacoes, busca, cliente_id, cambio_item_id, criado_em, atualizado_em) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             preencher(insercao, veiculo);
             insercao.setLong(20, clienteId);
-            insercao.setString(21, Sql.texto(agora));
+            Sql.longo(insercao, 21, cambioItemId);
             insercao.setString(22, Sql.texto(agora));
+            insercao.setString(23, Sql.texto(agora));
             insercao.executeUpdate();
         }
         long id = Sql.ultimoId(conexao);
@@ -63,20 +65,25 @@ public final class VeiculoRepositorio {
     }
 
     /** Grava as mudanças e uma linha no histórico para cada campo que mudou (SPEC 6.2). */
-    public void atualizar(Connection conexao, long id, Veiculo novo) throws SQLException {
+    public void atualizar(Connection conexao, long id, Veiculo novo, Long cambioItemId) throws SQLException {
         VeiculoSalvo atual = exigir(conexao, id);
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement atualizacao = conexao.prepareStatement(
                 "UPDATE veiculo SET tipo = ?, marca = ?, modelo = ?, versao = ?, ano_fabricacao = ?, ano_modelo = ?, "
                         + "placa = ?, chassi = ?, nome_embarcacao = ?, numero_inscricao = ?, numero_casco = ?, "
                         + "uso_acumulado = ?, cambio = ?, cambio_controlado = ?, tracao = ?, peso_kg = ?, cor = ?, "
-                        + "observacoes = ?, busca = ?, atualizado_em = ? WHERE id = ?")) {
+                        + "observacoes = ?, busca = ?, cambio_item_id = ?, atualizado_em = ? WHERE id = ?")) {
             preencher(atualizacao, novo);
-            atualizacao.setString(20, Sql.texto(agora));
-            atualizacao.setLong(21, id);
+            Sql.longo(atualizacao, 20, cambioItemId);
+            atualizacao.setString(21, Sql.texto(agora));
+            atualizacao.setLong(22, id);
             atualizacao.executeUpdate();
         }
         Auditoria.registrarMudancas(conexao, ENTIDADE, id, campos(atual.veiculo()), campos(novo), agora);
+        if (!Objects.equals(atual.cambioItemId(), cambioItemId)) {
+            Auditoria.registrar(conexao, ENTIDADE, id, "Câmbio do catálogo", nomeDoItem(conexao, atual.cambioItemId()),
+                    nomeDoItem(conexao, cambioItemId), agora);
+        }
     }
 
     public Optional<VeiculoSalvo> buscar(Connection conexao, long id) throws SQLException {
@@ -263,6 +270,20 @@ public final class VeiculoRepositorio {
                 linha.getString("cor"),
                 linha.getString("observacoes"));
         return new VeiculoSalvo(linha.getLong("id"), linha.getLong("cliente_id"), veiculo,
-                linha.getInt("arquivado") == 1, Sql.dataHora(linha, "criado_em"), Sql.dataHora(linha, "atualizado_em"));
+                Sql.longo(linha, "cambio_item_id"), linha.getInt("arquivado") == 1, Sql.dataHora(linha, "criado_em"),
+                Sql.dataHora(linha, "atualizado_em"));
+    }
+
+    /** Nome do item de catálogo, para o histórico; vazio se não houver. */
+    private static String nomeDoItem(Connection conexao, Long itemId) throws SQLException {
+        if (itemId == null) {
+            return "";
+        }
+        try (PreparedStatement consulta = conexao.prepareStatement("SELECT nome FROM catalogo_item WHERE id = ?")) {
+            consulta.setLong(1, itemId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                return linha.next() ? linha.getString(1) : "#" + itemId;
+            }
+        }
     }
 }

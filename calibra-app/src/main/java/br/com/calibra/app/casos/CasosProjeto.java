@@ -225,7 +225,7 @@ public final class CasosProjeto {
                 }
             };
             long veiculoId = switch (novo.veiculo()) {
-                case VeiculoNovo _ -> veiculos.inserir(c, clienteId, veiculoNovo);
+                case VeiculoNovo _ -> veiculos.inserir(c, clienteId, veiculoNovo, null);
                 case VeiculoExistente(long id) -> {
                     VeiculoSalvo existente = veiculos.buscar(c, id).orElseThrow(
                             () -> new OperacaoRecusadaException("Veículo #" + id + " não encontrado."));
@@ -235,7 +235,7 @@ public final class CasosProjeto {
                     yield id;
                 }
             };
-            long projetoId = projetos.inserir(c, veiculoId, novo.meta(), "");
+            long projetoId = projetos.inserir(c, veiculoId, novo.meta(), "", null);
             motores.salvarVersao(c, projetoId, novo.descricaoMotor(), novo.motor());
             return projetoId;
         });
@@ -271,7 +271,7 @@ public final class CasosProjeto {
             throw new EntradaInvalidaException(erros);
         }
         banco.transacao(c -> {
-            veiculos.atualizar(c, veiculoId, ajustado);
+            veiculos.atualizar(c, veiculoId, ajustado, veiculos.buscar(c, veiculoId).orElseThrow().cambioItemId());
             return null;
         });
     }
@@ -321,7 +321,7 @@ public final class CasosProjeto {
         Resultado<Dimensionamento> resultado = CalculoDimensionamento.calcular(entrada);
         List<Justificativa> necessarias = justificativasDosVermelhos(resultado, justificativas);
         return banco.transacao(c -> {
-            long id = calculos.salvar(c, projetoId, atual.id(), entrada, resultado, necessarias, versaoApp);
+            long id = calculos.salvar(c, projetoId, atual.id(), entrada, resultado, necessarias, List.of(), versaoApp);
             projetos.atualizarMeta(c, projetoId, entrada.meta());
             if (projetos.buscar(c, projetoId).orElseThrow().status() == StatusProjeto.RASCUNHO) {
                 projetos.mudarStatus(c, projetoId, StatusProjeto.DIMENSIONADO);

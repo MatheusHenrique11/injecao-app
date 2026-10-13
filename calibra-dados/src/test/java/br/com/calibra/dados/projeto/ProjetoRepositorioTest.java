@@ -101,8 +101,8 @@ class ProjetoRepositorioTest {
         long gol = projetoCasoB("João da Silva", "ABC1D23");
         long lancha = base.banco.transacao(c -> {
             long cliente = repositorios.clientes().inserir(c, Cadastros.cliente("Maria Antônia"));
-            long veiculo = repositorios.veiculos().inserir(c, cliente, Cadastros.lancha("Maré Alta"));
-            long projeto = projetos.inserir(c, veiculo, CasoBDados.entrada().meta(), "");
+            long veiculo = repositorios.veiculos().inserir(c, cliente, Cadastros.lancha("Maré Alta"), null);
+            long projeto = projetos.inserir(c, veiculo, CasoBDados.entrada().meta(), "", null);
             motores.salvarVersao(c, projeto, "Mercury 4.5 V6",
                     CasoBDados.entrada().motor().paraConstrutor().aspiracao(Aspiracao.ASPIRADO).construir());
             return projeto;
@@ -172,7 +172,7 @@ class ProjetoRepositorioTest {
         Justificativa justificativa = new Justificativa(Indicador.DC_BICO, "Bico maior encomendado; usar este até "
                 + "chegar.", LocalDateTime.of(2026, 10, 11, 18, 0));
         long calculo = base.banco.transacao(c -> calculos.salvar(c, id, v1.id(), entrada, resultado,
-                List.of(justificativa), BaseDeTeste.VERSAO_APP));
+                List.of(justificativa), List.of(), BaseDeTeste.VERSAO_APP));
 
         CalculoSalvo salvo = base.banco.ler(c -> calculos.buscar(c, calculo)).orElseThrow();
         assertEquals(entrada, salvo.entrada());

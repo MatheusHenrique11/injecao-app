@@ -7,7 +7,9 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,9 +39,12 @@ public final class CalculoRepositorio {
         this.relogio = Objects.requireNonNull(relogio, "relogio");
     }
 
+    /**
+     * @param pecas as peças do catálogo usadas, cada uma na versão daquele momento (regra 2.5)
+     */
     public long salvar(Connection conexao, long projetoId, long versaoMotorId, EntradaDimensionamento entrada,
-            Resultado<Dimensionamento> resultado, List<Justificativa> justificativas, String versaoApp)
-            throws SQLException {
+            Resultado<Dimensionamento> resultado, List<Justificativa> justificativas, List<PecaUsada> pecas,
+            String versaoApp) throws SQLException {
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement insercao = conexao.prepareStatement(
                 "INSERT INTO calculo (projeto_id, motor_versao_id, entrada_json, resultado_json, versao_nucleo, "
@@ -66,7 +71,52 @@ public final class CalculoRepositorio {
                 insercao.executeUpdate();
             }
         }
+        try (PreparedStatement insercao = conexao.prepareStatement(
+                "INSERT INTO calculo_peca (calculo_id, papel, item_id, versao) VALUES (?, ?, ?, ?)")) {
+            for (PecaUsada peca : pecas) {
+                insercao.setLong(1, id);
+                insercao.setString(2, peca.papel().name());
+                insercao.setLong(3, peca.itemId());
+                insercao.setInt(4, peca.versao());
+                insercao.executeUpdate();
+            }
+        }
         return id;
+    }
+
+    /** As peças do catálogo usadas por cada cálculo do projeto (cálculo → peças). */
+    public Map<Long, List<PecaUsada>> pecasDoProjeto(Connection conexao, long projetoId) throws SQLException {
+        Map<Long, List<PecaUsada>> pecas = new HashMap<>();
+        try (PreparedStatement consulta = conexao.prepareStatement(
+                "SELECT p.calculo_id, p.papel, p.item_id, p.versao FROM calculo_peca p "
+                        + "JOIN calculo c ON c.id = p.calculo_id WHERE c.projeto_id = ? ORDER BY p.calculo_id, p.papel")) {
+            consulta.setLong(1, projetoId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                while (linha.next()) {
+                    pecas.computeIfAbsent(linha.getLong("calculo_id"), id -> new ArrayList<>()).add(lerPeca(linha));
+                }
+            }
+        }
+        return pecas;
+    }
+
+    private static List<PecaUsada> pecas(Connection conexao, long calculoId) throws SQLException {
+        List<PecaUsada> pecas = new ArrayList<>();
+        try (PreparedStatement consulta = conexao.prepareStatement(
+                "SELECT papel, item_id, versao FROM calculo_peca WHERE calculo_id = ? ORDER BY papel")) {
+            consulta.setLong(1, calculoId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                while (linha.next()) {
+                    pecas.add(lerPeca(linha));
+                }
+            }
+        }
+        return pecas;
+    }
+
+    private static PecaUsada lerPeca(ResultSet linha) throws SQLException {
+        return new PecaUsada(Sql.constante(linha, "papel", PapelPeca.class), linha.getLong("item_id"),
+                linha.getInt("versao"));
     }
 
     /** Histórico de cálculos do projeto, do mais novo para o mais antigo. */
@@ -103,7 +153,7 @@ public final class CalculoRepositorio {
                         linha.getLong("motor_versao_id"), linha.getInt("numero"),
                         Json.ler(linha.getString("entrada_json"), EntradaDimensionamento.class),
                         Json.ler(linha.getString("resultado_json"), TIPO_RESULTADO),
-                        justificativas(conexao, id), linha.getString("versao_nucleo"),
+                        justificativas(conexao, id), pecas(conexao, id), linha.getString("versao_nucleo"),
                         linha.getString("versao_app"), Sql.dataHora(linha, "criado_em")));
             }
         }

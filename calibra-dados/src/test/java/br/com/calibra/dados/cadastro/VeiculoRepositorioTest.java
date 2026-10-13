@@ -40,8 +40,8 @@ class VeiculoRepositorioTest {
     void gravaELeCarroELancha() {
         Veiculo gol = Cadastros.carro("ABC1D23");
         Veiculo focker = Cadastros.lancha("Maré Alta");
-        long idGol = base.banco.transacao(c -> veiculos.inserir(c, cliente, gol));
-        long idFocker = base.banco.transacao(c -> veiculos.inserir(c, cliente, focker));
+        long idGol = base.banco.transacao(c -> veiculos.inserir(c, cliente, gol, null));
+        long idFocker = base.banco.transacao(c -> veiculos.inserir(c, cliente, focker, null));
         assertEquals(gol, base.banco.ler(c -> veiculos.buscar(c, idGol)).orElseThrow().veiculo());
         assertEquals(focker, base.banco.ler(c -> veiculos.buscar(c, idFocker)).orElseThrow().veiculo());
         assertEquals(List.of(idFocker, idGol),
@@ -51,13 +51,13 @@ class VeiculoRepositorioTest {
     /** SPEC 6.2: todo salvamento grava campo, valor antigo, valor novo, data e hora. */
     @Test
     void cadaSalvamentoGravaOQueMudouNoHistorico() {
-        long id = base.banco.transacao(c -> veiculos.inserir(c, cliente, Cadastros.carro("ABC1D23")));
+        long id = base.banco.transacao(c -> veiculos.inserir(c, cliente, Cadastros.carro("ABC1D23"), null));
         Veiculo gol = Cadastros.carro("ABC1D23");
         Veiculo mudado = new Veiculo(gol.tipo(), gol.marca(), gol.modelo(), gol.versao(), gol.anoFabricacao(),
                 gol.anoModelo(), gol.placa(), gol.chassi(), "", "", "", 251_500.0, TipoCambio.AUTOMATICO, true,
                 gol.tracao(), gol.pesoKg(), gol.cor(), gol.observacoes());
         base.banco.transacao(c -> {
-            veiculos.atualizar(c, id, mudado);
+            veiculos.atualizar(c, id, mudado, null);
             return null;
         });
 
@@ -97,7 +97,7 @@ class VeiculoRepositorioTest {
         assertEquals("Arquivado", base.banco.ler(c -> veiculos.historico(c, comProjeto)).getFirst().campo());
         assertTrue(base.banco.ler(c -> repositorios.projetos().buscar(c, projeto)).isPresent(), "o projeto continua");
 
-        long semProjeto = base.banco.transacao(c -> veiculos.inserir(c, cliente, Cadastros.carro("DEF4G56")));
+        long semProjeto = base.banco.transacao(c -> veiculos.inserir(c, cliente, Cadastros.carro("DEF4G56"), null));
         base.banco.transacao(c -> {
             veiculos.apagar(c, semProjeto);
             return null;

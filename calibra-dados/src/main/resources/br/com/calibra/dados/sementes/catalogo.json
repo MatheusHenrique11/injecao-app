@@ -1,0 +1,193 @@
+{
+  "comentario": "Itens que vêm com o Calibra (migração V4). Combustíveis: SPEC 7.2. Motores e montagens: docs/pesquisa/mercado-preparacao-brasil.md (09/10/2026), todos 'a verificar'. Campo vazio (null) = a pesquisa não trouxe o dado. Depois de publicado, este arquivo não muda: semente nova entra numa migração nova.",
+  "itens": [
+    {
+      "chave": "combustivel:E32",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "Gasolina C comum E32", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "Teor de etanol vigente desde 01/08/2026." },
+      "dados": { "codigo": "E32", "nome": "Gasolina C comum E32", "composicao": { "tipo": "GASOLINA_COM_ETANOL", "fracaoVolumetricaEtanol": 0.32 }, "densidadeKgL": 0.756, "lambdaSobPressao": 0.80, "lambdaAspiradoPlenaCarga": 0.87, "avisoLambda": null, "vigenteDesde": "2026-08-01", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+    {
+      "chave": "combustivel:E25",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "Gasolina premium E25", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "" },
+      "dados": { "codigo": "E25", "nome": "Gasolina premium E25", "composicao": { "tipo": "GASOLINA_COM_ETANOL", "fracaoVolumetricaEtanol": 0.25 }, "densidadeKgL": 0.752, "lambdaSobPressao": 0.80, "lambdaAspiradoPlenaCarga": 0.87, "avisoLambda": null, "vigenteDesde": null, "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+    {
+      "chave": "combustivel:EHC",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "Etanol hidratado (93% em massa)", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "" },
+      "dados": { "codigo": "EHC", "nome": "Etanol hidratado (93% em massa)", "composicao": { "tipo": "ETANOL_HIDRATADO", "fracaoMassicaEtanol": 0.93 }, "densidadeKgL": 0.809, "lambdaSobPressao": 0.80, "lambdaAspiradoPlenaCarga": 0.87, "avisoLambda": null, "vigenteDesde": null, "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+    {
+      "chave": "combustivel:EAC",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "Etanol anidro", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "" },
+      "dados": { "codigo": "EAC", "nome": "Etanol anidro", "composicao": { "tipo": "AFR_FIXO", "afr": 9.0 }, "densidadeKgL": 0.789, "lambdaSobPressao": 0.80, "lambdaAspiradoPlenaCarga": 0.87, "avisoLambda": null, "vigenteDesde": null, "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+    {
+      "chave": "combustivel:E85",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "E85", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "" },
+      "dados": { "codigo": "E85", "nome": "E85", "composicao": { "tipo": "AFR_FIXO", "afr": 9.75 }, "densidadeKgL": 0.78, "lambdaSobPressao": 0.80, "lambdaAspiradoPlenaCarga": 0.87, "avisoLambda": null, "vigenteDesde": null, "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+    {
+      "chave": "combustivel:METANOL",
+      "tipo": "COMBUSTIVEL",
+      "info": { "nome": "Metanol", "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "data": "2026-10-08", "aVerificar": false, "observacoes": "" },
+      "dados": { "codigo": "METANOL", "nome": "Metanol", "composicao": { "tipo": "AFR_FIXO", "afr": 6.42 }, "densidadeKgL": 0.792, "lambdaSobPressao": 0.65, "lambdaAspiradoPlenaCarga": 0.70, "avisoLambda": "Metanol: lambda padrão 0,65 sob pressão e 0,70 aspirado, bem mais rica que os outros combustíveis. Confirmar no acerto.", "vigenteDesde": null, "fonte": "SPEC 7.2 (versão 1.0, 08/10/2026)", "versao": 1 }
+    },
+
+    {
+      "chave": "motor:vw-ap-1.6",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW AP 1.6", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09", "aVerificar": true, "observacoes": "Mesmo bloco do 1.8; pistão mais alto (maior altura de compressão)." },
+      "dados": { "nome": "VW AP 1.6", "montagem": false, "cilindros": 4, "diametroMm": 81.0, "cursoMm": 77.4, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 1595.0, "aspiracao": null, "descricao": "Mesmo bloco do 1.8; pistão mais alto (maior altura de compressão).", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:vw-ap-1.8",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW AP 1.8", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09", "aVerificar": true, "observacoes": "Mesmo bloco do 1.6." },
+      "dados": { "nome": "VW AP 1.8", "montagem": false, "cilindros": 4, "diametroMm": 81.0, "cursoMm": 86.4, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 1781.0, "aspiracao": null, "descricao": "Mesmo bloco do 1.6.", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:vw-ap-2.0",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW AP 2.0", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09", "aVerificar": true, "observacoes": "Bloco diferente do 1.6/1.8 só na parte de baixo (folga do virabrequim). Agregados não trocam com o bloco 1.6/1.8." },
+      "dados": { "nome": "VW AP 2.0", "montagem": false, "cilindros": 4, "diametroMm": 82.5, "cursoMm": 92.8, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 1984.0, "aspiracao": null, "descricao": "Bloco diferente do 1.6/1.8 só na parte de baixo (folga do virabrequim). Agregados não trocam com o bloco 1.6/1.8.", "fonte": "Luciano Preparação, ficha técnica do motor AP; Wikipedia, Volkswagen AP", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-opala-151",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Opala 151 (2.5, 4 cilindros)", "fonte": "Autoentusiastas, motores de 4 e 6 cilindros do Opala (2019)", "data": "2026-10-09", "aVerificar": true, "observacoes": "A partir de 1974; antes, 98,42 × 82,55 mm." },
+      "dados": { "nome": "GM Opala 151 (2.5, 4 cilindros)", "montagem": false, "cilindros": 4, "diametroMm": 101.6, "cursoMm": 76.2, "bielaMm": null, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 2471.0, "aspiracao": null, "descricao": "A partir de 1974; antes, 98,42 × 82,55 mm.", "fonte": "Autoentusiastas, motores de 4 e 6 cilindros do Opala (2019)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-opala-250",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Opala 250 (4.1, 6 cilindros)", "fonte": "Autoentusiastas, motores de 4 e 6 cilindros do Opala (2019)", "data": "2026-10-09", "aVerificar": true, "observacoes": "140 cv brutos de série. Curso aumentado em 1971 (antes, 3.8)." },
+      "dados": { "nome": "GM Opala 250 (4.1, 6 cilindros)", "montagem": false, "cilindros": 6, "diametroMm": 98.4, "cursoMm": 89.66, "bielaMm": null, "taxaCompressao": 7.5, "valvulasPorCilindro": null, "cilindradaFichaCc": 4093.0, "aspiracao": null, "descricao": "140 cv brutos de série. Curso aumentado em 1971 (antes, 3.8).", "fonte": "Autoentusiastas, motores de 4 e 6 cilindros do Opala (2019)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-opala-250-s",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Opala 250-S (4.1, 6 cilindros)", "fonte": "Vintage Clássicos, Opala 4100: diferença entre os motores 250 e 250-S", "data": "2026-10-09", "aVerificar": true, "observacoes": "171 cv brutos de série; comando de desempenho, molas duplas, volante de 9 kg." },
+      "dados": { "nome": "GM Opala 250-S (4.1, 6 cilindros)", "montagem": false, "cilindros": 6, "diametroMm": 98.4, "cursoMm": 89.66, "bielaMm": null, "taxaCompressao": 7.8, "valvulasPorCilindro": null, "cilindradaFichaCc": 4093.0, "aspiracao": null, "descricao": "171 cv brutos de série; comando de desempenho, molas duplas, volante de 9 kg.", "fonte": "Vintage Clássicos, Opala 4100: diferença entre os motores 250 e 250-S", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-omega-4.1",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Omega 4.1 (C41GE)", "fonte": "Futcarros, Omega 4.1; Garagem do Alan, Omega CD 4.1 1996", "data": "2026-10-09", "aVerificar": true, "observacoes": "168 cv a 4.500 rpm; 29,1 kgfm a 3.500 rpm. Injeção multiponto sequencial; dutos de admissão individuais." },
+      "dados": { "nome": "GM Omega 4.1 (C41GE)", "montagem": false, "cilindros": 6, "diametroMm": 98.4, "cursoMm": 89.7, "bielaMm": null, "taxaCompressao": 8.5, "valvulasPorCilindro": null, "cilindradaFichaCc": 4093.0, "aspiracao": null, "descricao": "168 cv a 4.500 rpm; 29,1 kgfm a 3.500 rpm. Injeção multiponto sequencial; dutos de admissão individuais.", "fonte": "Futcarros, Omega 4.1; Garagem do Alan, Omega CD 4.1 1996", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-omega-3.0",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Omega 3.0 (C30NE)", "fonte": "Heycar, Omega CD 3.0 1993; Ficha Completa, Omega CD 3.0 1994", "data": "2026-10-09", "aVerificar": true, "observacoes": "165 cv a 5.800 rpm; 23,4 kgfm a 4.200 rpm. Motor Opel, 6 cilindros em linha." },
+      "dados": { "nome": "GM Omega 3.0 (C30NE)", "montagem": false, "cilindros": 6, "diametroMm": 95.0, "cursoMm": 69.8, "bielaMm": null, "taxaCompressao": 9.2, "valvulasPorCilindro": null, "cilindradaFichaCc": 2969.0, "aspiracao": null, "descricao": "165 cv a 5.800 rpm; 23,4 kgfm a 4.200 rpm. Motor Opel, 6 cilindros em linha.", "fonte": "Heycar, Omega CD 3.0 1993; Ficha Completa, Omega CD 3.0 1994", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-c20ne",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Família II C20NE (2.0 8V)", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09", "aVerificar": true, "observacoes": "115 PS de série." },
+      "dados": { "nome": "GM Família II C20NE (2.0 8V)", "montagem": false, "cilindros": 4, "diametroMm": 86.0, "cursoMm": 86.0, "bielaMm": null, "taxaCompressao": 9.2, "valvulasPorCilindro": 2, "cilindradaFichaCc": 1998.0, "aspiracao": null, "descricao": "115 PS de série.", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-c20xe",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Família II C20XE (2.0 16V)", "fonte": "Wikipedia, GM Family II engine; Flatout, preparação do motor Família 2", "data": "2026-10-09", "aVerificar": true, "observacoes": "150 PS de série. Bloco closed deck, citado para turbo (C20XE/C20YE)." },
+      "dados": { "nome": "GM Família II C20XE (2.0 16V)", "montagem": false, "cilindros": 4, "diametroMm": 86.0, "cursoMm": 86.0, "bielaMm": null, "taxaCompressao": 10.5, "valvulasPorCilindro": 4, "cilindradaFichaCc": 1998.0, "aspiracao": null, "descricao": "150 PS de série. Bloco closed deck, citado para turbo (C20XE/C20YE).", "fonte": "Wikipedia, GM Family II engine; Flatout, preparação do motor Família 2", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-c22ne",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Família II C22NE (2.2)", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09", "aVerificar": true, "observacoes": "116–123 hp de série; principalmente Brasil." },
+      "dados": { "nome": "GM Família II C22NE (2.2)", "montagem": false, "cilindros": 4, "diametroMm": 86.0, "cursoMm": 94.6, "bielaMm": null, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 2198.0, "aspiracao": null, "descricao": "116–123 hp de série; principalmente Brasil.", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:gm-familia-ii-2.4",
+      "tipo": "MOTOR",
+      "info": { "nome": "GM Família II 2.4 (Flexpower)", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09", "aVerificar": true, "observacoes": "Até 150 hp; versões 8V e 16V. Bloco alto: mais torque, relação biela/curso pior." },
+      "dados": { "nome": "GM Família II 2.4 (Flexpower)", "montagem": false, "cilindros": 4, "diametroMm": 87.5, "cursoMm": 100.0, "bielaMm": null, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": 2405.0, "aspiracao": null, "descricao": "Até 150 hp; versões 8V e 16V. Bloco alto: mais torque, relação biela/curso pior.", "fonte": "Wikipedia, GM Family II engine", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:fiat-2.0-20v",
+      "tipo": "MOTOR",
+      "info": { "nome": "Fiat 2.0 20V (Marea)", "fonte": "Wikipedia, Fiat Pratola Serra modular engines", "data": "2026-10-09", "aVerificar": true, "observacoes": "142 cv de série; família Pratola Serra." },
+      "dados": { "nome": "Fiat 2.0 20V (Marea)", "montagem": false, "cilindros": 5, "diametroMm": 82.0, "cursoMm": 75.65, "bielaMm": null, "taxaCompressao": null, "valvulasPorCilindro": 4, "cilindradaFichaCc": 1998.0, "aspiracao": null, "descricao": "142 cv de série; família Pratola Serra.", "fonte": "Wikipedia, Fiat Pratola Serra modular engines", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:fiat-2.0-20v-turbo",
+      "tipo": "MOTOR",
+      "info": { "nome": "Fiat 2.0 20V Turbo (Marea Turbo)", "fonte": "Wikipedia, Fiat Pratola Serra modular engines; Auto-data, Marea 2.0 20V Turbo", "data": "2026-10-09", "aVerificar": true, "observacoes": "182 cv; 27 kgfm. Turbo Garrett, pressão máxima de 1,2 kgf/cm². No Fiat Coupé, 220 cv." },
+      "dados": { "nome": "Fiat 2.0 20V Turbo (Marea Turbo)", "montagem": false, "cilindros": 5, "diametroMm": 82.0, "cursoMm": 75.65, "bielaMm": null, "taxaCompressao": 8.5, "valvulasPorCilindro": 4, "cilindradaFichaCc": 1998.0, "aspiracao": "TURBO", "descricao": "182 cv; 27 kgfm. Turbo Garrett, pressão máxima de 1,2 kgf/cm². No Fiat Coupé, 220 cv.", "fonte": "Wikipedia, Fiat Pratola Serra modular engines; Auto-data, Marea 2.0 20V Turbo", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:fiat-2.4-20v",
+      "tipo": "MOTOR",
+      "info": { "nome": "Fiat 2.4 20V (Marea / Stilo Abarth)", "fonte": "Wikipedia, Fiat Pratola Serra modular engines", "data": "2026-10-09", "aVerificar": true, "observacoes": "157–165 cv de série." },
+      "dados": { "nome": "Fiat 2.4 20V (Marea / Stilo Abarth)", "montagem": false, "cilindros": 5, "diametroMm": 83.0, "cursoMm": 90.4, "bielaMm": null, "taxaCompressao": null, "valvulasPorCilindro": 4, "cilindradaFichaCc": 2446.0, "aspiracao": null, "descricao": "157–165 cv de série.", "fonte": "Wikipedia, Fiat Pratola Serra modular engines", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:vw-2.5-20v",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW 2.5 20V (Jetta 2008–2011)", "fonte": "Notícias Automotivas, Jetta Variant 2.5; Carros na Web, Jetta 2.5; Auto-data, Jetta V 2.5i", "data": "2026-10-09", "aVerificar": true, "observacoes": "170 cv; 24,5 kgfm a 4.250 rpm; injeção multiponto sequencial. As fichas divergem na rotação da potência (5.000 ou 5.700 rpm). Mesma geometria do Audi 2.5 TFSI, mas são motores diferentes: não considerar peças intercambiáveis sem conferência." },
+      "dados": { "nome": "VW 2.5 20V (Jetta 2008–2011)", "montagem": false, "cilindros": 5, "diametroMm": 82.5, "cursoMm": 92.8, "bielaMm": null, "taxaCompressao": 10.0, "valvulasPorCilindro": 4, "cilindradaFichaCc": 2480.0, "aspiracao": "ASPIRADO", "descricao": "170 cv; 24,5 kgfm a 4.250 rpm; injeção multiponto sequencial. As fichas divergem na rotação da potência (5.000 ou 5.700 rpm). Mesma geometria do Audi 2.5 TFSI, mas são motores diferentes: não considerar peças intercambiáveis sem conferência.", "fonte": "Notícias Automotivas, Jetta Variant 2.5; Carros na Web, Jetta 2.5; Auto-data, Jetta V 2.5i", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:vw-ea211-1.0",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW EA211 1.0 (MPI e TSI, 3 cilindros)", "fonte": "Wikipedia, Volkswagen EA211 engine", "data": "2026-10-09", "aVerificar": true, "observacoes": "Mesma geometria do caso golden C. Existe aspirado (MPI) e turbo (TSI): escolha a aspiração do motor do projeto." },
+      "dados": { "nome": "VW EA211 1.0 (MPI e TSI, 3 cilindros)", "montagem": false, "cilindros": 3, "diametroMm": 74.5, "cursoMm": 76.4, "bielaMm": null, "taxaCompressao": 10.5, "valvulasPorCilindro": null, "cilindradaFichaCc": 999.0, "aspiracao": null, "descricao": "Mesma geometria do caso golden C. Existe aspirado (MPI) e turbo (TSI): escolha a aspiração do motor do projeto.", "fonte": "Wikipedia, Volkswagen EA211 engine", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:vw-ea888-2.0-tsi",
+      "tipo": "MOTOR",
+      "info": { "nome": "VW EA888 2.0 TSI (3ª geração)", "fonte": "Audi SSP 606", "data": "2026-10-09", "aVerificar": true, "observacoes": "Taxa 9,3:1 no CJXC. Mesma geometria do AP 2.0 e do caso golden B." },
+      "dados": { "nome": "VW EA888 2.0 TSI (3ª geração)", "montagem": false, "cilindros": 4, "diametroMm": 82.5, "cursoMm": 92.8, "bielaMm": null, "taxaCompressao": 9.6, "valvulasPorCilindro": null, "cilindradaFichaCc": 1984.0, "aspiracao": "TURBO", "descricao": "Taxa 9,3:1 no CJXC. Mesma geometria do AP 2.0 e do caso golden B.", "fonte": "Audi SSP 606", "data": "2026-10-09" }
+    },
+    {
+      "chave": "motor:hyundai-g4gc",
+      "tipo": "MOTOR",
+      "info": { "nome": "Hyundai G4GC (Beta II 2.0 16V CVVT)", "fonte": "Manual de oficina Hyundai G4GC; Carros na Web, i30 2.0; Engineswork, G4GC", "data": "2026-10-09", "aVerificar": true, "observacoes": "145 cv a 6.000 rpm; 19 kgfm a 4.600 rpm (i30 2.0 no Brasil). Bloco de ferro fundido, cabeçote de alumínio. O i30 2.0 vendido aqui era a gasolina: confirmar o sistema de combustível antes de usar etanol." },
+      "dados": { "nome": "Hyundai G4GC (Beta II 2.0 16V CVVT)", "montagem": false, "cilindros": 4, "diametroMm": 82.0, "cursoMm": 93.5, "bielaMm": null, "taxaCompressao": 10.1, "valvulasPorCilindro": 4, "cilindradaFichaCc": 1975.0, "aspiracao": null, "descricao": "145 cv a 6.000 rpm; 19 kgfm a 4.600 rpm (i30 2.0 no Brasil). Bloco de ferro fundido, cabeçote de alumínio. O i30 2.0 vendido aqui era a gasolina: confirmar o sistema de combustível antes de usar etanol.", "fonte": "Manual de oficina Hyundai G4GC; Carros na Web, i30 2.0; Engineswork, G4GC", "data": "2026-10-09" }
+    },
+
+    {
+      "chave": "montagem:ap-milenove",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP \"Milenove\" (1.9): pistões do 2.0 + virabrequim do 1.8", "fonte": "Preparados, AP 1.9 forjado; Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2 (fóruns)", "data": "2026-10-09", "aVerificar": true, "observacoes": "Curso maior com a mesma biela de 144 mm exige pistão com menor altura de compressão." },
+      "dados": { "nome": "AP \"Milenove\" (1.9): pistões do 2.0 + virabrequim do 1.8", "montagem": true, "cilindros": 4, "diametroMm": 82.5, "cursoMm": 86.4, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Pistões do 2.0 (82,5 mm) + virabrequim do 1.8 (86,4 mm).", "fonte": "Preparados, AP 1.9 forjado; Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2 (fóruns)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "montagem:ap-1.9-bloco-1.8",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP \"1.9\": bloco 1.8 + virabrequim do 2.0 + pistão 81", "fonte": "Preparados, AP bloco 1.8 com virabrequim do 2.0 (fórum)", "data": "2026-10-09", "aVerificar": true, "observacoes": "Bloco retrabalhado. Com bielas forjadas, o bloco 1.8 exige mais desbaste." },
+      "dados": { "nome": "AP \"1.9\": bloco 1.8 + virabrequim do 2.0 + pistão 81", "montagem": true, "cilindros": 4, "diametroMm": 81.0, "cursoMm": 92.8, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Bloco 1.8 + virabrequim do 2.0 (92,8 mm) + pistão 81 mm; bloco retrabalhado.", "fonte": "Preparados, AP bloco 1.8 com virabrequim do 2.0 (fórum)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "montagem:ap-2.0-pistao-83",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP 2.0 sobremedida: bloco 2.0 + pistão 83", "fonte": "Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2; Carmaniacs, reabrindo bloco 1.6/1.8 para 2.0 (fóruns)", "data": "2026-10-09", "aVerificar": true, "observacoes": "" },
+      "dados": { "nome": "AP 2.0 sobremedida: bloco 2.0 + pistão 83", "montagem": true, "cilindros": 4, "diametroMm": 83.0, "cursoMm": 92.8, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Bloco 2.0 + pistão 83 mm.", "fonte": "Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2; Carmaniacs, reabrindo bloco 1.6/1.8 para 2.0 (fóruns)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "montagem:ap-2.1-virabrequim-96",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP ~2.1: virabrequim 96 + pistão 83", "fonte": "Preparados, virabrequim VW de 96 mm de curso (fórum)", "data": "2026-10-09", "aVerificar": true, "observacoes": "Curso maior com a mesma biela de 144 mm exige pistão com menor altura de compressão." },
+      "dados": { "nome": "AP ~2.1: virabrequim 96 + pistão 83", "montagem": true, "cilindros": 4, "diametroMm": 83.0, "cursoMm": 96.0, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Virabrequim de 96 mm + pistão 83 mm.", "fonte": "Preparados, virabrequim VW de 96 mm de curso (fórum)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "montagem:ap-2.1-virabrequim-95.5",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP ~2.1: virabrequim 95,5 + pistão 84", "fonte": "Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2 (fórum)", "data": "2026-10-09", "aVerificar": true, "observacoes": "O virabrequim de 95,5 mm seria do AP 1.9 diesel, segundo o fórum." },
+      "dados": { "nome": "AP ~2.1: virabrequim 95,5 + pistão 84", "montagem": true, "cilindros": 4, "diametroMm": 84.0, "cursoMm": 95.5, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Virabrequim de 95,5 mm (do AP 1.9 diesel, segundo o fórum) + pistão 84 mm.", "fonte": "Clube do Gol Quadrado, AP 1.7/1.9/2.1/2.2 (fórum)", "data": "2026-10-09" }
+    },
+    {
+      "chave": "montagem:ap-2.2-virabrequim-99",
+      "tipo": "MOTOR",
+      "info": { "nome": "AP ~2.2: virabrequim 99 + pistão 85", "fonte": "Conta da pesquisa de 09/10/2026 pela geometria; sem fonte de quem montou", "data": "2026-10-09", "aVerificar": true, "observacoes": "Montagem só calculada na pesquisa. Relação biela/curso cai para 1,45 (1,55 no 2.0 original)." },
+      "dados": { "nome": "AP ~2.2: virabrequim 99 + pistão 85", "montagem": true, "cilindros": 4, "diametroMm": 85.0, "cursoMm": 99.0, "bielaMm": 144.0, "taxaCompressao": null, "valvulasPorCilindro": null, "cilindradaFichaCc": null, "aspiracao": null, "descricao": "Virabrequim de 99 mm + pistão 85 mm.", "fonte": "Conta da pesquisa de 09/10/2026 pela geometria; sem fonte de quem montou", "data": "2026-10-09" }
+    }
+  ]
+}

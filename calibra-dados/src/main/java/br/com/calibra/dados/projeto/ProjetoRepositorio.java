@@ -27,7 +27,7 @@ import br.com.calibra.dados.json.Json;
 public final class ProjetoRepositorio {
 
     private static final String COLUNAS = "id, veiculo_id, status, status_antes_de_arquivar, meta_json, observacoes, "
-            + "criado_em, atualizado_em";
+            + "injecao_item_id, criado_em, atualizado_em";
 
     private final Clock relogio;
 
@@ -35,23 +35,41 @@ public final class ProjetoRepositorio {
         this.relogio = Objects.requireNonNull(relogio, "relogio");
     }
 
-    /** Projeto novo, em RASCUNHO. */
-    public long inserir(Connection conexao, long veiculoId, Meta meta, String observacoes) throws SQLException {
+    /**
+     * Projeto novo, em RASCUNHO.
+     *
+     * @param injecaoItemId injeção escolhida do catálogo (SPEC 6.4); null até ser escolhida
+     */
+    public long inserir(Connection conexao, long veiculoId, Meta meta, String observacoes, Long injecaoItemId)
+            throws SQLException {
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement insercao = conexao.prepareStatement(
-                "INSERT INTO projeto (veiculo_id, status, meta_json, observacoes, criado_em, atualizado_em) "
-                        + "VALUES (?, ?, ?, ?, ?, ?)")) {
+                "INSERT INTO projeto (veiculo_id, status, meta_json, observacoes, injecao_item_id, criado_em, "
+                        + "atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
             insercao.setLong(1, veiculoId);
             insercao.setString(2, StatusProjeto.RASCUNHO.name());
             insercao.setString(3, Json.escrever(meta));
             insercao.setString(4, observacoes == null ? "" : observacoes.strip());
-            insercao.setString(5, Sql.texto(agora));
+            Sql.longo(insercao, 5, injecaoItemId);
             insercao.setString(6, Sql.texto(agora));
+            insercao.setString(7, Sql.texto(agora));
             insercao.executeUpdate();
         }
         long id = Sql.ultimoId(conexao);
         registrarStatus(conexao, id, StatusProjeto.RASCUNHO, agora);
         return id;
+    }
+
+    /** Troca a injeção escolhida do catálogo (null = nenhuma). */
+    public void atualizarInjecao(Connection conexao, long id, Long injecaoItemId) throws SQLException {
+        exigir(conexao, id);
+        try (PreparedStatement atualizacao = conexao.prepareStatement(
+                "UPDATE projeto SET injecao_item_id = ?, atualizado_em = ? WHERE id = ?")) {
+            Sql.longo(atualizacao, 1, injecaoItemId);
+            atualizacao.setString(2, Sql.texto(Sql.agora(relogio)));
+            atualizacao.setLong(3, id);
+            atualizacao.executeUpdate();
+        }
     }
 
     public Optional<ProjetoSalvo> buscar(Connection conexao, long id) throws SQLException {
@@ -247,6 +265,7 @@ public final class ProjetoRepositorio {
                 Sql.constante(linha, "status", StatusProjeto.class),
                 Sql.constante(linha, "status_antes_de_arquivar", StatusProjeto.class),
                 Json.ler(linha.getString("meta_json"), Meta.class), linha.getString("observacoes"),
-                Sql.dataHora(linha, "criado_em"), Sql.dataHora(linha, "atualizado_em"));
+                Sql.longo(linha, "injecao_item_id"), Sql.dataHora(linha, "criado_em"),
+                Sql.dataHora(linha, "atualizado_em"));
     }
 }
