@@ -67,6 +67,21 @@ class EscritorFormularioTest {
     }
 
     @Test
+    void metaPelaPressaoEVeDoTorqueVoltamIguais() {
+        EntradaDimensionamento pelaPressao = casoB().comMeta(Meta.pelaPressao(140.0, 15.0, 7000, 4500, Uso.RUA))
+                .comVeTorque(0.9);
+        assertEquals(pelaPressao, idaEVolta(pelaPressao));
+        Map<Campo, String> campos = EscritorFormulario.semMotor(pelaPressao);
+        assertEquals("PRESSAO", campos.get(Campo.TIPO_META));
+        assertEquals("1,4", campos.get(Campo.PRESSAO_META));
+        assertEquals("BAR", campos.get(Campo.UNIDADE_PRESSAO_META));
+        assertEquals("", campos.get(Campo.POTENCIA_CV), "a potência sai do cálculo");
+        assertEquals("15", campos.get(Campo.PERDA_TRANSMISSAO));
+        assertEquals("0,9", campos.get(Campo.VE_TORQUE));
+        assertEquals("POTENCIA", EscritorFormulario.semMotor(casoB()).get(Campo.TIPO_META));
+    }
+
+    @Test
     void metaNaRodaComPerdaETorque() {
         EntradaDimensionamento naRoda = casoB().comMeta(new Meta(casoB().meta().potenciaKw(),
                 PontoMedicao.RODA, 15.0, 7000, 5000, Uso.ARRANCADA));

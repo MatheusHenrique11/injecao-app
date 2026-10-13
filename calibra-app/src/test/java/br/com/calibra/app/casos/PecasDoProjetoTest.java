@@ -21,6 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
 import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
+import br.com.calibra.app.catalogo.ExemplosCatalogo;
+import br.com.calibra.app.catalogo.ExemplosCatalogo.Exemplo;
 import br.com.calibra.app.catalogo.PecasEscolhidas;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.TipoCambio;
@@ -32,6 +34,7 @@ import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.TempoMorto;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.core.semaforo.Indicador;
 import br.com.calibra.core.semaforo.Justificativa;
 import br.com.calibra.dados.BancoDados;
@@ -173,6 +176,37 @@ class PecasDoProjetoTest {
                 () -> casos.salvarCalculo(projeto, digitada, justificativas(), soOBico(bico)));
         assertEquals(List.of("A peça do catálogo (bico) não é a da entrada do cálculo: calcule de novo antes de salvar."),
                 erro.erros());
+    }
+
+    /** Bloco 2.4: o turbo e o câmbio do cálculo também são gravados com a versão e deixam o cálculo desatualizado. */
+    @Test
+    void turboECambioEntramNoCalculoSalvo() {
+        long projeto = novoProjeto();
+        Exemplo<Turbo> exemplo = ExemplosCatalogo.turbo();
+        ItemCatalogo<Turbo> turbo = catalogo.criar(TipoCatalogo.TURBO, exemplo.dados(), exemplo.info());
+        ItemCatalogo<Cambio> cambio = catalogo.criar(TipoCatalogo.CAMBIO, new Cambio("Câmbio teste 6M",
+                TipoCambio.MANUAL, 600.0, FONTE, null), new InfoCatalogo("Câmbio teste 6M", FONTE, null, false, null, ""));
+        EntradaDimensionamento entrada = CasosProjetoTest.casoB().comMotor(casos.abrir(projeto).motor().configuracao())
+                .comTurbo(turbo.dados()).comCambio(cambio.dados());
+        PecasEscolhidas pecas = new PecasEscolhidas(null, null, null, null, null, null, turbo, cambio);
+        List<Justificativa> justificativas = List.of(justificativas().getFirst(), new Justificativa(
+                Indicador.MAPA_COMPRESSOR, "Mapa fictício do teste.", LocalDateTime.of(2026, 10, 12, 9, 30)));
+
+        EntradaInvalidaException semTurbo = assertThrows(EntradaInvalidaException.class, () -> casos.salvarCalculo(
+                projeto, entrada.comTurbo(null), justificativas, pecas));
+        assertEquals(List.of("A peça do catálogo (turbo) não é a da entrada do cálculo: calcule de novo antes de "
+                + "salvar."), semTurbo.erros());
+
+        long id = casos.salvarCalculo(projeto, entrada, justificativas, pecas);
+        List<PecaUsada> usadas = casos.calculo(id).orElseThrow().pecas();
+        assertTrue(usadas.contains(new PecaUsada(PapelPeca.TURBO, turbo.id(), 1)), usadas::toString);
+        assertTrue(usadas.contains(new PecaUsada(PapelPeca.CAMBIO, cambio.id(), 1)), usadas::toString);
+        assertEquals(exemplo.dados(), casos.calculo(id).orElseThrow().entrada().turbo(), "o mapa vai junto no cálculo");
+
+        relogio.andar(Duration.ofMinutes(5));
+        catalogo.salvar(TipoCatalogo.TURBO, turbo.id(), turbo.dados().comMapa(null, null, null), turbo.info());
+        assertEquals(List.of("o turbo mudou no catálogo: Turbo teste 60 v1 → v2"),
+                casos.calculos(projeto).getFirst().motivos());
     }
 
     @Test

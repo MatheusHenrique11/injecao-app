@@ -26,10 +26,16 @@ import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.Construcao;
 import br.com.calibra.core.motor.RodaFonica;
 import br.com.calibra.core.motor.SugestoesMotor;
+import br.com.calibra.core.cadastro.TipoCambio;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.MapaCompressor;
+import br.com.calibra.core.pecas.Turbo;
+import br.com.calibra.core.pecas.UnidadeVazao;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.Uso;
+import br.com.calibra.core.semaforo.Cor;
 import br.com.calibra.core.semaforo.Indicador;
 import br.com.calibra.core.semaforo.Justificativa;
 import org.apache.pdfbox.Loader;
@@ -130,6 +136,48 @@ class RelatorioMemoriaTest {
         Path semProjeto = pasta.resolve("memoria-avulsa.pdf");
         RelatorioMemoria.gerar(avulso, semProjeto);
         assertFalse(texto(semProjeto.toFile()).contains("João da Silva"), "a calculadora avulsa não tem projeto");
+    }
+
+    /** Bloco 2.4: meta pela pressão, VE do torque, turbo com mapa (fictício) e câmbio aparecem na memória. */
+    @Test
+    void memoriaComMetaPelaPressaoTurboECambio(@TempDir Path pasta) throws IOException {
+        MapaCompressor mapa = new MapaCompressor(UnidadeVazao.KG_S, 298.0, 100.0,
+                List.of(ponto(0.10, 1.3), ponto(0.18, 2.5), ponto(0.24, 3.2)),
+                List.of(ponto(0.40, 1.3), ponto(0.46, 2.5), ponto(0.48, 3.2)),
+                List.of(new MapaCompressor.Ilha(0.75, List.of(ponto(0.20, 1.8), ponto(0.42, 1.8), ponto(0.38, 3.0),
+                        ponto(0.26, 3.0)))),
+                List.of(new MapaCompressor.LinhaRotacao(120_000, List.of(ponto(0.15, 2.2), ponto(0.45, 1.9))),
+                        new MapaCompressor.LinhaRotacao(160_000, List.of(ponto(0.22, 3.1), ponto(0.47, 2.9)))),
+                170_000.0);
+        EntradaDimensionamento entrada = casoB().comMeta(Meta.pelaPressao(140.0, null, 7000, 4500, Uso.RUA))
+                .comVeTorque(0.9)
+                .comTurbo(new Turbo("Turbo teste (mapa fictício)", mapa, 0.63, null, null, "Mapa fictício", null))
+                .comCambio(new Cambio("Câmbio teste 6M", TipoCambio.MANUAL, 600.0, "Ficha fictícia", null));
+        Resultado<Dimensionamento> resultado = CalculoDimensionamento.calcular(entrada);
+        List<Justificativa> justificativas = resultado.valor().semaforo().stream()
+                .filter(a -> a.cor() == Cor.VERMELHO)
+                .map(a -> new Justificativa(a.indicador(), "Teste.", AGORA))
+                .toList();
+        Path destino = pasta.resolve("memoria-pressao.pdf");
+        RelatorioMemoria.gerar(new DadosRelatorio(entrada, resultado, justificativas, "0.2.0-teste", AGORA), destino);
+
+        // O PDF quebra as linhas longas: junta tudo numa linha só para procurar as frases.
+        String texto = texto(destino.toFile()).replaceAll("\\s+", " ");
+        assertTrue(texto.contains("pressão do turbo 1,40 bar"), "meta pela pressão");
+        assertTrue(texto.contains("a potência sai do cálculo"), "a potência não foi dada");
+        assertTrue(texto.contains("VE no torque máximo 0,90"), "VE do torque");
+        assertTrue(texto.contains("Turbo teste (mapa fictício)"), "turbo");
+        assertTrue(texto.contains("pico de eficiência 75%"), "resumo do mapa");
+        assertTrue(texto.contains("torque máximo 600 N·m"), "câmbio");
+        assertTrue(texto.contains("Torque máximo (estimado)"), "ponto de torque");
+        assertTrue(texto.contains("No mapa do Turbo teste (mapa fictício)"), "pontos no mapa");
+        assertTrue(texto.contains("torque × câmbio verde até 90%"), "limiares novos");
+        assertFalse(texto.contains("NaN"), "a potência vazia da meta não aparece como NaN");
+        assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+    }
+
+    private static MapaCompressor.PontoMapa ponto(double vazaoKgS, double razaoPressao) {
+        return new MapaCompressor.PontoMapa(vazaoKgS, razaoPressao);
     }
 
     @Test

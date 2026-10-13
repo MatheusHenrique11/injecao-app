@@ -533,6 +533,8 @@ public final class CasosProjeto {
         conferir(erros, PapelPeca.BICO_SECUNDARIO, pecas.bicoSecundario(), entrada.bicoSecundario());
         conferir(erros, PapelPeca.BOMBA, pecas.bomba(), entrada.bomba());
         conferir(erros, PapelPeca.INJECAO, pecas.injecao(), entrada.injecao());
+        conferir(erros, PapelPeca.TURBO, pecas.turbo(), entrada.turbo());
+        conferir(erros, PapelPeca.CAMBIO, pecas.cambio(), entrada.cambio());
         if (pecas.sensorMap() != null
                 && !Objects.equals(pecas.sensorMap().dados().faixaMaxima(), entrada.faixaSensorMapKpa())) {
             erros.add(diferente(PapelPeca.SENSOR_MAP));

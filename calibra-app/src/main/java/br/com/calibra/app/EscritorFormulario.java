@@ -75,6 +75,7 @@ public final class EscritorFormulario {
         v.put(Campo.BSFC, p.caminhoAr() == CaminhoAr.BSFC ? numero(p.bsfc()) : "");
         v.put(Campo.LAMBDA, numero(e.lambdaAlvo()));
         v.put(Campo.VE, numero(e.ve()));
+        v.put(Campo.VE_TORQUE, numero(e.veTorque()));
         v.put(Campo.TEMPERATURA_AMBIENTE, numero(e.temperaturaAmbienteC()));
         Map<CampoPadrao, String> padroes = FormularioPadroes.textos(p);
         v.put(Campo.PERDA_DESCARGA_PSI, padroes.get(CampoPadrao.PERDA_DESCARGA_PSI));
@@ -101,10 +102,15 @@ public final class EscritorFormulario {
         return v;
     }
 
-    /** Os campos da meta: potência em cv, onde é medida, perda, rotações e uso. */
+    /**
+     * Os campos da meta: o tipo, a potência em cv ou a pressão do turbo em bar, onde é medida, perda, rotações e uso.
+     */
     public static Map<Campo, String> meta(Meta meta) {
         Map<Campo, String> v = new EnumMap<>(Campo.class);
-        v.put(Campo.POTENCIA_CV, numero(Conversoes.kwParaCv(meta.potenciaKw())));
+        v.put(Campo.TIPO_META, (meta.pelaPressao() ? TipoMeta.PRESSAO : TipoMeta.POTENCIA).name());
+        v.put(Campo.POTENCIA_CV, meta.pelaPressao() ? "" : numero(Conversoes.kwParaCv(meta.potenciaKw())));
+        v.put(Campo.PRESSAO_META, meta.pelaPressao() ? numero(Conversoes.kpaParaBar(meta.pressaoRelativaKpa())) : "");
+        v.put(Campo.UNIDADE_PRESSAO_META, TipoMeta.Unidade.BAR.name());
         v.put(Campo.PONTO_MEDICAO, nome(meta.pontoMedicao()));
         v.put(Campo.PERDA_TRANSMISSAO,
                 meta.pontoMedicao() == PontoMedicao.RODA ? numero(meta.perdaTransmissaoPct()) : "");

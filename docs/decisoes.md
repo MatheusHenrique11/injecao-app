@@ -330,3 +330,13 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 124. **Nenhum mapa de fabricante no repositório:** o teste de interface desenha um mapa fictício (com a legenda "MAPA FICTÍCIO PARA TESTE") e digitaliza esse.
 125. **Limiares novos em Configurações** (em %, "a validar"): folga do surge (10), folga do choke (5), rotação do turbo (95% da máxima), queda de eficiência no verde (5 pontos) e torque × câmbio (verde até 90, amarelo até 100). O verde do câmbio não pode passar do amarelo; a rotação vai até 100%.
 126. **Ações extras na lista de um catálogo:** cada tipo pode ganhar botões próprios, desligados enquanto nenhum item está escolhido. O turbo usa isso para o digitalizador.
+127. **Meta no formulário:** o campo novo "tipo de meta" escolhe entre potência e pressão do turbo.
+    - Sem o tipo (cálculos e projetos de antes do bloco 2.4), a meta é pela potência.
+    - A pressão se digita em bar, psi ou kPa (sem unidade, vale bar) e volta para a tela sempre em bar.
+    - Na meta pela pressão, a potência fica em branco. "Medida na roda" com a perda faz o cálculo estimar também a potência na roda.
+    - A VE do torque é opcional: sem ela, vale a VE da potência.
+128. **Turbo e câmbio gravados com o cálculo,** como as outras peças (papéis `TURBO` e `CAMBIO`, sem migração: o papel é texto). Versão nova de qualquer um deixa o cálculo desatualizado ("o turbo mudou no catálogo: … v1 → v2"). No projeto, o câmbio é o do veículo.
+129. **PDF da memória:**
+    - Mostra a meta pela pressão, a VE do torque, o turbo (A/R e resumo do mapa) e o câmbio (torque máximo).
+    - Mostra o ponto de torque estimado e os pontos de potência e de torque no mapa (vazão corrigida, PR, eficiência, rotação e folgas).
+    - Mostra os limiares novos do compressor e do câmbio.

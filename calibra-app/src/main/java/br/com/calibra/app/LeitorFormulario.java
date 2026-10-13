@@ -132,6 +132,7 @@ public final class LeitorFormulario {
         Meta meta = meta();
         double lambda = numero(Campo.LAMBDA);
         double ve = numero(Campo.VE);
+        Double veTorque = opcional(Campo.VE_TORQUE);
         double temperatura = numero(Campo.TEMPERATURA_AMBIENTE);
         double pressaoBase = Conversoes.barParaKpa(numero(Campo.PRESSAO_BASE_BAR));
         Parametros parametros = parametros(padroes);
@@ -151,7 +152,9 @@ public final class LeitorFormulario {
             return null;
         }
         return new EntradaDimensionamento(motor, meta, lambda, ve, temperatura, pressaoBase, parametros, bico,
-                secundario, tensao, marchaLenta, bombaDigitada, sensor, injecao, bombaDoCatalogo);
+                secundario, tensao, marchaLenta, bombaDigitada, sensor, injecao, bombaDoCatalogo, veTorque,
+                pecas.turbo() == null ? null : pecas.turbo().dados(), pecas.cambio() == null ? null
+                        : pecas.cambio().dados());
     }
 
     /** Faixa do sensor MAP: a máxima do sensor do catálogo, ou a digitada. */
@@ -209,14 +212,32 @@ public final class LeitorFormulario {
                 .construir();
     }
 
+    /**
+     * A meta pela potência (em cv) ou pela pressão do turbo (bar, psi ou kPa). Sem o tipo (cálculos de antes do
+     * bloco 2.4), é pela potência. Na meta pela pressão, "medida na roda" com a perda faz o cálculo estimar também a
+     * potência na roda.
+     */
     private Meta meta() {
-        double cv = numero(Campo.POTENCIA_CV);
+        TipoMeta tipo = vazio(Campo.TIPO_META) ? TipoMeta.POTENCIA : escolha(Campo.TIPO_META, TipoMeta::valueOf);
+        double cv = tipo == TipoMeta.PRESSAO ? Double.NaN : numero(Campo.POTENCIA_CV);
+        Double pressaoKpa = tipo == TipoMeta.PRESSAO ? pressaoDaMeta() : null;
         PontoMedicao ponto = escolha(Campo.PONTO_MEDICAO, PontoMedicao::valueOf);
         Double perda = ponto == PontoMedicao.RODA ? numero(Campo.PERDA_TRANSMISSAO) : null;
         int rpmPotencia = inteiro(Campo.RPM_POTENCIA);
         Integer rpmTorque = vazio(Campo.RPM_TORQUE) ? null : inteiro(Campo.RPM_TORQUE);
         Uso uso = escolha(Campo.USO, Uso::valueOf);
+        if (pressaoKpa != null) {
+            return Meta.pelaPressao(pressaoKpa, perda, rpmPotencia, rpmTorque, uso);
+        }
         return new Meta(Conversoes.cvParaKw(cv), ponto, perda, rpmPotencia, rpmTorque, uso);
+    }
+
+    /** A pressão relativa do turbo em kPa; sem unidade escolhida, em bar. */
+    private Double pressaoDaMeta() {
+        double valor = numero(Campo.PRESSAO_META);
+        TipoMeta.Unidade unidade = vazio(Campo.UNIDADE_PRESSAO_META) ? TipoMeta.Unidade.BAR
+                : escolha(Campo.UNIDADE_PRESSAO_META, TipoMeta.Unidade::valueOf);
+        return Double.isNaN(valor) || unidade == null ? null : unidade.paraKpa(valor);
     }
 
     private Parametros parametros(Parametros padroes) {

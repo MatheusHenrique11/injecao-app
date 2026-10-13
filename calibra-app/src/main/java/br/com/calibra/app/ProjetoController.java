@@ -682,8 +682,12 @@ public class ProjetoController {
         String onde = meta.pontoMedicao() == PontoMedicao.RODA
                 ? "na roda (perda de " + NumeroBr.formatar(meta.perdaTransmissaoPct(), 0, 1) + "%)"
                 : "no virabrequim";
-        return NumeroBr.formatar(Conversoes.kwParaCv(meta.potenciaKw()), 0) + " cv " + onde + " a "
-                + NumeroBr.formatar(meta.rotacaoPotenciaMaxima(), 0) + " rpm"
+        String alvo = meta.pelaPressao()
+                ? "turbo a " + NumeroBr.formatar(Conversoes.kpaParaBar(meta.pressaoRelativaKpa()), 0, 2)
+                        + " bar (potência pelo cálculo" + (meta.pontoMedicao() == PontoMedicao.RODA ? ", " + onde : "")
+                        + ")"
+                : NumeroBr.formatar(Conversoes.kwParaCv(meta.potenciaKw()), 0) + " cv " + onde;
+        return alvo + " a " + NumeroBr.formatar(meta.rotacaoPotenciaMaxima(), 0) + " rpm"
                 + (meta.rotacaoTorqueMaximo() == null ? ""
                         : " · torque máximo a " + NumeroBr.formatar(meta.rotacaoTorqueMaximo(), 0) + " rpm")
                 + " · uso " + meta.uso().rotulo();

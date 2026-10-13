@@ -32,7 +32,10 @@ public enum Campo {
     SENSOR_ETANOL("o sensor de etanol"),
     ALTITUDE("a altitude da oficina"),
     // Meta
+    TIPO_META("o tipo de meta"),
     POTENCIA_CV("a potência meta"),
+    PRESSAO_META("a pressão do turbo"),
+    UNIDADE_PRESSAO_META("a unidade da pressão do turbo"),
     PONTO_MEDICAO("onde a potência é medida"),
     PERDA_TRANSMISSAO("a perda de transmissão"),
     RPM_POTENCIA("a rotação de potência máxima"),
@@ -44,6 +47,7 @@ public enum Campo {
     BSFC("o BSFC"),
     LAMBDA("a lambda alvo"),
     VE("a VE"),
+    VE_TORQUE("a VE no torque máximo"),
     // Ambiente e parâmetros
     TEMPERATURA_AMBIENTE("a temperatura ambiente"),
     PERDA_DESCARGA_PSI("a perda depois do compressor"),

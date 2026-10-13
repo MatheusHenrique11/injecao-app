@@ -24,6 +24,9 @@ import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Cambio;
+import br.com.calibra.core.pecas.MapaCompressor;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.semaforo.Avaliacao;
@@ -128,16 +131,9 @@ public final class RelatorioMemoria {
 
     private static void metaEParametros(EscritorPdf pdf, EntradaDimensionamento e) throws IOException {
         pdf.secao("2. Meta e parâmetros");
-        Meta meta = e.meta();
-        String ponto = meta.pontoMedicao() == PontoMedicao.RODA
-                ? "na roda (perda de transmissão de " + formatar(meta.perdaTransmissaoPct(), 1) + "%)"
-                : "no virabrequim";
-        pdf.item("Meta", formatar(Conversoes.kwParaCv(meta.potenciaKw()), 1) + " cv " + ponto + " a "
-                + formatar(meta.rotacaoPotenciaMaxima(), 0) + " rpm"
-                + (meta.rotacaoTorqueMaximo() != null ? SEPARADOR + "torque máximo a "
-                        + formatar(meta.rotacaoTorqueMaximo(), 0) + " rpm" : "")
-                + SEPARADOR + "uso: " + meta.uso().rotulo().toLowerCase(Locale.ROOT));
+        pdf.item("Meta", descreverMeta(e.meta()));
         pdf.item("Condições", "lambda alvo " + formatar(e.lambdaAlvo(), 2) + SEPARADOR + "VE " + formatar(e.ve(), 2)
+                + (e.veTorque() != null ? SEPARADOR + "VE no torque máximo " + formatar(e.veTorque(), 2) : "")
                 + SEPARADOR + "ar a " + formatar(e.temperaturaAmbienteC(), 1) + " °C" + SEPARADOR
                 + "pressão de base " + formatar(Conversoes.kpaParaBar(e.pressaoBaseKpa()), 2) + " bar");
         Parametros p = e.parametros();
@@ -172,6 +168,51 @@ public final class RelatorioMemoria {
             pdf.item("Injeção informada", e.injecao().nome() + SEPARADOR + e.injecao().saidasBico()
                     + " saídas de bico" + SEPARADOR + e.injecao().saidasIgnicao() + " saídas de ignição");
         }
+        if (e.turbo() != null) {
+            pdf.item("Turbo", descreverTurbo(e.turbo()));
+        }
+        if (e.cambio() != null) {
+            Cambio cambio = e.cambio();
+            pdf.item("Câmbio", cambio.nome() + SEPARADOR + (cambio.torqueMaximoNm() == null
+                    ? "sem torque máximo cadastrado" : "torque máximo " + formatar(cambio.torqueMaximoNm(), 0) + " N·m")
+                    + " (fonte: " + cambio.fonte() + ")");
+        }
+    }
+
+    /** A meta pela potência ou pela pressão do turbo, com as rotações e o uso. */
+    static String descreverMeta(Meta meta) {
+        String roda = "perda de transmissão de " + formatar(meta.perdaTransmissaoPct() == null ? 0
+                : meta.perdaTransmissaoPct(), 1) + "%";
+        String inicio;
+        if (meta.pelaPressao()) {
+            inicio = "pressão do turbo " + Apresentacao.pressaoManometrica(meta.pressaoRelativaKpa())
+                    + ", potência máxima a " + formatar(meta.rotacaoPotenciaMaxima(), 0) + " rpm (a potência sai do "
+                    + "cálculo" + (meta.pontoMedicao() == PontoMedicao.RODA ? ", também na roda, com " + roda : "")
+                    + ")";
+        } else {
+            inicio = formatar(Conversoes.kwParaCv(meta.potenciaKw()), 1) + " cv "
+                    + (meta.pontoMedicao() == PontoMedicao.RODA ? "na roda (" + roda + ")" : "no virabrequim") + " a "
+                    + formatar(meta.rotacaoPotenciaMaxima(), 0) + " rpm";
+        }
+        return inicio + (meta.rotacaoTorqueMaximo() != null ? SEPARADOR + "torque máximo a "
+                + formatar(meta.rotacaoTorqueMaximo(), 0) + " rpm" : "")
+                + SEPARADOR + "uso: " + meta.uso().rotulo().toLowerCase(Locale.ROOT);
+    }
+
+    private static String descreverTurbo(Turbo turbo) {
+        String texto = turbo.nome() + (turbo.arCaixaQuente() != null
+                ? SEPARADOR + "A/R " + formatar(turbo.arCaixaQuente(), 2) : "");
+        MapaCompressor mapa = turbo.mapa();
+        if (mapa == null) {
+            return texto + SEPARADOR + "sem mapa digitalizado (fonte: " + turbo.fonte() + ")";
+        }
+        Double pico = mapa.eficienciaPico();
+        return texto + SEPARADOR + "mapa digitalizado: referência " + formatar(mapa.temperaturaReferenciaK(), 1)
+                + " K e " + formatar(mapa.pressaoReferenciaKpa(), 2) + " kPa"
+                + (pico != null ? SEPARADOR + "pico de eficiência " + percentual(pico, 0) : "")
+                + (mapa.rotacaoMaximaRpm() != null
+                        ? SEPARADOR + "rotação máxima " + formatar(mapa.rotacaoMaximaRpm(), 0) + " rpm" : "")
+                + " (fonte: " + turbo.fonte() + ")";
     }
 
     private static String descreverBico(Bico b) {
@@ -214,7 +255,13 @@ public final class RelatorioMemoria {
                 + formatar(l.pistaoVerdeAte(), 0) + " m/s e amarelo até " + formatar(l.pistaoAmareloAte(), 0) + " m/s"
                 + SEPARADOR + "sensor MAP verde a partir de " + formatar(l.sensorMapVerde(), 1) + " × e amarelo a partir de "
                 + formatar(l.sensorMapAmarelo(), 1) + " ×" + SEPARADOR + "aspirado verde até "
-                + formatar(l.aspiradoVerdeAte(), 2) + " e amarelo até " + formatar(l.aspiradoAmareloAte(), 2) + " × P_atm";
+                + formatar(l.aspiradoVerdeAte(), 2) + " e amarelo até " + formatar(l.aspiradoAmareloAte(), 2) + " × P_atm"
+                + SEPARADOR + "mapa do compressor: folga mínima de " + percentual(l.compressorMargemSurge(), 0)
+                + " do surge e de " + percentual(l.compressorMargemChoke(), 0) + " do choke, rotação até "
+                + percentual(l.compressorRotacaoFator(), 0) + " da máxima, verde até "
+                + formatar(l.compressorEficienciaPontos() * 100, 0) + " pontos abaixo do pico" + SEPARADOR
+                + "torque × câmbio verde até " + percentual(l.cambioVerdeAte(), 0) + " e amarelo até "
+                + percentual(l.cambioAmareloAte(), 0);
     }
 
     private static void resultados(EscritorPdf pdf, Dimensionamento d) throws IOException {
@@ -272,8 +319,36 @@ public final class RelatorioMemoria {
                 + SEPARADOR + "faixa mínima " + formatar(d.sensorMap().faixaMinimaKpa(), 0) + " kPa absolutos");
         if (d.pontoOperacao() != null) {
             pdf.item("Ponto do compressor", "vazão " + Apresentacao.vazaoAr(d.pontoOperacao().vazaoArKgS()) + SEPARADOR
-                    + "PR " + formatar(d.pontoOperacao().razaoPressao(), 2) + " (conferir no mapa do fabricante)");
+                    + "PR " + formatar(d.pontoOperacao().razaoPressao(), 2)
+                    + (d.noMapa() == null ? " (conferir no mapa do fabricante)" : ""));
         }
+        Dimensionamento.PontoTorque torque = d.pontoTorque();
+        if (torque != null) {
+            pdf.item("Torque máximo (estimado)", formatar(torque.rpm(), 0) + " rpm" + SEPARADOR + "VE "
+                    + formatar(torque.ve(), 2) + SEPARADOR + "Wa " + Apresentacao.vazaoAr(torque.vazaoArKgS())
+                    + SEPARADOR + "torque " + formatar(torque.torqueNm(), 0) + " N·m" + SEPARADOR
+                    + Apresentacao.potencia(torque.potenciaKw()));
+        }
+        Dimensionamento.NoMapa noMapa = d.noMapa();
+        if (noMapa != null) {
+            pdf.item("No mapa do " + noMapa.turbo(), "potência: " + descreverNoMapa(noMapa.potencia())
+                    + (noMapa.torque() != null ? "; torque máximo: " + descreverNoMapa(noMapa.torque()) : ""));
+        }
+    }
+
+    /** Um ponto no mapa: vazão corrigida, PR, eficiência, rotação e as folgas do surge e do choke. */
+    static String descreverNoMapa(MapaCompressor.PontoNoMapa ponto) {
+        String inicio = "vazão corrigida " + Apresentacao.vazaoAr(ponto.vazaoCorrigidaKgS()) + SEPARADOR + "PR "
+                + formatar(ponto.razaoPressao(), 2);
+        if (!ponto.dentro()) {
+            return inicio + SEPARADOR + "fora do mapa (" + ponto.foraDoMapa() + ")";
+        }
+        return inicio + SEPARADOR + (ponto.eficiencia() == null ? "fora das ilhas desenhadas"
+                : "eficiência " + percentual(ponto.eficiencia(), 0))
+                + (ponto.rotacaoRpm() != null ? SEPARADOR + "turbo a " + formatar(ponto.rotacaoRpm(), 0) + " rpm"
+                        : ponto.acimaDasLinhas() ? SEPARADOR + "acima da maior linha de rotação" : "")
+                + SEPARADOR + "folga do surge " + percentual(ponto.margemSurge(), 0) + " e do choke "
+                + percentual(ponto.margemChoke(), 0);
     }
 
     private static void listas(EscritorPdf pdf, Dimensionamento d, Resultado<Dimensionamento> resultado)

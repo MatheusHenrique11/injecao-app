@@ -8,7 +8,10 @@ public enum PapelPeca {
     INTERCOOLER("Intercooler", "o intercooler"),
     SENSOR_MAP("Sensor MAP", "o sensor MAP"),
     INJECAO("Injeção", "a injeção"),
-    COMBUSTIVEL("Combustível", "o combustível");
+    COMBUSTIVEL("Combustível", "o combustível"),
+    TURBO("Turbo", "o turbo"),
+    /** O câmbio do veículo (no projeto) ou o escolhido na calculadora, para o indicador torque × câmbio. */
+    CAMBIO("Câmbio", "o câmbio");
 
     private final String rotulo;
     private final String comArtigo;

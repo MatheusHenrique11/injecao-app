@@ -1,6 +1,7 @@
 package br.com.calibra.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,15 +22,22 @@ import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Intercooler;
 import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.TipoIntercooler;
 import br.com.calibra.core.pecas.TipoSensor;
+import br.com.calibra.core.pecas.Turbo;
+import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.semaforo.Cor;
 import br.com.calibra.core.semaforo.Indicador;
 import br.com.calibra.core.semaforo.LimiaresSemaforo;
+import br.com.calibra.core.unidades.Conversoes;
+import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.projeto.PapelPeca;
+import br.com.calibra.dados.projeto.PecaUsada;
 import org.junit.jupiter.api.Test;
 
 /** Leitura dos campos da tela, sem JavaFX. */
@@ -200,6 +208,68 @@ class LeitorFormularioTest {
         EntradaDimensionamento entrada = LeitorFormulario.ler(casoBCom(Campo.EPS, "0,7"), Parametros.padrao(),
                 Combustiveis.padrao(), pecas).entrada();
         assertEquals(0.7, entrada.parametros().eps(), 1e-12);
+    }
+
+    // ===================== Turbo, meta pela pressão e câmbio (bloco 2.4) =====================
+
+    private static Map<Campo, String> casoBPelaPressao(String pressao, String unidade) {
+        Map<Campo, String> valores = casoBCom(Campo.TIPO_META, TipoMeta.PRESSAO.name());
+        valores.put(Campo.POTENCIA_CV, "");
+        valores.put(Campo.PRESSAO_META, pressao);
+        valores.put(Campo.UNIDADE_PRESSAO_META, unidade);
+        return valores;
+    }
+
+    @Test
+    void metaPelaPressaoEmBarPsiOuKpa() {
+        assertFalse(ler(ValoresDeTeste.casoB()).entrada().meta().pelaPressao(), "sem o tipo, é pela potência");
+        Dimensionamento pelaPotencia = CalculoDimensionamento.calcular(ler(ValoresDeTeste.casoB()).entrada()).valor();
+        double pressaoKpa = pelaPotencia.ladoDoAr().mapKpa() - pelaPotencia.ladoDoAr().patmKpa();
+
+        LeitorFormulario.Leitura leitura = ler(casoBPelaPressao(NumeroBr.formatar(pressaoKpa, 0, 4), "KPA"));
+        assertTrue(leitura.erros().isEmpty(), leitura.erros()::toString);
+        Meta meta = leitura.entrada().meta();
+        assertTrue(meta.pelaPressao());
+        assertEquals(pressaoKpa, meta.pressaoRelativaKpa(), 1e-4);
+        double kw = CalculoDimensionamento.calcular(leitura.entrada()).valor().potencia().virabrequimKw();
+        assertEquals(294.2, kw, 294.2 * 0.001, "a pressão do caso B volta à potência do caso B");
+
+        assertEquals(140.0, ler(casoBPelaPressao("1,4", "BAR")).entrada().meta().pressaoRelativaKpa(), 1e-9);
+        assertEquals(Conversoes.psiParaKpa(20), ler(casoBPelaPressao("20", "PSI")).entrada().meta()
+                .pressaoRelativaKpa(), 1e-9);
+        assertEquals(140.0, ler(casoBPelaPressao("1,4", "")).entrada().meta().pressaoRelativaKpa(), 1e-9,
+                "sem unidade, em bar");
+    }
+
+    @Test
+    void metaPelaPressaoPedeAPressaoENaoAPotencia() {
+        assertEquals(List.of("Informe a pressão do turbo."), ler(casoBPelaPressao("", "BAR")).erros());
+    }
+
+    @Test
+    void veDoTorqueTurboECambioDoCatalogo() {
+        Exemplo<Turbo> turbo = ExemplosCatalogo.turbo();
+        Exemplo<Cambio> cambio = ExemplosCatalogo.cambio();
+        PecasEscolhidas pecas = new PecasEscolhidas(null, null, null, null, null, null, item(turbo, 1),
+                item(cambio, 2));
+        Map<Campo, String> valores = casoBCom(Campo.RPM_TORQUE, "4.500");
+        valores.put(Campo.VE_TORQUE, "0,9");
+
+        LeitorFormulario.Leitura leitura = LeitorFormulario.ler(valores, Parametros.padrao(), Combustiveis.padrao(), pecas);
+        assertTrue(leitura.erros().isEmpty(), leitura.erros()::toString);
+        EntradaDimensionamento entrada = leitura.entrada();
+        assertEquals(0.9, entrada.veTorque(), 1e-12);
+        assertEquals(turbo.dados(), entrada.turbo());
+        assertEquals(cambio.dados(), entrada.cambio());
+        Dimensionamento d = CalculoDimensionamento.calcular(entrada).valor();
+        assertEquals(0.9, d.pontoTorque().ve(), 1e-12);
+        assertEquals("Turbo teste 60", d.noMapa().turbo());
+        assertEquals(Cor.VERMELHO, d.avaliacao(Indicador.TORQUE_CAMBIO).orElseThrow().cor(),
+                "uns 400 N·m num câmbio de 350 N·m");
+        assertEquals(List.of(new PecaUsada(PapelPeca.TURBO, 1, 1), new PecaUsada(PapelPeca.CAMBIO, 2, 1)),
+                pecas.usadas());
+        assertNull(LeitorFormulario.ler(ValoresDeTeste.casoB(), Parametros.padrao()).entrada().veTorque(),
+                "sem a VE do torque, vale a da potência");
     }
 
     @Test
