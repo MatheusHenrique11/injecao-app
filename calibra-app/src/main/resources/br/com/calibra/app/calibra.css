@@ -159,3 +159,14 @@
     -fx-background-radius: 12px;
     -fx-font-weight: bold;
 }
+
+/* Catálogos: item arquivado em cinza e, no histórico de versões, o que mudou em amarelo. */
+.linha-arquivada .table-cell {
+    -fx-text-fill: #777777;
+    -fx-font-style: italic;
+}
+
+.celula-mudou {
+    -fx-background-color: #fff3cd;
+    -fx-font-weight: bold;
+}

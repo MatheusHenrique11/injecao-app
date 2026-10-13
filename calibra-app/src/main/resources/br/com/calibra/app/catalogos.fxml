@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Catálogos (SPEC 8.5): uma aba por tipo; as abas são montadas pelo controlador a partir dos formulários. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.CatalogosController" styleClass="pagina">
+  <Label styleClass="titulo-secao" text="Catálogos"/>
+  <Label styleClass="dica" wrapText="true"
+         text="Peças e dados técnicos usados nos projetos, sempre com fonte e data. As peças começam vazias: cadastre a partir do manual ou do site do fabricante. Combustíveis e motores já vêm cadastrados; os motores ficam &quot;a verificar&quot; até você conferir."/>
+  <TabPane fx:id="abas" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"/>
+</VBox>

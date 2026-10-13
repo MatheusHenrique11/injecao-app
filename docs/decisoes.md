@@ -240,3 +240,23 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - **Sem fonte, sem valor:** campo que a pesquisa não trouxe fica vazio (válvulas, biela, taxa, aspiração). A ordem de ignição não entra; o formulário sugere uma, com "confirmar no manual".
 92. **O cálculo salvo grava as peças do catálogo que usou** (tabela `calculo_peca`: papel, item e versão; o banco recusa alterar ou apagar). É a base do "desatualizado" por peça.
 93. **Câmbio do catálogo no veículo e injeção escolhida no projeto:** colunas `cambio_item_id` e `injecao_item_id`, opcionais. A troca do câmbio entra no histórico do veículo, com o nome do item.
+94. **Formulário de catálogo montado por lista de campos** (`br.com.calibra.app.catalogo`, sem JavaFX, testado sozinho):
+    - Cada tipo descreve os próprios campos, as colunas da lista e a conversão texto ↔ record do núcleo (`FormaBico`, `FormaBomba`...). Uma única janela (`JanelaItemCatalogo`) serve aos 8 tipos.
+    - Os campos comuns (nome, fonte, data, "a verificar", preço e observações) são os mesmos para todos. Na injeção, o nome sai da marca e do modelo.
+    - Primeiro aparecem os erros de digitação; depois, as regras da peça. Os casos de uso conferem as mesmas regras antes de gravar.
+95. **Unidades da tela iguais às da calculadora:** pressão do bico e da bomba em bar (o núcleo guarda kPa), eficiência do intercooler em fração (0,80, como o eps), teor de etanol em % (o núcleo guarda fração).
+96. **Tabelas (tempo morto e curva da bomba) num editor próprio:**
+    - Uma linha de campos por ponto, com "+ Linha", "✕" e "Colar tabela" (texto do Excel ou do PDF, colunas separadas por tabulação ou ponto e vírgula; a vírgula é o decimal).
+    - Não usa a célula editável do TableView, que perde o que foi digitado quando se clica fora.
+    - Tempo morto com uma linha só e sem tensão e pressão = valor único, que vale para qualquer condição.
+    - Ponto repetido (mesma tensão e pressão) é recusado.
+97. **Gravar sem mudar nada não cria versão.** Abrir um item das sementes e salvar sem mexer também não (testado em todos).
+98. **Código do combustível:**
+    - Único, em maiúsculas, sem espaço, até 15 caracteres.
+    - Não muda depois de criado, porque os motores guardam o código. Para outro código, use Duplicar (a cópia vem com o código vazio).
+    - O campo de composição mostra só o valor que se aplica: % de etanol em volume, % em massa ou AFR fixo.
+99. **Item novo começa sem "a verificar":** quem cadastra copia da ficha do fabricante e marca "a verificar" quando o dado é incerto. Os motores das sementes já vêm marcados.
+    - **Bico novo:** vem com o fluido de teste de 0,70 kg/L, o padrão da SPEC, com a dica "confira na ficha".
+100. **Histórico de versões:** tabela campo × versão, com a mudança em amarelo em relação à versão anterior. Campo vazio em todas as versões ou que não se aplica fica de fora.
+101. **Data digitada é conferida de verdade:** 31/02/2026 é recusada, em vez de virar 28/02 sem aviso.
+102. **Testes de interface:** o JavaFX não se desliga quando a última janela fecha (`Platform.setImplicitExit(false)`). Uma janela aberta só para a foto desligava o JavaFX, e os passos seguintes nunca rodavam.

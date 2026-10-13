@@ -44,6 +44,9 @@ final class TelaDeTeste {
             iniciado.countDown();
         }
         assertTrue(iniciado.await(20, TimeUnit.SECONDS), "JavaFX não iniciou");
+        // Fechar a última janela aberta (ex.: um diálogo mostrado para a foto) não pode desligar o JavaFX no meio
+        // do teste: os passos seguintes nunca rodariam.
+        Platform.setImplicitExit(false);
 
         AtomicReference<Throwable> falha = new AtomicReference<>();
         CountDownLatch terminou = new CountDownLatch(1);

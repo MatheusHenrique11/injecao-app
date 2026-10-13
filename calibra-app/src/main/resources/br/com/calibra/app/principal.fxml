@@ -25,6 +25,8 @@
                     maxWidth="Infinity" onAction="#mostrarProjetos"/>
       <ToggleButton fx:id="navCalculadora" text="Calculadora" toggleGroup="$navegacao"
                     maxWidth="Infinity" onAction="#mostrarCalculadora"/>
+      <ToggleButton fx:id="navCatalogos" text="Catálogos" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarCatalogos"/>
       <ToggleButton fx:id="navConfiguracoes" text="Configurações" toggleGroup="$navegacao"
                     maxWidth="Infinity" onAction="#mostrarConfiguracoes"/>
     </VBox>

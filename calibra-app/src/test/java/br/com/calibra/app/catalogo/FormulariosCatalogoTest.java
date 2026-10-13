@@ -1,0 +1,266 @@
+package br.com.calibra.app.catalogo;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+
+import br.com.calibra.app.catalogo.ExemplosCatalogo.Exemplo;
+import br.com.calibra.app.catalogo.FormularioCatalogo.Leitura;
+import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
+import br.com.calibra.core.combustivel.CombustiveisPadrao;
+import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.Sensor;
+import br.com.calibra.core.pecas.TempoMorto;
+import br.com.calibra.dados.catalogo.InfoCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
+import br.com.calibra.dados.catalogo.VersaoCatalogo;
+
+/** Formulários dos catálogos: texto da tela ↔ records do núcleo, com as mensagens em português. */
+class FormulariosCatalogoTest {
+
+    @Test
+    void cadaTipoVoltaIgualDepoisDeEscreverELer() {
+        ExemplosCatalogo.umDeCada().forEach(FormulariosCatalogoTest::idaEVolta);
+        idaEVolta(ExemplosCatalogo.bicoFixo());
+        for (Combustivel padrao : CombustiveisPadrao.todos()) {
+            idaEVolta(new Exemplo<>(TipoCatalogo.COMBUSTIVEL, padrao,
+                    new InfoCatalogo(padrao.nome(), padrao.fonte(), null, false, null, "")));
+        }
+    }
+
+    private static <T> void idaEVolta(Exemplo<T> exemplo) {
+        FormularioCatalogo<T> formulario = FormasCatalogo.de(exemplo.tipo());
+        Leitura<T> lido = formulario.ler(formulario.escrever(exemplo.dados(), exemplo.info()));
+        assertEquals(List.of(), lido.erros(), exemplo.info().nome());
+        assertEquals(exemplo.dados(), lido.dados(), exemplo.info().nome());
+        assertEquals(exemplo.info(), lido.info(), exemplo.info().nome());
+    }
+
+    @Test
+    void todosOsTiposTemFormularioComChavesUnicasEColunasDoResumo() {
+        assertEquals(TipoCatalogo.todos().size(), FormasCatalogo.todos().size());
+        for (Exemplo<?> exemplo : ExemplosCatalogo.umDeCada()) {
+            conferirFormulario(exemplo);
+        }
+    }
+
+    private static <T> void conferirFormulario(Exemplo<T> exemplo) {
+        FormularioCatalogo<T> formulario = FormasCatalogo.de(exemplo.tipo());
+        Set<String> chaves = new HashSet<>();
+        for (CampoForm campo : formulario.campos()) {
+            assertTrue(chaves.add(campo.chave()), "chave repetida: " + campo.chave());
+            if (campo.tipo() == CampoForm.Tipo.ESCOLHA) {
+                assertFalse(campo.opcoes().isEmpty(), campo.chave());
+            }
+            if (campo.mostrarSe() != null) {
+                CampoForm escolha = formulario.campos().stream()
+                        .filter(c -> c.chave().equals(campo.mostrarSe().chave())).findFirst().orElseThrow();
+                List<String> opcoes = escolha.opcoes().stream().map(CampoForm.Opcao::valor).toList();
+                assertTrue(opcoes.containsAll(campo.mostrarSe().valores()), campo.chave());
+            }
+        }
+        assertEquals(formulario.colunas().size(), formulario.resumo(exemplo.dados()).size(), exemplo.tipo().codigo());
+    }
+
+    @Test
+    void bicoVazioMostraOQueFalta() {
+        Leitura<Bico> lido = FormasCatalogo.de(TipoCatalogo.BICO).ler(new ValoresForm());
+        assertNull(lido.dados());
+        assertTrue(lido.erros().contains("Preencha \"Nome\"."), lido.erros()::toString);
+        assertTrue(lido.erros().contains("Preencha \"Vazão nominal (cm³/min)\"."), lido.erros()::toString);
+        assertTrue(lido.erros().contains("Preencha \"Fonte\"."), lido.erros()::toString);
+        assertTrue(lido.erros().contains("Informe o tempo morto: uma linha só com o tempo ou a tabela do fabricante."),
+                lido.erros()::toString);
+    }
+
+    @Test
+    void numeroComPontoDecimalERecusado() {
+        ValoresForm valores = valoresDoBico().texto(FormaBico.VAZAO, "3.5");
+        Leitura<Bico> lido = FormasCatalogo.de(TipoCatalogo.BICO).ler(valores);
+        assertEquals(List.of("\"Vazão nominal (cm³/min)\": \"3.5\" não é um número válido: use vírgula para decimais "
+                + "(ex.: 3,5)."), lido.erros());
+    }
+
+    @Test
+    void tempoMortoComUmaLinhaSoDoTempoEValorUnico() {
+        ValoresForm valores = valoresDoBico().tabela(FormaBico.TEMPO_MORTO, List.of(List.of("", "", "1,05")));
+        Bico bico = FormasCatalogo.de(TipoCatalogo.BICO).ler(valores).dados();
+        assertEquals(TempoMorto.fixo(1.05), bico.tempoMorto());
+    }
+
+    @Test
+    void tempoMortoPulaLinhaVaziaEApontaALinhaIncompleta() {
+        FormularioCatalogo<Bico> formulario = FormasCatalogo.de(TipoCatalogo.BICO);
+        ValoresForm comVazia = valoresDoBico().tabela(FormaBico.TEMPO_MORTO,
+                List.of(List.of("12", "3", "1,1"), List.of("", "", ""), List.of("14", "3", "0,9")));
+        assertEquals(2, formulario.ler(comVazia).dados().tempoMorto().pontos().size());
+
+        ValoresForm incompleta = valoresDoBico().tabela(FormaBico.TEMPO_MORTO,
+                List.of(List.of("12", "3", "1,1"), List.of("", "", ""), List.of("14", "", "0,9")));
+        assertEquals(List.of("Tempo morto, linha 3: preencha tensão, pressão e tempo (ou deixe uma linha só, com o "
+                + "tempo)."), formulario.ler(incompleta).erros());
+
+        ValoresForm repetida = valoresDoBico().tabela(FormaBico.TEMPO_MORTO,
+                List.of(List.of("12", "3", "1,1"), List.of("12", "3", "1,0")));
+        assertEquals(List.of("Tempo morto: o ponto 12 V e 3 bar aparece duas vezes."), formulario.ler(repetida).erros());
+    }
+
+    @Test
+    void injecaoTiraONomeDaMarcaEDoModelo() {
+        FormularioCatalogo<Injecao> formulario = FormasCatalogo.de(TipoCatalogo.INJECAO);
+        assertTrue(formulario.campos().stream().noneMatch(c -> c.chave().equals(FormularioCatalogo.NOME)));
+        Exemplo<Injecao> exemplo = ExemplosCatalogo.injecao();
+        ValoresForm valores = formulario.escrever(exemplo.dados(), exemplo.info()).texto(FormaInjecao.MODELO, "ECU 12");
+        assertEquals("Marca Teste ECU 12", formulario.ler(valores).info().nome());
+
+        List<String> erros = formulario.ler(valores.texto(FormaInjecao.MARCA, "")).erros();
+        assertEquals(List.of("Preencha \"Marca\"."), erros);
+    }
+
+    @Test
+    void combustivelConfereCodigoEComposicaoEmPorcentagem() {
+        FormularioCatalogo<Combustivel> formulario = FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL);
+        Exemplo<Combustivel> exemplo = ExemplosCatalogo.combustivel();
+        ValoresForm valores = formulario.escrever(exemplo.dados(), exemplo.info());
+        assertEquals("30", valores.texto(FormaCombustivel.ETANOL_VOLUME));
+
+        assertEquals("E27", formulario.ler(valores.texto(FormaCombustivel.CODIGO, "e27")).dados().codigo());
+        assertEquals(List.of("O código do combustível usa só letras, números, - e _ (até 15), sem espaço (ex.: E32)."),
+                formulario.ler(valores.texto(FormaCombustivel.CODIGO, "E 27")).erros());
+        valores.texto(FormaCombustivel.CODIGO, "E27");
+        assertEquals(List.of("O etanol na gasolina deve ficar entre 0 e 100% (32 = E32)."),
+                formulario.ler(valores.texto(FormaCombustivel.ETANOL_VOLUME, "120")).erros());
+        assertEquals(List.of("Preencha \"AFR estequiométrico\"."),
+                formulario.ler(valores.texto(FormaCombustivel.COMPOSICAO, "AFR_FIXO")).erros());
+        assertEquals(List.of("Escolha \"Composição\"."),
+                formulario.ler(valores.texto(FormaCombustivel.COMPOSICAO, "")).erros());
+    }
+
+    @Test
+    void campoDaComposicaoSoApareceNaEscolhaCerta() {
+        CampoForm afr = FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL).campos().stream()
+                .filter(c -> c.chave().equals(FormaCombustivel.AFR)).findFirst().orElseThrow();
+        assertTrue(afr.mostrarSe().atende(new ValoresForm().texto(FormaCombustivel.COMPOSICAO, "AFR_FIXO")));
+        assertFalse(afr.mostrarSe().atende(new ValoresForm().texto(FormaCombustivel.COMPOSICAO, "ETANOL_HIDRATADO")));
+        CampoForm codigo = FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL).campos().stream()
+                .filter(c -> c.chave().equals(FormaCombustivel.CODIGO)).findFirst().orElseThrow();
+        assertTrue(codigo.fixoNaEdicao());
+    }
+
+    @Test
+    void precoEDataInvalidosViramMensagem() {
+        FormularioCatalogo<Bico> formulario = FormasCatalogo.de(TipoCatalogo.BICO);
+        assertEquals(List.of("\"Preço de referência (R$)\": \"12,345\" não é um valor em reais: use vírgula para os "
+                + "centavos (ex.: 1.234,56)."), formulario.ler(valoresDoBico().texto(FormularioCatalogo.PRECO, "12,345"))
+                        .erros());
+        assertEquals(List.of("O preço de referência não pode ser negativo."),
+                formulario.ler(valoresDoBico().texto(FormularioCatalogo.PRECO, "-5,00")).erros());
+        assertEquals(List.of("\"Data da informação\": use a data no formato dd/mm/aaaa."),
+                formulario.ler(valoresDoBico().texto(FormularioCatalogo.DATA, "31/02/2026")).erros());
+        assertEquals(45_000, formulario.ler(valoresDoBico().texto(FormularioCatalogo.PRECO, "R$ 450"))
+                .info().precoReferencia().centavos());
+    }
+
+    @Test
+    void regrasDaPecaVemDoNucleo() {
+        FormularioCatalogo<Sensor> formulario = FormasCatalogo.de(TipoCatalogo.SENSOR);
+        Exemplo<Sensor> exemplo = ExemplosCatalogo.sensor();
+        ValoresForm valores = formulario.escrever(exemplo.dados(), exemplo.info()).texto(FormaSensor.FAIXA_MINIMA, "")
+                .texto(FormaSensor.FAIXA_MAXIMA, "0");
+        assertEquals(List.of("A faixa máxima do sensor MAP deve ser maior que zero (kPa absolutos)."),
+                formulario.ler(valores).erros());
+
+        FormularioCatalogo<ModeloMotor> motores = FormasCatalogo.de(TipoCatalogo.MOTOR);
+        Exemplo<ModeloMotor> motor = ExemplosCatalogo.motor();
+        ValoresForm treze = motores.escrever(motor.dados(), motor.info()).texto(FormaMotor.CILINDROS, "13");
+        assertEquals(List.of(ValidadorMotor.MENSAGEM_CILINDROS), motores.ler(treze).erros());
+    }
+
+    @Test
+    void duplicarMarcaCopiaNoNomeELimpaOCodigo() {
+        Exemplo<Bico> bico = ExemplosCatalogo.bicoComTabela();
+        assertEquals("Bico teste 440 (cópia)", FormasCatalogo.de(TipoCatalogo.BICO).duplicar(bico.dados(), bico.info())
+                .texto(FormularioCatalogo.NOME));
+        Exemplo<Combustivel> combustivel = ExemplosCatalogo.combustivel();
+        ValoresForm copia = FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL).duplicar(combustivel.dados(), combustivel.info());
+        assertEquals("", copia.texto(FormaCombustivel.CODIGO));
+        assertEquals("Gasolina teste E30 (cópia)", copia.texto(FormularioCatalogo.NOME));
+    }
+
+    @Test
+    void resumoDaLista() {
+        FormularioCatalogo<Bico> bicos = FormasCatalogo.de(TipoCatalogo.BICO);
+        assertEquals(List.of("440 cm³/min", "3 bar", "tabela (4 pontos)"),
+                bicos.resumo(ExemplosCatalogo.bicoComTabela().dados()));
+        assertEquals(List.of("630 cm³/min", "3 bar", "1,05 ms"), bicos.resumo(ExemplosCatalogo.bicoFixo().dados()));
+        assertEquals(List.of("12 e 13,5 V", "3 a 5 bar", "160 a 230 L/h"),
+                FormasCatalogo.de(TipoCatalogo.BOMBA).resumo(ExemplosCatalogo.bomba().dados()));
+        assertEquals(List.of("Fábrica", "4", "82,5 × 92,8 mm", "1.984 cm³ (ficha 1.984)", "1,55"),
+                FormasCatalogo.de(TipoCatalogo.MOTOR).resumo(ExemplosCatalogo.motor().dados()));
+        assertEquals(List.of("E32", "12,8", "0,756 kg/L", "0,8 / 0,87"),
+                FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL).resumo(CombustiveisPadrao.E32));
+    }
+
+    @Test
+    void bicoNovoComecaComOFluidoDeTestePadrao() {
+        assertEquals("0,7", FormasCatalogo.de(TipoCatalogo.BICO).novo().texto(FormaBico.DENSIDADE));
+    }
+
+    @Test
+    void tabelaColadaDoExcelOuComPontoEVirgula() {
+        assertEquals(List.of(List.of("12", "3", "1,10"), List.of("14", "3", "0,90")),
+                TabelaColada.ler("12\t3\t1,10\r\n\r\n14; 3; 0,90\n", 3));
+        assertEquals(List.of(List.of("12", "", "")), TabelaColada.ler("12", 3), "o que falta fica vazio");
+        assertEquals(List.of(List.of("1", "2")), TabelaColada.ler("1\t2\t3\t4", 2), "o que sobra é ignorado");
+        assertTrue(TabelaColada.ler(null, 3).isEmpty());
+    }
+
+    @Test
+    void historicoMostraOQueMudouEntreVersoes() {
+        Exemplo<Bico> v1 = ExemplosCatalogo.bicoComTabela();
+        Bico b = v1.dados();
+        Bico maior = new Bico(b.nome(), 450.0, b.pressaoTesteKpa(), b.densidadeFluidoTesteKgL(), b.tempoMorto(),
+                b.impedanciaOhm(), b.fonte(), b.data());
+        LocalDateTime agora = LocalDateTime.of(2026, 10, 12, 10, 0);
+        List<LinhaHistorico> linhas = FormasCatalogo.de(TipoCatalogo.BICO).historico(List.of(
+                new VersaoCatalogo<>(1L, 2, maior, v1.info(), agora),
+                new VersaoCatalogo<>(1L, 1, b, v1.info(), agora.minusDays(1))));
+        LinhaHistorico vazao = linha(linhas, "Vazão nominal (cm³/min)");
+        assertEquals(List.of("450", "440"), vazao.valores());
+        assertEquals(List.of(true, false), vazao.mudou());
+        LinhaHistorico tempoMorto = linha(linhas, "Tempo morto");
+        assertEquals("12 · 3 · 1,1\n14 · 3 · 0,9\n12 · 4 · 1,2\n14 · 4 · 1", tempoMorto.valores().getFirst());
+        assertEquals(List.of(false, false), tempoMorto.mudou());
+        assertEquals(List.of("não", "não"), linha(linhas, "A verificar (dado ainda não confirmado)").valores());
+
+        Exemplo<Combustivel> gasolina = ExemplosCatalogo.combustivel();
+        List<String> campos = FormasCatalogo.de(TipoCatalogo.COMBUSTIVEL).historico(List.of(
+                new VersaoCatalogo<>(2L, 1, gasolina.dados(), gasolina.info(), agora))).stream()
+                .map(LinhaHistorico::campo).toList();
+        assertTrue(campos.contains("Etanol na gasolina (% em volume)"));
+        assertFalse(campos.contains("AFR estequiométrico"), "campo que não se aplica fica de fora");
+        assertFalse(campos.contains("Aviso sobre a lambda"), "campo vazio em todas as versões fica de fora");
+    }
+
+    private static LinhaHistorico linha(List<LinhaHistorico> linhas, String campo) {
+        return linhas.stream().filter(l -> l.campo().equals(campo)).findFirst().orElseThrow(() -> new AssertionError(
+                "sem a linha " + campo));
+    }
+
+    private static ValoresForm valoresDoBico() {
+        Exemplo<Bico> bico = ExemplosCatalogo.bicoComTabela();
+        return FormasCatalogo.de(TipoCatalogo.BICO).escrever(bico.dados(), bico.info());
+    }
+}

@@ -21,6 +21,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.memoria.VersaoNucleo;
@@ -38,6 +39,7 @@ public class PrincipalController implements Navegacao {
     @FXML private ToggleGroup navegacao;
     @FXML private ToggleButton navProjetos;
     @FXML private ToggleButton navCalculadora;
+    @FXML private ToggleButton navCatalogos;
     @FXML private ToggleButton navConfiguracoes;
     @FXML private StackPane conteudo;
     @FXML private ProgressIndicator progresso;
@@ -54,6 +56,7 @@ public class PrincipalController implements Navegacao {
     private boolean fechando;
 
     private CasosProjeto casosProjeto;
+    private CasosCatalogo casosCatalogo;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -62,6 +65,8 @@ public class PrincipalController implements Navegacao {
     private ProjetoController projetoAberto;
     private Parent telaCalculadora;
     private CalculadoraController calculadora;
+    private Parent telaCatalogos;
+    private CatalogosController catalogos;
     private Parent telaConfiguracoes;
     private ConfiguracoesController configuracoes;
 
@@ -88,6 +93,7 @@ public class PrincipalController implements Navegacao {
         this.palco = palco;
         this.servicoBackup = new ServicoBackup(contexto.backup(), contexto.configuracao(), contexto.relogio());
         this.casosProjeto = new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp());
+        this.casosCatalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
         atualizarStatus();
         voltarParaProjetos();
     }
@@ -164,6 +170,19 @@ public class PrincipalController implements Navegacao {
     }
 
     @FXML
+    private void mostrarCatalogos() {
+        if (telaCatalogos == null) {
+            FXMLLoader carregador = carregador("catalogos.fxml");
+            telaCatalogos = carregar(carregador);
+            catalogos = carregador.getController();
+            catalogos.iniciar(casosCatalogo);
+        } else {
+            catalogos.atualizar();
+        }
+        mostrar(telaCatalogos, navCatalogos, "Catálogos");
+    }
+
+    @FXML
     private void mostrarConfiguracoes() {
         if (telaConfiguracoes == null) {
             FXMLLoader carregador = carregador("configuracoes.fxml");
@@ -198,6 +217,8 @@ public class PrincipalController implements Navegacao {
         projetoAberto = null;
         telaCalculadora = null;
         calculadora = null;
+        telaCatalogos = null;
+        catalogos = null;
         telaConfiguracoes = null;
         configuracoes = null;
         erroDeBackup = null;
