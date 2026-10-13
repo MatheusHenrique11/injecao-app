@@ -90,6 +90,7 @@ public final class EscritorFormulario {
                 Campo.BICO_TEMPO_MORTO, p);
         escreverBico(v, e.bicoSecundario(), Campo.BICO2_VAZAO, Campo.BICO2_PRESSAO_TESTE_BAR,
                 Campo.BICO2_DENSIDADE_TESTE, Campo.BICO2_TEMPO_MORTO, p);
+        v.put(Campo.TENSAO_V, numero(e.tensaoV()));
         v.put(Campo.MARCHA_LENTA_MAP, e.marchaLenta() == null ? "" : numero(e.marchaLenta().mapKpa()));
         v.put(Campo.MARCHA_LENTA_VE, e.marchaLenta() == null ? "" : numero(e.marchaLenta().ve()));
         v.put(Campo.BOMBA_VAZAO, numero(e.vazaoBombaDisponivelLh()));

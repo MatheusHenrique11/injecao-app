@@ -88,8 +88,16 @@
     <CheckBox fx:id="cambioControlado" text="Câmbio controlado pela injeção" GridPane.rowIndex="1"
               GridPane.columnIndex="2" GridPane.columnSpan="2"/>
 
-    <Label text="Observações" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-    <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"
+    <Label fx:id="rotuloCambioCatalogo" text="Câmbio do catálogo (opcional)" visible="false" managed="false"
+           GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <ComboBox fx:id="cambioCatalogo" prefWidth="300.0" visible="false" managed="false"
+              GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+    <Label fx:id="dicaCambioCatalogo" styleClass="dica" wrapText="true" visible="false" managed="false"
+           text="Escolher do catálogo define o tipo de câmbio e guarda o torque máximo dele."
+           GridPane.rowIndex="2" GridPane.columnIndex="2" GridPane.columnSpan="2"/>
+
+    <Label text="Observações" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+    <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="3" GridPane.columnIndex="1"
               GridPane.columnSpan="3"/>
   </GridPane>
 </VBox>

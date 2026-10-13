@@ -117,6 +117,47 @@
               <TextField fx:id="pressaoBase" promptText="diferencial no bico, sem padrão" GridPane.rowIndex="4" GridPane.columnIndex="3"/>
             </GridPane>
 
+            <VBox fx:id="secaoCatalogo" spacing="8.0" visible="false" managed="false">
+              <Label styleClass="titulo-secao" text="Peças do catálogo (opcional: escolha no lugar de digitar)"/>
+              <GridPane styleClass="grade">
+                <columnConstraints>
+                  <ColumnConstraints minWidth="220.0"/>
+                  <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+                  <ColumnConstraints minWidth="220.0"/>
+                  <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
+                </columnConstraints>
+                <Label text="Bico" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <HBox spacing="6.0" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                  <ComboBox fx:id="catalogoBico" prefWidth="300.0"/>
+                  <Button fx:id="botaoSugerirBico" text="Sugerir" onAction="#sugerirBico"/>
+                </HBox>
+                <Label text="Bico da bancada secundária" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                <ComboBox fx:id="catalogoBico2" prefWidth="300.0" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+                <Label text="Bomba" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <HBox spacing="6.0" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                  <ComboBox fx:id="catalogoBomba" prefWidth="300.0"/>
+                  <Button fx:id="botaoSugerirBomba" text="Sugerir" onAction="#sugerirBomba"/>
+                </HBox>
+                <Label text="Tensão de trabalho (V)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                <TextField fx:id="tensao" promptText="lê o tempo morto e a curva da bomba" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+                <Label text="Intercooler" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="catalogoIntercooler" prefWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <Label text="Sensor MAP" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+                <ComboBox fx:id="catalogoSensorMap" prefWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+                <Label text="Injeção" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <HBox spacing="6.0" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                  <ComboBox fx:id="catalogoInjecao" prefWidth="300.0"/>
+                  <Button fx:id="botaoSugerirInjecao" text="Sugerir" onAction="#sugerirInjecao"/>
+                </HBox>
+              </GridPane>
+              <VBox fx:id="mensagensPecas" spacing="4.0"/>
+              <Label styleClass="dica" wrapText="true"
+                     text="Peça escolhida do catálogo vale no lugar dos campos digitados dela, que ficam travados mostrando os dados do catálogo. O intercooler só troca o eps se tiver a eficiência cadastrada. Sugerir usa as regras da SPEC 7.3 com o que está preenchido."/>
+            </VBox>
+
             <Label styleClass="titulo-secao" text="Bico (opcional: preencha para avaliar o DC)"/>
             <GridPane styleClass="grade">
               <columnConstraints>

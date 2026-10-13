@@ -89,6 +89,17 @@ final class TelaDeTeste {
         return (T) no;
     }
 
+    /**
+     * A área com rolagem guarda uma imagem do conteúdo (cache) que a foto fora de janela não renova: trocar o painel
+     * visível (ex.: etapa do assistente) saía na foto com o painel antigo. Sem o cache, a foto mostra o que está lá.
+     */
+    private static void desligarCache(Node no) {
+        no.setCache(false);
+        if (no instanceof Parent pai) {
+            pai.getChildrenUnmodifiable().forEach(TelaDeTeste::desligarCache);
+        }
+    }
+
     static boolean contemTexto(Node no, String trecho) {
         if (no instanceof Labeled rotulo && rotulo.getText() != null && rotulo.getText().contains(trecho)) {
             return true;
@@ -107,6 +118,7 @@ final class TelaDeTeste {
     static void salvar(Scene cena, String nome) throws IOException {
         cena.getRoot().applyCss();
         cena.getRoot().layout();
+        desligarCache(cena.getRoot());
         WritableImage imagem = cena.snapshot(null);
         int largura = (int) imagem.getWidth();
         int altura = (int) imagem.getHeight();

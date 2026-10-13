@@ -16,7 +16,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Assistente de novo projeto (SPEC 8.2): Cliente → Veículo → Motor → Meta e uso. A etapa Injeção entra no bloco 2.3. -->
+<!-- Assistente de novo projeto (SPEC 8.2): Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.AssistenteController">
   <fx:define>
@@ -35,6 +35,8 @@
         <Label fx:id="etapa3" text="3. Motor"/>
         <Label styleClass="dica" text="›"/>
         <Label fx:id="etapa4" text="4. Meta e uso"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa5" text="5. Injeção (opcional)"/>
       </HBox>
     </VBox>
   </top>
@@ -100,6 +102,18 @@
           </GridPane>
           <Label styleClass="dica" wrapText="true"
                  text="A meta pode ser ajustada depois, na aba Dimensionamento do projeto. A rotação de torque máximo será obrigatória para gerar o mapa base."/>
+        </VBox>
+
+        <!-- ===================== 5. Injeção (opcional) ===================== -->
+        <VBox fx:id="painelInjecao" styleClass="pagina">
+          <Label styleClass="dica" wrapText="true"
+                 text="Opcional: a injeção programável do catálogo. Pode ficar para depois, no Resumo do projeto. Sugerir escolhe a primeira, em ordem de nome, com saídas e recursos para este motor."/>
+          <HBox spacing="10.0" alignment="CENTER_LEFT">
+            <Label text="Injeção"/>
+            <ComboBox fx:id="injecao" prefWidth="380.0"/>
+            <Button fx:id="botaoSugerirInjecao" text="Sugerir" onAction="#sugerirInjecao"/>
+          </HBox>
+          <VBox fx:id="mensagensInjecao" spacing="4.0"/>
         </VBox>
       </StackPane>
     </ScrollPane>

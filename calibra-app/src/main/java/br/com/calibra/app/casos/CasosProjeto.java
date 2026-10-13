@@ -1,26 +1,34 @@
 package br.com.calibra.app.casos;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import br.com.calibra.app.catalogo.PecasEscolhidas;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.Cliente;
+import br.com.calibra.core.cadastro.TipoCambio;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.Dimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.motor.ComparacaoMotor;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.core.semaforo.Avaliacao;
@@ -34,11 +42,17 @@ import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.cadastro.VeiculoRepositorio;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.catalogo.CatalogoRepositorio;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.ResumoItem;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.projeto.CalculoRepositorio;
 import br.com.calibra.dados.projeto.CalculoSalvo;
 import br.com.calibra.dados.projeto.FiltroProjetos;
 import br.com.calibra.dados.projeto.MotorRepositorio;
 import br.com.calibra.dados.projeto.MudancaStatus;
+import br.com.calibra.dados.projeto.PapelPeca;
+import br.com.calibra.dados.projeto.PecaUsada;
 import br.com.calibra.dados.projeto.ProjetoRepositorio;
 import br.com.calibra.dados.projeto.ProjetoSalvo;
 import br.com.calibra.dados.projeto.ResumoCalculo;
@@ -68,12 +82,25 @@ public final class CasosProjeto {
     public record VeiculoExistente(long id) implements EscolhaVeiculo {
     }
 
-    public record VeiculoNovo(Veiculo dados) implements EscolhaVeiculo {
+    /** @param cambioItemId câmbio do catálogo; null se não escolhido */
+    public record VeiculoNovo(Veiculo dados, Long cambioItemId) implements EscolhaVeiculo {
+
+        public VeiculoNovo(Veiculo dados) {
+            this(dados, null);
+        }
     }
 
-    /** O que o assistente de novo projeto junta (SPEC 8.2): cliente, veículo, motor e meta. */
+    /**
+     * O que o assistente de novo projeto junta (SPEC 8.2): cliente, veículo, motor, meta e, se escolhida, a
+     * injeção do catálogo.
+     */
     public record NovoProjeto(EscolhaCliente cliente, EscolhaVeiculo veiculo, String descricaoMotor,
-            ConfiguracaoMotor motor, Meta meta) {
+            ConfiguracaoMotor motor, Meta meta, Long injecaoItemId) {
+
+        public NovoProjeto(EscolhaCliente cliente, EscolhaVeiculo veiculo, String descricaoMotor,
+                ConfiguracaoMotor motor, Meta meta) {
+            this(cliente, veiculo, descricaoMotor, motor, meta, null);
+        }
     }
 
     /** O projeto aberto, com o cliente, o veículo e a versão atual do motor. */
@@ -107,6 +134,7 @@ public final class CasosProjeto {
     private final ProjetoRepositorio projetos;
     private final MotorRepositorio motores;
     private final CalculoRepositorio calculos;
+    private final CatalogoRepositorio catalogo;
 
     public CasosProjeto(BancoDados banco, Clock relogio, String versaoApp) {
         this.banco = Objects.requireNonNull(banco, "banco");
@@ -117,6 +145,7 @@ public final class CasosProjeto {
         this.projetos = new ProjetoRepositorio(relogio);
         this.motores = new MotorRepositorio(relogio);
         this.calculos = new CalculoRepositorio(relogio);
+        this.catalogo = new CatalogoRepositorio(relogio);
     }
 
     // ===================== Consultas =====================
@@ -160,13 +189,22 @@ public final class CasosProjeto {
         return banco.ler(c -> motores.versoes(c, projetoId));
     }
 
-    /** Cálculos salvos do projeto, do mais novo para o mais antigo, com o que mudou desde cada um. */
+    /**
+     * Cálculos salvos do projeto, do mais novo para o mais antigo, com o que mudou desde cada um: o motor, o
+     * núcleo ou uma peça do catálogo que ganhou versão nova.
+     */
     public List<SituacaoCalculo> calculos(long projetoId) {
         return banco.ler(c -> {
             VersaoMotor atual = motores.atual(c, projetoId).orElseThrow();
+            Map<Long, List<PecaUsada>> pecas = calculos.pecasDoProjeto(c, projetoId);
+            Map<Long, ResumoItem> itens = catalogo.resumos(c, pecas.values().stream().flatMap(List::stream)
+                    .map(PecaUsada::itemId).collect(Collectors.toSet()));
+            Optional<PecaUsada> combustivelDoMotor = combustivelUsado(c, atual.configuracao());
             List<SituacaoCalculo> situacoes = new ArrayList<>();
             for (ResumoCalculo calculo : calculos.doProjeto(c, projetoId)) {
-                situacoes.add(new SituacaoCalculo(calculo, motivos(calculo, atual)));
+                List<String> motivos = new ArrayList<>(motivos(calculo, atual));
+                motivos.addAll(motivosDasPecas(pecas.getOrDefault(calculo.id(), List.of()), itens, combustivelDoMotor));
+                situacoes.add(new SituacaoCalculo(calculo, motivos));
             }
             return situacoes;
         });
@@ -198,7 +236,7 @@ public final class CasosProjeto {
         if (novo.cliente() instanceof ClienteNovo(Cliente dados)) {
             erros.addAll(dados.validar(hoje));
         }
-        Veiculo veiculoNovo = novo.veiculo() instanceof VeiculoNovo(Veiculo dados) ? dados.ajustadoAoTipo() : null;
+        Veiculo veiculoNovo = novo.veiculo() instanceof VeiculoNovo veiculo ? veiculo.dados().ajustadoAoTipo() : null;
         if (veiculoNovo != null) {
             erros.addAll(veiculoNovo.validar(hoje.getYear()));
         }
@@ -225,7 +263,10 @@ public final class CasosProjeto {
                 }
             };
             long veiculoId = switch (novo.veiculo()) {
-                case VeiculoNovo _ -> veiculos.inserir(c, clienteId, veiculoNovo, null);
+                case VeiculoNovo veiculo -> {
+                    conferirCambio(c, veiculo.cambioItemId(), veiculoNovo);
+                    yield veiculos.inserir(c, clienteId, veiculoNovo, veiculo.cambioItemId());
+                }
                 case VeiculoExistente(long id) -> {
                     VeiculoSalvo existente = veiculos.buscar(c, id).orElseThrow(
                             () -> new OperacaoRecusadaException("Veículo #" + id + " não encontrado."));
@@ -235,7 +276,8 @@ public final class CasosProjeto {
                     yield id;
                 }
             };
-            long projetoId = projetos.inserir(c, veiculoId, novo.meta(), "", null);
+            conferirInjecao(c, novo.injecaoItemId());
+            long projetoId = projetos.inserir(c, veiculoId, novo.meta(), "", novo.injecaoItemId());
             motores.salvarVersao(c, projetoId, novo.descricaoMotor(), novo.motor());
             return projetoId;
         });
@@ -263,15 +305,39 @@ public final class CasosProjeto {
         });
     }
 
-    /** Grava o veículo editado, só com os campos do tipo dele; cada campo mudado vai para o histórico. */
+    /** Grava o veículo editado, mantendo o câmbio do catálogo que ele já tinha. */
     public void salvarVeiculo(long veiculoId, Veiculo dados) {
+        salvarVeiculo(veiculoId, dados, true, null);
+    }
+
+    /**
+     * Grava o veículo editado, só com os campos do tipo dele; cada campo mudado vai para o histórico.
+     *
+     * @param cambioItemId câmbio do catálogo (o tipo de câmbio do veículo precisa ser o dele); null = nenhum
+     */
+    public void salvarVeiculo(long veiculoId, Veiculo dados, Long cambioItemId) {
+        salvarVeiculo(veiculoId, dados, false, cambioItemId);
+    }
+
+    private void salvarVeiculo(long veiculoId, Veiculo dados, boolean manterCambio, Long cambioItemId) {
         Veiculo ajustado = dados.ajustadoAoTipo();
         List<String> erros = ajustado.validar(LocalDate.now(relogio).getYear());
         if (!erros.isEmpty()) {
             throw new EntradaInvalidaException(erros);
         }
         banco.transacao(c -> {
-            veiculos.atualizar(c, veiculoId, ajustado, veiculos.buscar(c, veiculoId).orElseThrow().cambioItemId());
+            Long cambio = manterCambio ? veiculos.buscar(c, veiculoId).orElseThrow().cambioItemId() : cambioItemId;
+            conferirCambio(c, cambio, ajustado);
+            veiculos.atualizar(c, veiculoId, ajustado, cambio);
+            return null;
+        });
+    }
+
+    /** Troca a injeção do catálogo escolhida para o projeto (null = nenhuma). */
+    public void trocarInjecao(long projetoId, Long injecaoItemId) {
+        banco.transacao(c -> {
+            conferirInjecao(c, injecaoItemId);
+            projetos.atualizarInjecao(c, projetoId, injecaoItemId);
             return null;
         });
     }
@@ -313,15 +379,30 @@ public final class CasosProjeto {
      * @throws EntradaInvalidaException se a entrada não passar, se o motor mudou ou se faltar justificativa
      */
     public long salvarCalculo(long projetoId, EntradaDimensionamento entrada, List<Justificativa> justificativas) {
+        return salvarCalculo(projetoId, entrada, justificativas, PecasEscolhidas.NENHUMA);
+    }
+
+    /**
+     * Como {@link #salvarCalculo(long, EntradaDimensionamento, List)}, gravando também as peças do catálogo usadas
+     * (com a versão de cada uma) e o combustível do motor. Se uma delas ganhar versão nova, o cálculo aparece como
+     * desatualizado.
+     *
+     * @param pecas as peças do catálogo escolhidas na tela; precisam ser as que estão na entrada
+     */
+    public long salvarCalculo(long projetoId, EntradaDimensionamento entrada, List<Justificativa> justificativas,
+            PecasEscolhidas pecas) {
         VersaoMotor atual = banco.ler(c -> motores.atual(c, projetoId).orElseThrow());
         if (!atual.configuracao().equals(entrada.motor())) {
             throw new EntradaInvalidaException("O motor do projeto mudou depois deste cálculo (agora está na v"
                     + atual.numero() + "). Calcule de novo antes de salvar.");
         }
+        conferirPecas(entrada, pecas);
         Resultado<Dimensionamento> resultado = CalculoDimensionamento.calcular(entrada);
         List<Justificativa> necessarias = justificativasDosVermelhos(resultado, justificativas);
         return banco.transacao(c -> {
-            long id = calculos.salvar(c, projetoId, atual.id(), entrada, resultado, necessarias, List.of(), versaoApp);
+            List<PecaUsada> usadas = new ArrayList<>(pecas.usadas());
+            combustivelUsado(c, entrada.motor()).ifPresent(usadas::add);
+            long id = calculos.salvar(c, projetoId, atual.id(), entrada, resultado, necessarias, usadas, versaoApp);
             projetos.atualizarMeta(c, projetoId, entrada.meta());
             if (projetos.buscar(c, projetoId).orElseThrow().status() == StatusProjeto.RASCUNHO) {
                 projetos.mudarStatus(c, projetoId, StatusProjeto.DIMENSIONADO);
@@ -405,6 +486,96 @@ public final class CasosProjeto {
             motivos.add("o núcleo de cálculo mudou: " + calculo.versaoNucleo() + " → " + VersaoNucleo.ATUAL);
         }
         return motivos;
+    }
+
+    /**
+     * As peças do catálogo que ganharam versão nova depois do cálculo. O combustível vem com o motor: para usar a
+     * versão nova, o motor precisa ser gravado de novo (a menos que a versão atual do motor já a use).
+     *
+     * @param combustivelDoMotor o combustível da versão atual do motor, como peça do catálogo
+     */
+    static List<String> motivosDasPecas(List<PecaUsada> pecas, Map<Long, ResumoItem> itens,
+            Optional<PecaUsada> combustivelDoMotor) {
+        List<String> motivos = new ArrayList<>();
+        for (PecaUsada peca : pecas) {
+            ResumoItem item = itens.get(peca.itemId());
+            if (item == null || item.versaoAtual() == peca.versao()) {
+                continue;
+            }
+            String motivo = peca.papel().comArtigo() + " mudou no catálogo: " + item.nome() + " v" + peca.versao()
+                    + " → v" + item.versaoAtual();
+            boolean motorJaUsa = combustivelDoMotor
+                    .filter(c -> c.itemId() == item.id() && c.versao() == item.versaoAtual()).isPresent();
+            if (peca.papel() == PapelPeca.COMBUSTIVEL && !motorJaUsa) {
+                motivo += " (grave o motor de novo, na aba Motor, para usar a versão nova)";
+            }
+            motivos.add(motivo);
+        }
+        return motivos;
+    }
+
+    /** O combustível do motor como peça do catálogo (item pelo código, na versão que o motor guarda). */
+    private Optional<PecaUsada> combustivelUsado(Connection conexao, ConfiguracaoMotor motor) throws SQLException {
+        Combustivel combustivel = motor.combustivel();
+        if (combustivel == null) {
+            return Optional.empty();
+        }
+        return catalogo.listar(conexao, TipoCatalogo.COMBUSTIVEL, "", true).stream()
+                .filter(item -> item.dados().codigo().equals(combustivel.codigo()))
+                .findFirst()
+                .map(item -> new PecaUsada(PapelPeca.COMBUSTIVEL, item.id(), combustivel.versao()));
+    }
+
+    /** As peças escolhidas precisam ser as que foram calculadas (o cálculo grava a versão de cada uma). */
+    static void conferirPecas(EntradaDimensionamento entrada, PecasEscolhidas pecas) {
+        List<String> erros = new ArrayList<>();
+        conferir(erros, PapelPeca.BICO, pecas.bico(), entrada.bico());
+        conferir(erros, PapelPeca.BICO_SECUNDARIO, pecas.bicoSecundario(), entrada.bicoSecundario());
+        conferir(erros, PapelPeca.BOMBA, pecas.bomba(), entrada.bomba());
+        conferir(erros, PapelPeca.INJECAO, pecas.injecao(), entrada.injecao());
+        if (pecas.sensorMap() != null
+                && !Objects.equals(pecas.sensorMap().dados().faixaMaxima(), entrada.faixaSensorMapKpa())) {
+            erros.add(diferente(PapelPeca.SENSOR_MAP));
+        }
+        if (pecas.intercooler() != null && pecas.intercooler().dados().eficiencia() != null
+                && pecas.intercooler().dados().eficiencia() != entrada.parametros().eps()) {
+            erros.add(diferente(PapelPeca.INTERCOOLER));
+        }
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+    }
+
+    private static void conferir(List<String> erros, PapelPeca papel, ItemCatalogo<?> item, Object naEntrada) {
+        if (item != null && !item.dados().equals(naEntrada)) {
+            erros.add(diferente(papel));
+        }
+    }
+
+    private static String diferente(PapelPeca papel) {
+        return "A peça do catálogo (" + papel.rotulo().toLowerCase(Locale.ROOT) + ") não é a da entrada do cálculo: "
+                + "calcule de novo antes de salvar.";
+    }
+
+    /** O câmbio do catálogo precisa existir e ser do mesmo tipo que o câmbio do veículo. */
+    private void conferirCambio(Connection conexao, Long cambioItemId, Veiculo veiculo) throws SQLException {
+        if (cambioItemId == null) {
+            return;
+        }
+        ItemCatalogo<Cambio> item = catalogo.buscar(conexao, TipoCatalogo.CAMBIO, cambioItemId).orElseThrow(
+                () -> new OperacaoRecusadaException("Câmbio do catálogo #" + cambioItemId + " não encontrado."));
+        TipoCambio tipo = item.dados().tipo();
+        if (tipo != veiculo.cambio()) {
+            throw new EntradaInvalidaException("O câmbio " + item.info().nome() + " é "
+                    + (tipo == null ? "sem tipo" : tipo.rotulo()) + ", mas o veículo está com câmbio "
+                    + (veiculo.cambio() == null ? "não informado" : veiculo.cambio().rotulo()) + ".");
+        }
+    }
+
+    private void conferirInjecao(Connection conexao, Long injecaoItemId) throws SQLException {
+        if (injecaoItemId != null && catalogo.buscar(conexao, TipoCatalogo.INJECAO, injecaoItemId).isEmpty()) {
+            throw new OperacaoRecusadaException("Injeção do catálogo #" + injecaoItemId + " não encontrada.");
+        }
     }
 
     /** Agora, para quem precisa datar uma justificativa. */

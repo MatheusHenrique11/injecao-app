@@ -12,11 +12,15 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.core.cadastro.TipoCambio;
 import br.com.calibra.core.cadastro.TipoVeiculo;
 import br.com.calibra.core.cadastro.Tracao;
 import br.com.calibra.core.cadastro.Veiculo;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.util.NumeroBr;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Formulário do veículo (SPEC 6.2), usado no assistente e na aba Veículo. Os campos de identificação mudam
@@ -52,15 +56,71 @@ public class VeiculoFormController {
     @FXML private TextField pesoKg;
     @FXML private ComboBox<TipoCambio> cambio;
     @FXML private CheckBox cambioControlado;
+    @FXML private Label rotuloCambioCatalogo;
+    @FXML private ComboBox<ItemCatalogo<Cambio>> cambioCatalogo;
+    @FXML private Label dicaCambioCatalogo;
     @FXML private TextArea observacoes;
+
+    private CaixaCatalogo<Cambio> caixaCambio;
+    private CasosCatalogo catalogo;
 
     @FXML
     private void initialize() {
         CamposTela.configurar(tipo, Arrays.asList(TipoVeiculo.values()), TipoVeiculo::rotulo);
         CamposTela.configurarOpcional(tracao, Arrays.asList(Tracao.values()), Tracao::rotulo);
+        caixaCambio = new CaixaCatalogo<>(cambioCatalogo, "(nenhum)");
         tipo.valueProperty().addListener((obs, antes, depois) -> atualizarTipo());
         cambio.valueProperty().addListener((obs, antes, depois) -> atualizarCambioControlado());
+        caixaCambio.aoMudar(this::aplicarCambioDoCatalogo);
         limpar();
+    }
+
+    /** Liga o formulário ao catálogo: aparece a escolha do câmbio do catálogo. */
+    void usarCatalogo(CasosCatalogo casos) {
+        this.catalogo = casos;
+        for (Node no : List.of(rotuloCambioCatalogo, cambioCatalogo, dicaCambioCatalogo)) {
+            mostrar(no, true);
+        }
+        atualizarCambiosDoCatalogo();
+    }
+
+    /** Mostra o veículo gravado, com o câmbio do catálogo dele (mesmo arquivado). */
+    void preencher(Veiculo v, Long cambioItemId) {
+        preencher(v);
+        if (catalogo != null && cambioItemId != null) {
+            catalogo.buscar(TipoCatalogo.CAMBIO, cambioItemId).ifPresent(caixaCambio::escolher);
+        } else {
+            caixaCambio.limpar();
+        }
+    }
+
+    /** O câmbio do catálogo escolhido; null se nenhum. */
+    Long cambioItemId() {
+        return caixaCambio.escolhido() == null ? null : caixaCambio.escolhido().id();
+    }
+
+    /** Câmbio do catálogo escolhido: o tipo de câmbio do veículo passa a ser o dele. */
+    private void aplicarCambioDoCatalogo() {
+        ItemCatalogo<Cambio> item = caixaCambio.escolhido();
+        if (item != null && item.dados().tipo() != null) {
+            cambio.setValue(item.dados().tipo());
+        }
+        cambio.setDisable(item != null);
+    }
+
+    /** Lê de novo os câmbios do catálogo (a tela Catálogos pode tê-los mudado). */
+    void atualizarCatalogo() {
+        atualizarCambiosDoCatalogo();
+    }
+
+    /** Os câmbios do catálogo do tipo do veículo (terrestre ou náutico). */
+    private void atualizarCambiosDoCatalogo() {
+        if (catalogo == null) {
+            return;
+        }
+        boolean nautico = tipo.getValue() != null && tipo.getValue().nautico();
+        caixaCambio.itens(catalogo.ativos(TipoCatalogo.CAMBIO).stream()
+                .filter(item -> item.dados().tipo() == null || item.dados().tipo().nautico() == nautico).toList());
     }
 
     /** Formulário de veículo novo: um carro, com o resto em branco. */
@@ -72,6 +132,7 @@ public class VeiculoFormController {
         observacoes.clear();
         tipo.setValue(TipoVeiculo.CARRO);
         tracao.setValue(null);
+        caixaCambio.limpar();
         cambio.setValue(null);
         cambioControlado.setSelected(false);
         atualizarTipo();
@@ -131,6 +192,11 @@ public class VeiculoFormController {
         List<TipoCambio> doTipo = Arrays.stream(TipoCambio.values()).filter(c -> c.nautico() == nautico).toList();
         CamposTela.configurarOpcional(cambio, doTipo, TipoCambio::rotulo);
         cambio.setValue(doTipo.contains(escolhido) ? escolhido : null);
+        ItemCatalogo<Cambio> doCatalogo = caixaCambio.escolhido();
+        if (doCatalogo != null && doCatalogo.dados().tipo() != null && doCatalogo.dados().tipo().nautico() != nautico) {
+            caixaCambio.limpar();
+        }
+        atualizarCambiosDoCatalogo();
         atualizarCambioControlado();
     }
 

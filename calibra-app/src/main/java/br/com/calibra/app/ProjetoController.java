@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import javafx.application.HostServices;
@@ -37,6 +39,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.ProjetoAberto;
 import br.com.calibra.app.casos.CasosProjeto.SituacaoCalculo;
@@ -45,10 +48,13 @@ import br.com.calibra.core.cadastro.Cliente;
 import br.com.calibra.core.cadastro.Consentimento;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.dimensionamento.SelecaoInjecao;
 import br.com.calibra.core.motor.ComparacaoMotor;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.Validacao;
 import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.StatusProjeto;
@@ -58,6 +64,8 @@ import br.com.calibra.core.unidades.Conversoes;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.cadastro.EventoAuditoria;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.projeto.CalculoSalvo;
 import br.com.calibra.dados.projeto.MudancaStatus;
 import br.com.calibra.dados.projeto.ResumoCalculo;
@@ -88,6 +96,8 @@ public class ProjetoController {
     @FXML private Label resumoVeiculo;
     @FXML private Label resumoMotor;
     @FXML private Label resumoMeta;
+    @FXML private Label resumoInjecao;
+    @FXML private Button botaoTirarInjecao;
     @FXML private Label resumoCalculo;
     @FXML private ListView<MudancaStatus> historicoStatus;
     @FXML private TextArea observacoes;
@@ -130,8 +140,10 @@ public class ProjetoController {
     private Tab abaCalculosSalvos;
 
     private CasosProjeto casos;
+    private CasosCatalogo catalogo;
     private Navegacao navegacao;
     private HostServices servicos;
+    private Parametros padroes;
     private long projetoId;
     private ProjetoAberto aberto;
 
@@ -167,12 +179,22 @@ public class ProjetoController {
         botaoPontoDePartida.disableProperty().bind(versoes.getSelectionModel().selectedItemProperty().isNull());
     }
 
-    void iniciar(CasosProjeto casos, Navegacao navegacao, HostServices servicos, Parametros padroes, long projetoId) {
+    void iniciar(CasosProjeto casos, CasosCatalogo catalogo, Navegacao navegacao, HostServices servicos,
+            Parametros padroes, long projetoId) {
         this.casos = casos;
+        this.catalogo = catalogo;
         this.navegacao = navegacao;
         this.servicos = servicos;
+        this.padroes = padroes;
         this.projetoId = projetoId;
         aberto = casos.abrir(projetoId);
+        formMotorController.usarCatalogo(catalogo);
+        formMotorController.aoPreencherPeloCatalogo(item -> {
+            if (descricaoMotor.getText().isBlank()) {
+                descricaoMotor.setText(item.info().nome());
+            }
+        });
+        formVeiculoController.usarCatalogo(catalogo);
         montarDimensionamento(padroes);
         recarregar();
         descartarVeiculo();
@@ -181,7 +203,20 @@ public class ProjetoController {
 
     /** Padrões de Configurações salvos com o projeto aberto. */
     void usarPadroes(Parametros padroes) {
+        this.padroes = padroes;
         calculadora.usarPadroes(padroes);
+    }
+
+    /**
+     * O catálogo pode ter mudado (tela Catálogos): as listas de peças e combustíveis são lidas de novo, e os cálculos
+     * salvos são conferidos (uma peça com versão nova deixa o cálculo desatualizado). O que está sendo digitado fica.
+     */
+    void atualizarCatalogo() {
+        calculadora.atualizarCatalogo();
+        formMotorController.atualizarCombustiveis();
+        formVeiculoController.atualizarCatalogo();
+        mostrarInjecao();
+        atualizarCalculos();
     }
 
     /** Lê o projeto de novo e atualiza o que é só leitura (os formulários em edição ficam como estão). */
@@ -213,6 +248,7 @@ public class ProjetoController {
         resumoMotor.setText("Motor: v" + motor.numero() + (motor.descricao().isEmpty() ? "" : " · " + motor.descricao())
                 + " · " + resumo(motor.configuracao()) + " · salvo em " + Datas.diaHora(motor.criadaEm()));
         resumoMeta.setText("Meta: " + meta(aberto.projeto().meta()));
+        mostrarInjecao();
         historicoStatus.getItems().setAll(casos.historicoStatus(projetoId).reversed());
         observacoes.setText(aberto.projeto().observacoes());
         mensagemObservacoes.setText("");
@@ -250,6 +286,63 @@ public class ProjetoController {
         } catch (ErroDados erro) {
             avisar(Alert.AlertType.ERROR, "Não foi possível mudar o status", erro.getMessage());
         }
+    }
+
+    // ===================== Resumo: injeção =====================
+
+    private void mostrarInjecao() {
+        Long id = aberto.projeto().injecaoItemId();
+        Optional<ItemCatalogo<Injecao>> item = id == null ? Optional.empty()
+                : catalogo.buscar(TipoCatalogo.INJECAO, id);
+        resumoInjecao.setText("Injeção: " + item.map(CaixaCatalogo::rotulo).orElse("não escolhida"));
+        botaoTirarInjecao.setDisable(item.isEmpty());
+    }
+
+    /** Escolhe a injeção do projeto no catálogo, vendo o que cada uma atende para este motor. */
+    @FXML
+    private void trocarInjecao() {
+        ConfiguracaoMotor motor = aberto.motor().configuracao();
+        Set<Recurso> exigidos = recursosExigidos(motor);
+        TableColumn<ItemCatalogo<Injecao>, String> atende = JanelaEscolhaCatalogo.coluna("Para este motor", 260,
+                item -> {
+                    List<String> faltas = SelecaoInjecao.faltas(item.dados(), motor, padroes.gruposSimultaneo(),
+                            exigidos);
+                    return faltas.isEmpty() ? "atende" : "não: " + String.join("; ", faltas);
+                });
+        new JanelaEscolhaCatalogo<>(abas.getScene() == null ? null : abas.getScene().getWindow(), catalogo,
+                TipoCatalogo.INJECAO, "Injeção do projeto", "A coluna \"Para este motor\" confere saídas, cilindros "
+                        + "em sequencial e recursos pedidos (sensor de etanol, controle do câmbio).",
+                item -> true, atende).escolher().ifPresent(item -> {
+                    try {
+                        casos.trocarInjecao(projetoId, item.id());
+                        recarregar();
+                        calculadora.escolherInjecao(item.id());
+                    } catch (ErroDados erro) {
+                        avisar(Alert.AlertType.ERROR, "Não foi possível trocar a injeção", erro.getMessage());
+                    }
+                });
+    }
+
+    @FXML
+    private void tirarInjecao() {
+        try {
+            casos.trocarInjecao(projetoId, null);
+            recarregar();
+        } catch (ErroDados erro) {
+            avisar(Alert.AlertType.ERROR, "Não foi possível tirar a injeção", erro.getMessage());
+        }
+    }
+
+    /** O que este projeto pede da injeção: sensor de etanol (motor) e controle do câmbio (veículo). */
+    private Set<Recurso> recursosExigidos(ConfiguracaoMotor motor) {
+        Set<Recurso> exigidos = EnumSet.noneOf(Recurso.class);
+        if (motor.sensorEtanol()) {
+            exigidos.add(Recurso.SENSOR_ETANOL);
+        }
+        if (aberto.veiculo().veiculo().cambioControladoPelaInjecao()) {
+            exigidos.add(Recurso.CAMBIO);
+        }
+        return exigidos;
     }
 
     // ===================== Resumo: cliente =====================
@@ -333,7 +426,7 @@ public class ProjetoController {
             return;
         }
         try {
-            casos.salvarVeiculo(aberto.veiculo().id(), leitura.veiculo());
+            casos.salvarVeiculo(aberto.veiculo().id(), leitura.veiculo(), formVeiculoController.cambioItemId());
             recarregar();
             descartarVeiculo();
             mostrarOk(mensagensVeiculo, "Veículo salvo. As mudanças estão no histórico abaixo.");
@@ -346,7 +439,7 @@ public class ProjetoController {
 
     @FXML
     private void descartarVeiculo() {
-        formVeiculoController.preencher(aberto.veiculo().veiculo());
+        formVeiculoController.preencher(aberto.veiculo().veiculo(), aberto.veiculo().cambioItemId());
         mensagensVeiculo.getChildren().clear();
     }
 
@@ -451,9 +544,20 @@ public class ProjetoController {
         calculadora.usarPadroes(padroes);
         calculadora.usarMotorDoProjeto(aberto.motor().configuracao());
         calculadora.usarIdentificacao(() -> identificacao(aberto.motor()));
+        calculadora.usarCatalogo(catalogo);
+        calculadora.usarRecursosExigidos(() -> aberto.veiculo().veiculo().cambioControladoPelaInjecao()
+                ? Set.of(Recurso.CAMBIO) : Set.of());
         casos.ultimoCalculo(projetoId).ifPresentOrElse(
-                ultimo -> calculadora.preencherEntrada(ultimo.entrada()),
-                () -> calculadora.preencherMeta(aberto.projeto().meta()));
+                ultimo -> {
+                    calculadora.preencherEntrada(ultimo.entrada());
+                    calculadora.escolherPecas(ultimo.pecas());
+                },
+                () -> {
+                    calculadora.preencherMeta(aberto.projeto().meta());
+                    if (aberto.projeto().injecaoItemId() != null) {
+                        calculadora.escolherInjecao(aberto.projeto().injecaoItemId());
+                    }
+                });
 
         botaoSalvarCalculo.setId("botaoSalvarCalculo");
         botaoSalvarCalculo.setOnAction(evento -> salvarCalculo());
@@ -519,7 +623,7 @@ public class ProjetoController {
             }
         }
         try {
-            casos.salvarCalculo(projetoId, naTela.get().entrada(), justificativas);
+            casos.salvarCalculo(projetoId, naTela.get().entrada(), justificativas, naTela.get().pecas());
             botaoSalvarCalculo.setDisable(true);
             recarregar();
             calculadora.mostrarEstado("Cálculo salvo no projeto com o motor v" + aberto.motor().numero()

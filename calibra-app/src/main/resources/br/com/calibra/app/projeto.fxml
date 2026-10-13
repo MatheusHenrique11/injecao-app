@@ -64,6 +64,11 @@
             <Label fx:id="resumoVeiculo" wrapText="true"/>
             <Label fx:id="resumoMotor" wrapText="true"/>
             <Label fx:id="resumoMeta" wrapText="true"/>
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+              <Label fx:id="resumoInjecao" wrapText="true"/>
+              <Button fx:id="botaoTrocarInjecao" text="Escolher injeção…" onAction="#trocarInjecao"/>
+              <Button fx:id="botaoTirarInjecao" text="Tirar" onAction="#tirarInjecao"/>
+            </HBox>
 
             <Label styleClass="titulo-secao" text="Último cálculo"/>
             <Label fx:id="resumoCalculo" wrapText="true"/>

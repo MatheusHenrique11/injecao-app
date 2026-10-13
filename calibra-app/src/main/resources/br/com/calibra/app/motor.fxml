@@ -13,6 +13,11 @@
 <!-- Formulário do motor (SPEC 6.3): usado na calculadora, no assistente de novo projeto e na aba Motor do projeto. -->
 <VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="br.com.calibra.app.MotorFormController" styleClass="pagina">
+  <HBox fx:id="barraCatalogo" spacing="10.0" alignment="CENTER_LEFT" visible="false" managed="false">
+    <Button fx:id="botaoPreencherCatalogo" text="Preencher pelo catálogo…" onAction="#preencherPeloCatalogo"/>
+    <Label styleClass="dica" wrapText="true"
+           text="Motor de fábrica ou montagem cadastrada: preenche cilindros, diâmetro, curso, cilindrada da ficha, taxa, válvulas e aspiração."/>
+  </HBox>
   <Label styleClass="titulo-secao" text="Cilindros e dimensões"/>
   <GridPane styleClass="grade">
     <columnConstraints>

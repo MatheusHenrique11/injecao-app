@@ -3,10 +3,14 @@ package br.com.calibra.app;
 import static br.com.calibra.core.util.NumeroBr.formatar;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javafx.fxml.FXML;
@@ -16,9 +20,11 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import br.com.calibra.core.combustivel.CombustiveisPadrao;
+import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.catalogo.Combustiveis;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.memoria.Aviso;
 import br.com.calibra.core.motor.Arranjo;
@@ -26,12 +32,15 @@ import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.Comando;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.motor.Construcao;
+import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ModoIgnicao;
 import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.motor.SugestoesMotor;
 import br.com.calibra.core.motor.Validacao;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.util.NumeroBr;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Formulário do motor (SPEC 6.3), usado na calculadora, no assistente de novo projeto e na aba Motor. Ao mudar
@@ -71,10 +80,15 @@ public class MotorFormController {
     @FXML private CheckBox sensorEtanol;
     @FXML private TextField altitude;
     @FXML private VBox mensagensMotor;
+    @FXML private HBox barraCatalogo;
 
     private final CamposTela campos = new CamposTela();
     private BiConsumer<Combustivel, Aspiracao> aoMudarCombustivel = (c, a) -> { };
+    private Consumer<ItemCatalogo<ModeloMotor>> aoPreencherPeloCatalogo = item -> { };
     private boolean preenchendo;
+    /** De onde vêm os combustíveis: o catálogo no app, os da SPEC 7.2 sem banco. */
+    private Combustiveis combustiveis = Combustiveis.padrao();
+    private CasosCatalogo catalogo;
 
     @FXML
     private void initialize() {
@@ -93,12 +107,112 @@ public class MotorFormController {
 
     /** Escreve os campos do motor que vierem no mapa; os outros ficam. Não pergunta nada. */
     void preencher(Map<Campo, String> valores) {
+        String codigo = valores.get(Campo.COMBUSTIVEL);
+        if (codigo != null && !codigo.isEmpty() && combustivel.getItems().stream()
+                .noneMatch(c -> c.codigo().equals(codigo))) {
+            // Combustível que saiu das escolhas (arquivado) mas é o deste motor: entra na lista para não sumir.
+            combustiveis.porCodigo(codigo).ifPresent(combustivel.getItems()::add);
+        }
         preenchendo = true;
         try {
             campos.preencher(valores);
         } finally {
             preenchendo = false;
         }
+    }
+
+    /**
+     * Liga o formulário ao catálogo: os combustíveis passam a ser os do catálogo (versão atual) e aparece
+     * "Preencher pelo catálogo".
+     */
+    void usarCatalogo(CasosCatalogo casos) {
+        this.catalogo = casos;
+        this.combustiveis = casos.combustiveisDoFormulario();
+        barraCatalogo.setVisible(true);
+        barraCatalogo.setManaged(true);
+        atualizarCombustiveis();
+    }
+
+    /** Lê de novo os combustíveis (o catálogo pode ter mudado); o escolhido continua, na versão atual. */
+    void atualizarCombustiveis() {
+        String codigo = combustivel.getValue() == null ? null : combustivel.getValue().codigo();
+        boolean antes = preenchendo;
+        preenchendo = true;
+        try {
+            combustivel.getItems().setAll(combustiveis.ativos());
+            if (codigo != null) {
+                preencher(Map.of(Campo.COMBUSTIVEL, codigo));
+            }
+        } finally {
+            preenchendo = antes;
+        }
+    }
+
+    /** Avisa quando o formulário é preenchido por um motor do catálogo (o projeto usa o nome na descrição). */
+    void aoPreencherPeloCatalogo(Consumer<ItemCatalogo<ModeloMotor>> acao) {
+        aoPreencherPeloCatalogo = acao;
+    }
+
+    /**
+     * Preenche com um motor ou montagem do catálogo: cilindros, diâmetro, curso, cilindrada da ficha, taxa,
+     * válvulas e aspiração. O que o catálogo não tem fica em branco (não inventar dado técnico).
+     */
+    void preencherComModelo(ItemCatalogo<ModeloMotor> item) {
+        ModeloMotor m = item.dados();
+        Map<Campo, String> v = new EnumMap<>(Campo.class);
+        v.put(Campo.CILINDROS, String.valueOf(m.cilindros()));
+        v.put(Campo.DIAMETRO, NumeroBr.formatar(m.diametroMm(), 0, 4));
+        v.put(Campo.CURSO, NumeroBr.formatar(m.cursoMm(), 0, 4));
+        v.put(Campo.CILINDRADA_INFORMADA, m.cilindradaFichaCc() == null ? "" : NumeroBr.formatar(m.cilindradaFichaCc(), 0, 4));
+        v.put(Campo.TAXA, m.taxaCompressao() == null ? "" : NumeroBr.formatar(m.taxaCompressao(), 0, 4));
+        v.put(Campo.VALVULAS, m.valvulasPorCilindro() == null ? "" : String.valueOf(m.valvulasPorCilindro()));
+        v.put(Campo.ASPIRACAO, m.aspiracao() == null ? "" : m.aspiracao().name());
+        preencher(v);
+
+        List<String> semDado = new ArrayList<>();
+        if (m.cilindradaFichaCc() == null) {
+            semDado.add("cilindrada da ficha");
+        }
+        if (m.taxaCompressao() == null) {
+            semDado.add("taxa");
+        }
+        if (m.valvulasPorCilindro() == null) {
+            semDado.add("válvulas");
+        }
+        if (m.aspiracao() == null) {
+            semDado.add("aspiração");
+        }
+        mensagensMotor.getChildren().clear();
+        Label preenchido = new Label("Preenchido com " + item.info().nome() + " (catálogo, v" + item.versao() + ").");
+        preenchido.getStyleClass().add("ok");
+        preenchido.setWrapText(true);
+        mensagensMotor.getChildren().add(preenchido);
+        List<String> avisos = new ArrayList<>();
+        if (!semDado.isEmpty()) {
+            avisos.add("Sem dado no catálogo, preencha: " + String.join(", ", semDado) + ".");
+        }
+        if (item.info().aVerificar()) {
+            avisos.add("Item \"a verificar\": confira os números na ficha do motor.");
+        }
+        avisos.add("Confira a ordem de ignição no manual (" + SugestoesMotor.CONFIRMAR.toLowerCase(Locale.ROOT) + ").");
+        for (String aviso : avisos) {
+            Label rotulo = new Label("• " + aviso);
+            rotulo.getStyleClass().add("aviso-amarelo");
+            rotulo.setWrapText(true);
+            mensagensMotor.getChildren().add(rotulo);
+        }
+        aoPreencherPeloCatalogo.accept(item);
+    }
+
+    @FXML
+    private void preencherPeloCatalogo() {
+        if (catalogo == null) {
+            return;
+        }
+        new JanelaEscolhaCatalogo<>(barraCatalogo.getScene() == null ? null : barraCatalogo.getScene().getWindow(),
+                catalogo, TipoCatalogo.MOTOR, "Preencher pelo catálogo",
+                "Motores de fábrica e montagens. Itens \"a verificar\" vieram de pesquisa: confira na ficha.",
+                item -> true, null).escolher().ifPresent(this::preencherComModelo);
     }
 
     /** Mostra um motor gravado (versão do projeto ou do catálogo). */
@@ -109,7 +223,12 @@ public class MotorFormController {
 
     /** Lê o motor dos campos; erros de digitação viram mensagens. */
     LeitorFormulario.LeituraMotor ler() {
-        return LeitorFormulario.lerMotor(valores());
+        return LeitorFormulario.lerMotor(valores(), combustiveis);
+    }
+
+    /** Os combustíveis em uso (o leitor da calculadora resolve o código por eles). */
+    Combustiveis combustiveis() {
+        return combustiveis;
     }
 
     /** Avisa quando qualquer campo do motor muda. */
@@ -144,7 +263,7 @@ public class MotorFormController {
         bicosPorCilindro.getItems().setAll(Arrays.asList(1, 2));
         CamposTela.configurar(modoInjecao, Arrays.asList(ModoInjecao.values()), ModoInjecao::rotulo);
         CamposTela.configurar(modoIgnicao, Arrays.asList(ModoIgnicao.values()), ModoIgnicao::rotulo);
-        CamposTela.configurar(combustivel, CombustiveisPadrao.todos(), Combustivel::nome);
+        CamposTela.configurar(combustivel, combustiveis.ativos(), Combustivel::nome);
     }
 
     private void registrarCampos() {

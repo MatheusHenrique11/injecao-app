@@ -260,3 +260,35 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 100. **Histórico de versões:** tabela campo × versão, com a mudança em amarelo em relação à versão anterior. Campo vazio em todas as versões ou que não se aplica fica de fora.
 101. **Data digitada é conferida de verdade:** 31/02/2026 é recusada, em vez de virar 28/02 sem aviso.
 102. **Testes de interface:** o JavaFX não se desliga quando a última janela fecha (`Platform.setImplicitExit(false)`). Uma janela aberta só para a foto desligava o JavaFX, e os passos seguintes nunca rodavam.
+103. **Peças do catálogo no dimensionamento** (calculadora e aba Dimensionamento):
+    - Peça escolhida vale no lugar dos campos digitados dela, que ficam travados mostrando os dados do catálogo.
+    - **Campo novo "Tensão de trabalho (V)":** lê a tabela de tempo morto e a curva da bomba.
+    - **Intercooler:** com eficiência cadastrada, ela troca o eps; sem ela, vale o eps digitado.
+    - **Sensor MAP:** a lista só traz sensores do tipo MAP, e a faixa máxima vira a faixa do semáforo.
+104. **"Sugerir"** usa as regras do núcleo, só com itens ativos:
+    - **Bico:** o menor que mantém o DC (só com uma bancada).
+    - **Bomba:** a menor com folga verde na pressão exigida (precisa da tensão).
+    - **Injeção:** a primeira, em ordem de nome, que atende às saídas, ao sequencial e aos recursos pedidos (sensor de etanol do motor e controle do câmbio do veículo).
+105. **O cálculo salvo grava as peças escolhidas e o combustível do motor, com a versão de cada um.** O caso de uso confere se as peças são as mesmas da entrada calculada.
+106. **Desatualizado por peça:**
+    - A mensagem diz o que mudou (ex.: "o bico mudou no catálogo: X v1 → v2").
+    - **Combustível:** vem com o motor, então a versão nova só entra gravando o motor de novo, e a mensagem diz isso.
+    - Arquivar uma peça não deixa o cálculo desatualizado.
+107. **Ao abrir o Dimensionamento**, as peças do último cálculo vêm escolhidas na versão atual do catálogo, para recalcular. Peça arquivada continua escolhida, marcada "arquivado".
+108. **Combustíveis do formulário do motor vêm do catálogo**, na versão atual.
+    - Motor com combustível arquivado continua mostrando esse combustível.
+    - Gravar o motor depois que o combustível mudou cria uma versão nova do motor (a comparação mostra "versão 1 → versão 2").
+109. **"Preencher pelo catálogo" no motor:**
+    - Preenche cilindros, diâmetro, curso, cilindrada da ficha, taxa, válvulas e aspiração.
+    - O que o catálogo não tem fica em branco, apagando o que estava, e aparece um aviso.
+    - A ordem de ignição é sugerida de novo, com "confirmar no manual".
+    - A descrição do motor, se estiver vazia, recebe o nome do item.
+110. **Assistente com a etapa 5, Injeção (opcional):**
+    - Mostra o que falta na injeção escolhida para este motor e tem o botão Sugerir.
+    - A injeção do projeto aparece no Resumo (escolher ou tirar).
+    - Enquanto não há cálculo salvo, ela entra escolhida no Dimensionamento.
+111. **Câmbio do catálogo no veículo:**
+    - Define o tipo de câmbio, que fica travado enquanto o item está escolhido.
+    - A lista traz só câmbios terrestres ou só náuticos, conforme o veículo.
+    - O caso de uso recusa câmbio do catálogo de tipo diferente do veículo.
+112. **Fotos dos testes de interface:** o cache de imagem dos nós é desligado antes da foto. Fora de janela, a área com rolagem mostrava o painel antigo (ex.: a etapa anterior do assistente).

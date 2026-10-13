@@ -65,6 +65,7 @@ public enum Campo {
     BICO2_DENSIDADE_TESTE("a densidade do fluido de teste do bico secundário"),
     BICO2_TEMPO_MORTO("o tempo morto do bico secundário"),
     // Opcionais
+    TENSAO_V("a tensão de trabalho"),
     MARCHA_LENTA_MAP("o MAP de marcha lenta"),
     MARCHA_LENTA_VE("a VE de marcha lenta"),
     BOMBA_VAZAO("a vazão da bomba"),

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import br.com.calibra.app.catalogo.Combustiveis;
 import br.com.calibra.app.catalogo.FormasCatalogo;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
@@ -65,6 +66,21 @@ public final class CasosCatalogo {
         return listar(TipoCatalogo.COMBUSTIVEL, "", true).stream()
                 .filter(item -> item.dados().codigo().equals(codigo))
                 .findFirst();
+    }
+
+    /** Os combustíveis do formulário do motor, lidos do catálogo a cada vez (sempre na versão atual). */
+    public Combustiveis combustiveisDoFormulario() {
+        return new Combustiveis() {
+            @Override
+            public List<Combustivel> ativos() {
+                return combustiveis().stream().map(ItemCatalogo::dados).toList();
+            }
+
+            @Override
+            public Optional<Combustivel> porCodigo(String codigo) {
+                return combustivel(codigo).map(ItemCatalogo::dados);
+            }
+        };
     }
 
     // ===================== Gravação =====================

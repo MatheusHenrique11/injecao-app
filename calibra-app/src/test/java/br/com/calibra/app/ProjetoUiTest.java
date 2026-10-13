@@ -129,6 +129,14 @@ class ProjetoUiTest {
         TelaDeTeste.<TextField>achar(cena, "rpmPotencia").setText("7.000");
         TelaDeTeste.<ComboBox<Uso>>achar(cena, "uso").setValue(Uso.RUA);
         salvar(cena, "captura-assistente-meta.png");
+        proximo();
+        // 5. Injeção (opcional): o catálogo de injeções começa vazio, então segue sem.
+        assertTrue(TelaDeTeste.<Button>achar(cena, "botaoCriar").isVisible(), "Criar projeto na última etapa");
+        assertTrue(TelaDeTeste.<VBox>achar(cena, "painelInjecao").isVisible(), "painel da injeção");
+        assertFalse(TelaDeTeste.<VBox>achar(cena, "painelMeta").isVisible(), "a meta saiu da tela");
+        TelaDeTeste.<Button>achar(cena, "botaoSugerirInjecao").fire();
+        assertTrue(contemTexto(achar(cena, "mensagensInjecao"), "Nenhuma injeção cadastrada no catálogo."));
+        salvar(cena, "captura-assistente-injecao.png");
         TelaDeTeste.<Button>achar(cena, "botaoCriar").fire();
         if (estaNoAssistente()) {
             fail("o assistente não criou o projeto: " + ((VBox) cena.lookup("#mensagens")).getChildren());

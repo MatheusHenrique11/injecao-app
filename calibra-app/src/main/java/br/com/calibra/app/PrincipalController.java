@@ -113,6 +113,9 @@ public class PrincipalController implements Navegacao {
             voltarParaProjetos();
             return;
         }
+        if (projetoAberto != null) {
+            projetoAberto.atualizarCatalogo();
+        }
         mostrar(telaProjetos, navProjetos, tituloProjetos);
     }
 
@@ -136,7 +139,8 @@ public class PrincipalController implements Navegacao {
         FXMLLoader carregador = carregador("assistente.fxml");
         Parent tela = carregar(carregador);
         AssistenteController assistente = carregador.getController();
-        assistente.iniciar(casosProjeto, this, contexto.relogio());
+        assistente.iniciar(casosProjeto, casosCatalogo, contexto.configuracao().ler(Chave.CALCULO), this,
+                contexto.relogio());
         projetoAberto = null;
         abrirNaAreaDeProjetos(tela, "Novo projeto");
     }
@@ -146,7 +150,8 @@ public class PrincipalController implements Navegacao {
         FXMLLoader carregador = carregador("projeto.fxml");
         Parent tela = carregar(carregador);
         ProjetoController projeto = carregador.getController();
-        projeto.iniciar(casosProjeto, this, servicos, contexto.configuracao().ler(Chave.CALCULO), projetoId);
+        projeto.iniciar(casosProjeto, casosCatalogo, this, servicos, contexto.configuracao().ler(Chave.CALCULO),
+                projetoId);
         projetoAberto = projeto;
         abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
     }
@@ -165,6 +170,9 @@ public class PrincipalController implements Navegacao {
             calculadora = carregador.getController();
             calculadora.usarServicos(servicos);
             calculadora.usarPadroes(contexto.configuracao().ler(Chave.CALCULO));
+            calculadora.usarCatalogo(casosCatalogo);
+        } else {
+            calculadora.atualizarCatalogo();
         }
         mostrar(telaCalculadora, navCalculadora, "Calculadora");
     }

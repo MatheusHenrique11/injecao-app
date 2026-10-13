@@ -5,11 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import br.com.calibra.app.catalogo.Combustiveis;
+import br.com.calibra.app.catalogo.PecasEscolhidas;
 import br.com.calibra.core.calculo.CaminhoAr;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.calculo.MarchaLenta;
 import br.com.calibra.core.calculo.Parametros;
-import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.Arranjo;
 import br.com.calibra.core.motor.Aspiracao;
@@ -20,7 +21,10 @@ import br.com.calibra.core.motor.ModoIgnicao;
 import br.com.calibra.core.motor.ModoInjecao;
 import br.com.calibra.core.motor.RodaFonica;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.Sensor;
+import br.com.calibra.core.pecas.TipoSensor;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.Uso;
@@ -51,34 +55,57 @@ public final class LeitorFormulario {
     }
 
     private final Map<Campo, String> valores;
+    private final Combustiveis combustiveis;
+    private final PecasEscolhidas pecas;
     private final List<String> erros = new ArrayList<>();
 
-    private LeitorFormulario(Map<Campo, String> valores) {
+    private LeitorFormulario(Map<Campo, String> valores, Combustiveis combustiveis, PecasEscolhidas pecas) {
         this.valores = valores;
+        this.combustiveis = combustiveis;
+        this.pecas = pecas;
+    }
+
+    /** Sem catálogo (testes): os combustíveis da SPEC 7.2 e todas as peças digitadas. */
+    public static Leitura ler(Map<Campo, String> valores, Parametros padroes) {
+        return ler(valores, padroes, Combustiveis.padrao(), PecasEscolhidas.NENHUMA);
     }
 
     /**
      * @param padroes padrões salvos em Configurações: dão os limiares do semáforo e os grupos do modo
      *     simultâneo, que não têm campo na calculadora
+     * @param combustiveis de onde sai o combustível do motor, pelo código
+     * @param pecas peças do catálogo escolhidas: valem no lugar dos campos digitados delas
      */
-    public static Leitura ler(Map<Campo, String> valores, Parametros padroes) {
-        LeitorFormulario leitor = new LeitorFormulario(valores);
+    public static Leitura ler(Map<Campo, String> valores, Parametros padroes, Combustiveis combustiveis,
+            PecasEscolhidas pecas) {
+        LeitorFormulario leitor = new LeitorFormulario(valores, combustiveis, pecas);
         EntradaDimensionamento entrada = leitor.entrada(padroes, null);
         return new Leitura(leitor.erros.isEmpty() ? entrada : null, leitor.erros);
+    }
+
+    /** Com o motor do projeto e todas as peças digitadas (testes). */
+    public static Leitura lerComMotor(Map<Campo, String> valores, Parametros padroes, ConfiguracaoMotor motor) {
+        return lerComMotor(valores, padroes, motor, PecasEscolhidas.NENHUMA);
     }
 
     /**
      * Lê a meta, o ar, os parâmetros e as peças, com um motor já pronto (a versão gravada no projeto). O motor não
      * passa pelo texto da tela, então a entrada aponta exatamente para a versão usada.
      */
-    public static Leitura lerComMotor(Map<Campo, String> valores, Parametros padroes, ConfiguracaoMotor motor) {
-        LeitorFormulario leitor = new LeitorFormulario(valores);
+    public static Leitura lerComMotor(Map<Campo, String> valores, Parametros padroes, ConfiguracaoMotor motor,
+            PecasEscolhidas pecas) {
+        LeitorFormulario leitor = new LeitorFormulario(valores, Combustiveis.padrao(), pecas);
         EntradaDimensionamento entrada = leitor.entrada(padroes, motor);
         return new Leitura(leitor.erros.isEmpty() ? entrada : null, leitor.erros);
     }
 
+    /** Sem catálogo (testes): os combustíveis da SPEC 7.2. */
     public static LeituraMotor lerMotor(Map<Campo, String> valores) {
-        LeitorFormulario leitor = new LeitorFormulario(valores);
+        return lerMotor(valores, Combustiveis.padrao());
+    }
+
+    public static LeituraMotor lerMotor(Map<Campo, String> valores, Combustiveis combustiveis) {
+        LeitorFormulario leitor = new LeitorFormulario(valores, combustiveis, PecasEscolhidas.NENHUMA);
         ConfiguracaoMotor motor = leitor.motor();
         return new LeituraMotor(leitor.erros.isEmpty() ? motor : null, leitor.erros);
     }
@@ -93,7 +120,7 @@ public final class LeitorFormulario {
 
     /** Lê só os campos da meta (potência, onde é medida, perda, rotações e uso). */
     public static LeituraMeta lerMeta(Map<Campo, String> valores) {
-        LeitorFormulario leitor = new LeitorFormulario(valores);
+        LeitorFormulario leitor = new LeitorFormulario(valores, Combustiveis.padrao(), PecasEscolhidas.NENHUMA);
         Meta meta = leitor.meta();
         return new LeituraMeta(leitor.erros.isEmpty() ? meta : null, leitor.erros);
     }
@@ -108,19 +135,36 @@ public final class LeitorFormulario {
         double temperatura = numero(Campo.TEMPERATURA_AMBIENTE);
         double pressaoBase = Conversoes.barParaKpa(numero(Campo.PRESSAO_BASE_BAR));
         Parametros parametros = parametros(padroes);
-        Bico bico = bico("Bico", Campo.BICO_VAZAO, Campo.BICO_PRESSAO_TESTE_BAR, Campo.BICO_DENSIDADE_TESTE,
-                Campo.BICO_TEMPO_MORTO);
-        Bico secundario = bico("Bico secundário", Campo.BICO2_VAZAO, Campo.BICO2_PRESSAO_TESTE_BAR,
-                Campo.BICO2_DENSIDADE_TESTE, Campo.BICO2_TEMPO_MORTO);
+        Bico bico = pecas.bico() != null ? pecas.bico().dados()
+                : bico("Bico", Campo.BICO_VAZAO, Campo.BICO_PRESSAO_TESTE_BAR, Campo.BICO_DENSIDADE_TESTE,
+                        Campo.BICO_TEMPO_MORTO);
+        Bico secundario = pecas.bicoSecundario() != null ? pecas.bicoSecundario().dados()
+                : bico("Bico secundário", Campo.BICO2_VAZAO, Campo.BICO2_PRESSAO_TESTE_BAR,
+                        Campo.BICO2_DENSIDADE_TESTE, Campo.BICO2_TEMPO_MORTO);
+        Double tensao = opcional(Campo.TENSAO_V);
         MarchaLenta marchaLenta = marchaLenta();
-        Double bomba = opcional(Campo.BOMBA_VAZAO);
-        Double sensor = opcional(Campo.SENSOR_MAP_KPA);
-        Injecao injecao = injecao();
+        Bomba bombaDoCatalogo = pecas.bomba() == null ? null : pecas.bomba().dados();
+        Double bombaDigitada = bombaDoCatalogo != null ? null : opcional(Campo.BOMBA_VAZAO);
+        Double sensor = faixaDoSensor();
+        Injecao injecao = pecas.injecao() != null ? pecas.injecao().dados() : injecao();
         if (!erros.isEmpty()) {
             return null;
         }
         return new EntradaDimensionamento(motor, meta, lambda, ve, temperatura, pressaoBase, parametros, bico,
-                secundario, null, marchaLenta, bomba, sensor, injecao, null);
+                secundario, tensao, marchaLenta, bombaDigitada, sensor, injecao, bombaDoCatalogo);
+    }
+
+    /** Faixa do sensor MAP: a máxima do sensor do catálogo, ou a digitada. */
+    private Double faixaDoSensor() {
+        if (pecas.sensorMap() == null) {
+            return opcional(Campo.SENSOR_MAP_KPA);
+        }
+        Sensor sensor = pecas.sensorMap().dados();
+        if (sensor.tipo() != TipoSensor.MAP) {
+            erros.add("O sensor " + sensor.nome() + " não é do tipo MAP: escolha um sensor MAP ou digite a faixa.");
+            return null;
+        }
+        return sensor.faixaMaxima();
     }
 
     private ConfiguracaoMotor motor() {
@@ -129,7 +173,7 @@ public final class LeitorFormulario {
         if (codigoCombustivel.isEmpty()) {
             erros.add("Escolha " + Campo.COMBUSTIVEL.nome() + ".");
         } else {
-            combustivel = CombustiveisPadrao.porCodigo(codigoCombustivel).orElse(null);
+            combustivel = combustiveis.porCodigo(codigoCombustivel).orElse(null);
             if (combustivel == null) {
                 erros.add("Combustível desconhecido: " + codigoCombustivel + ".");
             }
@@ -179,10 +223,11 @@ public final class LeitorFormulario {
         CaminhoAr caminho = escolha(Campo.CAMINHO_AR, CaminhoAr::valueOf);
         double kAr = caminho == CaminhoAr.K_AR ? numero(Campo.K_AR) : Double.NaN;
         double bsfc = caminho == CaminhoAr.BSFC ? numero(Campo.BSFC) : Double.NaN;
+        Double eficienciaDoIntercooler = pecas.intercooler() == null ? null : pecas.intercooler().dados().eficiencia();
         return new Parametros(caminho, kAr, bsfc,
                 numero(Campo.DC_MAX_PCT) / 100.0,
                 numero(Campo.ETA_C),
-                numero(Campo.EPS),
+                eficienciaDoIntercooler != null ? eficienciaDoIntercooler : numero(Campo.EPS),
                 Conversoes.psiParaKpa(numero(Campo.PERDA_DESCARGA_PSI)),
                 Conversoes.psiParaKpa(numero(Campo.PERDA_ADMISSAO_PSI)),
                 numero(Campo.ACRESCIMO_TM),
