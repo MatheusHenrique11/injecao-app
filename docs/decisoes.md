@@ -349,3 +349,8 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - Os pontos de potência (círculo) e de torque (quadrado) aparecem com a vazão corrigida pela referência do mapa.
     - As linhas "No mapa" do resultado e do PDF usam o mesmo texto.
 132. **Meta pela pressão também no assistente** (etapa Meta e uso). A regra "só sobrealimentado" é conferida com o motor da etapa anterior.
+133. **Evidência do G4GC pela meta de pressão** (teste `EvidenciaG4gcTest`, tabela em `calibra-core/target/evidencia-g4gc-meta-pela-pressao.md`):
+    - Usa as premissas da pesquisa (seção 4), com a VE 0,90 como chute a confirmar.
+    - Resultado: 0,5 e 0,6 bar dão 211 e 224 cv ao nível do mar, e 201 e 214 cv a 600 m. A pesquisa, pela meta de potência, tinha chegado a cerca de 210, 225, 200 e 210–215. O teste confere essa diferença em até 5%.
+    - Com a mesma pressão e a mesma VE, o torque estimado é igual nas duas rotações. A diferença real vem da VE no torque e da pressão que o turbo entrega nesse giro.
+    - Sem limite de câmbio cadastrado para o A4CF1, o torque × câmbio não entra (não inventar dado técnico).
