@@ -331,24 +331,9 @@ public final class RelatorioMemoria {
         }
         Dimensionamento.NoMapa noMapa = d.noMapa();
         if (noMapa != null) {
-            pdf.item("No mapa do " + noMapa.turbo(), "potência: " + descreverNoMapa(noMapa.potencia())
-                    + (noMapa.torque() != null ? "; torque máximo: " + descreverNoMapa(noMapa.torque()) : ""));
+            pdf.item("No mapa do " + noMapa.turbo(), "potência: " + Apresentacao.pontoNoMapa(noMapa.potencia())
+                    + (noMapa.torque() != null ? "; torque máximo: " + Apresentacao.pontoNoMapa(noMapa.torque()) : ""));
         }
-    }
-
-    /** Um ponto no mapa: vazão corrigida, PR, eficiência, rotação e as folgas do surge e do choke. */
-    static String descreverNoMapa(MapaCompressor.PontoNoMapa ponto) {
-        String inicio = "vazão corrigida " + Apresentacao.vazaoAr(ponto.vazaoCorrigidaKgS()) + SEPARADOR + "PR "
-                + formatar(ponto.razaoPressao(), 2);
-        if (!ponto.dentro()) {
-            return inicio + SEPARADOR + "fora do mapa (" + ponto.foraDoMapa() + ")";
-        }
-        return inicio + SEPARADOR + (ponto.eficiencia() == null ? "fora das ilhas desenhadas"
-                : "eficiência " + percentual(ponto.eficiencia(), 0))
-                + (ponto.rotacaoRpm() != null ? SEPARADOR + "turbo a " + formatar(ponto.rotacaoRpm(), 0) + " rpm"
-                        : ponto.acimaDasLinhas() ? SEPARADOR + "acima da maior linha de rotação" : "")
-                + SEPARADOR + "folga do surge " + percentual(ponto.margemSurge(), 0) + " e do choke "
-                + percentual(ponto.margemChoke(), 0);
     }
 
     private static void listas(EscritorPdf pdf, Dimensionamento d, Resultado<Dimensionamento> resultado)

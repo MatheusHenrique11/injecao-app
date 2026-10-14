@@ -263,6 +263,7 @@ public class ProjetoController {
         compararB.setValue(todas.getLast());
 
         calculadora.usarMotorDoProjeto(motor.configuracao());
+        calculadora.usarCambioDoVeiculo(aberto.veiculo().cambioItemId());
         atualizarCalculos();
     }
 
@@ -545,6 +546,7 @@ public class ProjetoController {
         calculadora.usarMotorDoProjeto(aberto.motor().configuracao());
         calculadora.usarIdentificacao(() -> identificacao(aberto.motor()));
         calculadora.usarCatalogo(catalogo);
+        calculadora.usarCambioDoVeiculo(aberto.veiculo().cambioItemId());
         calculadora.usarRecursosExigidos(() -> aberto.veiculo().veiculo().cambioControladoPelaInjecao()
                 ? Set.of(Recurso.CAMBIO) : Set.of());
         casos.ultimoCalculo(projetoId).ifPresentOrElse(

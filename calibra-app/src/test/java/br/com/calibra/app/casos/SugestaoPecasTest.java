@@ -12,14 +12,18 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import br.com.calibra.app.casos.SugestaoPecas.Sugestao;
+import br.com.calibra.app.catalogo.ExemplosCatalogo;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.MapaCompressor;
 import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.pecas.TempoMorto;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
@@ -115,5 +119,48 @@ class SugestaoPecasTest {
                 SugestaoPecas.bico(List.of(), CasosProjetoTest.casoB()).mensagem());
         assertEquals("Nenhuma injeção cadastrada no catálogo.",
                 SugestaoPecas.injecao(List.of(), CasosProjetoTest.casoB().motor(), 1, Set.of()).mensagem());
+        assertEquals("Nenhum turbo cadastrado no catálogo.",
+                SugestaoPecas.turbo(List.of(), CasosProjetoTest.casoB()).mensagem());
+    }
+
+    // ===================== Turbo (bloco 2.4) =====================
+
+    private static MapaCompressor mapa(boolean grande, double eficiencia) {
+        return ExemplosCatalogo.mapaCasoB(grande, eficiencia);
+    }
+
+    private static ItemCatalogo<Turbo> turbo(long id, String nome, MapaCompressor mapa) {
+        return item(id, TipoCatalogo.TURBO, nome, new Turbo(nome, mapa, 0.63, null, null, FONTE, DATA));
+    }
+
+    @Test
+    void turboMaisEficienteNoPontoDePotencia() {
+        List<ItemCatalogo<Turbo>> turbos = List.of(turbo(1, "Turbo teste B", mapa(true, 0.72)),
+                turbo(2, "Turbo teste A", mapa(true, 0.78)), turbo(3, "Turbo teste pequeno", mapa(false, 0.78)),
+                turbo(4, "Turbo teste sem mapa", null));
+        Sugestao<Turbo> sugestao = SugestaoPecas.turbo(turbos, CasosProjetoTest.casoB());
+        assertEquals(2L, sugestao.item().orElseThrow().id());
+        assertTrue(sugestao.mensagem().startsWith("Sugerido: Turbo teste A (78% no ponto de potência). Também atendem: "
+                + "Turbo teste B (72%)."), sugestao.mensagem());
+        assertTrue(sugestao.mensagem().endsWith(Turbo.COMPROMISSO_AR), "o compromisso do A/R vai junto");
+        assertTrue(sugestao.avisos().contains("Turbo Turbo teste sem mapa ignorado: sem mapa digitalizado."),
+                sugestao.avisos()::toString);
+        assertTrue(sugestao.avisos().stream().anyMatch(a -> a.startsWith("Turbo Turbo teste pequeno não atende: o ponto "
+                + "de potência está fora do mapa")), sugestao.avisos()::toString);
+    }
+
+    @Test
+    void semTurboQueAtendaENoAspirado() {
+        Sugestao<Turbo> nenhum = SugestaoPecas.turbo(List.of(turbo(3, "Turbo teste pequeno", mapa(false, 0.78))),
+                CasosProjetoTest.casoB());
+        assertTrue(nenhum.item().isEmpty());
+        assertTrue(nenhum.mensagem().startsWith("Nenhum turbo do catálogo tem os pontos de potência e de torque dentro "
+                + "do mapa (PR 2,9"), nenhum.mensagem());
+
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        EntradaDimensionamento aspirado = casoB.comMotor(casoB.motor().paraConstrutor().aspiracao(Aspiracao.ASPIRADO)
+                .construir());
+        assertEquals("O turbo só entra em motor sobrealimentado.",
+                SugestaoPecas.turbo(List.of(turbo(2, "Turbo teste A", mapa(true, 0.78))), aspirado).mensagem());
     }
 }

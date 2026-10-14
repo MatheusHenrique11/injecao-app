@@ -3,6 +3,7 @@ package br.com.calibra.app;
 import static br.com.calibra.core.util.NumeroBr.formatar;
 import static br.com.calibra.core.util.NumeroBr.percentual;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import br.com.calibra.core.memoria.Aviso;
 import br.com.calibra.core.memoria.NivelAviso;
 import br.com.calibra.core.memoria.Passo;
 import br.com.calibra.core.memoria.Resultado;
+import br.com.calibra.core.pecas.MapaCompressor;
 import br.com.calibra.core.semaforo.Avaliacao;
 import br.com.calibra.core.semaforo.Cor;
 import br.com.calibra.core.semaforo.Indicador;
@@ -45,14 +47,25 @@ final class PainelResultado {
     }
 
     List<Node> montar(Resultado<Dimensionamento> resultado) {
+        return montar(resultado, null);
+    }
+
+    /**
+     * @param mapa o mapa do turbo do cálculo; com ele, o mapa aparece desenhado com os pontos de potência e de torque
+     */
+    List<Node> montar(Resultado<Dimensionamento> resultado, MapaCompressor mapa) {
         Dimensionamento d = resultado.valor();
         justificativas.clear();
-        return List.of(
-                secao("Semáforo"), semaforo(d),
-                secao("Resultados"), resultados(d),
+        List<Node> partes = new ArrayList<>(List.of(secao("Semáforo"), semaforo(d), secao("Resultados"), resultados(d)));
+        if (mapa != null && d.noMapa() != null) {
+            partes.add(secao("Mapa do compressor · " + d.noMapa().turbo()));
+            partes.add(GraficoMapa.desenhar(mapa, d.noMapa().potencia(), d.noMapa().torque(), 760, 460));
+        }
+        partes.addAll(List.of(
                 secao("Recomendações"), lista(d.recomendacoes().stream().map(r -> "• " + r).toList(), null),
                 secao("Avisos"), avisos(resultado.avisos()),
-                secao("Memória de cálculo (núcleo " + resultado.versaoNucleo() + ")"), memoria(resultado.memoria()));
+                secao("Memória de cálculo (núcleo " + resultado.versaoNucleo() + ")"), memoria(resultado.memoria())));
+        return partes;
     }
 
     static List<Node> erros(List<String> erros) {
@@ -147,8 +160,21 @@ final class PainelResultado {
         linha = linha(grade, linha, "Saídas exigidas", d.saidas().bicos() + " de bico"
                 + (d.saidas().bicosExtras() > 0 ? " + " + d.saidas().bicosExtras() + " extras" : "") + " · "
                 + d.saidas().ignicao() + " de ignição");
-        linha(grade, linha, "Sensor MAP", "faixa mínima " + formatar(d.sensorMap().faixaMinimaKpa(), 0)
+        linha = linha(grade, linha, "Sensor MAP", "faixa mínima " + formatar(d.sensorMap().faixaMinimaKpa(), 0)
                 + " kPa absolutos (MAP máximo previsto " + formatar(d.sensorMap().mapMaximoPrevistoKpa(), 1) + " kPa)");
+        Dimensionamento.PontoTorque torque = d.pontoTorque();
+        if (torque != null) {
+            linha = linha(grade, linha, "Torque máximo", formatar(torque.rpm(), 0) + " rpm · VE "
+                    + formatar(torque.ve(), 2) + " · Wa " + Apresentacao.vazaoAr(torque.vazaoArKgS()) + " · torque "
+                    + formatar(torque.torqueNm(), 0) + " N·m (estimado)");
+        }
+        Dimensionamento.NoMapa noMapa = d.noMapa();
+        if (noMapa != null) {
+            linha = linha(grade, linha, "No mapa: potência", Apresentacao.pontoNoMapa(noMapa.potencia()));
+            if (noMapa.torque() != null) {
+                linha(grade, linha, "No mapa: torque", Apresentacao.pontoNoMapa(noMapa.torque()));
+            }
+        }
         return grade;
     }
 

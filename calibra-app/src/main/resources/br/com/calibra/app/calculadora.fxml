@@ -40,20 +40,31 @@
                 <ColumnConstraints minWidth="220.0"/>
                 <ColumnConstraints minWidth="250.0" hgrow="SOMETIMES"/>
               </columnConstraints>
-              <Label text="Potência meta (cv)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-              <TextField fx:id="potencia" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+              <Label text="Meta pela" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+              <ComboBox fx:id="tipoMeta" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
               <Label text="Medida em" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
               <ComboBox fx:id="pontoMedicao" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
 
-              <Label text="Perda de transmissão (%)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-              <TextField fx:id="perdaTransmissao" promptText="só com meta na roda" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
-              <Label text="Uso" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
-              <ComboBox fx:id="uso" promptText="Escolha" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+              <Label text="Potência meta (cv)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+              <TextField fx:id="potencia" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+              <Label text="Pressão do turbo (acima da atmosfera)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+              <HBox spacing="6.0" GridPane.rowIndex="1" GridPane.columnIndex="3">
+                <TextField fx:id="pressaoMeta" promptText="ex.: 0,5" prefWidth="110.0"/>
+                <ComboBox fx:id="unidadePressaoMeta"/>
+              </HBox>
 
-              <Label text="Rotação de potência máxima (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-              <TextField fx:id="rpmPotencia" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-              <Label text="Rotação de torque máximo (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
-              <TextField fx:id="rpmTorque" promptText="opcional na fase 1" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+              <Label text="Perda de transmissão (%)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+              <TextField fx:id="perdaTransmissao" promptText="só com meta na roda" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+              <Label text="Uso" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+              <ComboBox fx:id="uso" promptText="Escolha" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+              <Label text="Rotação de potência máxima (rpm)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+              <TextField fx:id="rpmPotencia" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+              <Label text="Rotação de torque máximo (rpm)" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+              <TextField fx:id="rpmTorque" promptText="opcional: dá o ponto de torque" GridPane.rowIndex="3" GridPane.columnIndex="3"/>
+
+              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="4"
+                     text="Pela pressão (só sobrealimentado): a potência sai do cálculo, como estimativa. Com &quot;medida na roda&quot; e a perda, o cálculo também estima a potência na roda."/>
             </GridPane>
 
             <Label styleClass="titulo-secao" text="Ar e combustível"/>
@@ -77,9 +88,12 @@
               <Label text="VE na potência máxima" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
               <TextField fx:id="ve" promptText="fração, ex.: 0,95" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
 
-              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="2"
+              <Label text="VE no torque máximo" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+              <TextField fx:id="veTorque" promptText="opcional: igual à da potência" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"
                      text="k_ar: referência a validar. Motor moderno de 4 válvulas perto de 10,5; motor antigo de 2 válvulas perto de 8,5 a 9,5 (dados de fábrica do Omega 4.1 e 3.0)."/>
-              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="2" GridPane.columnSpan="2"
+              <Label styleClass="dica" wrapText="true" GridPane.rowIndex="3" GridPane.columnIndex="2" GridPane.columnSpan="2"
                      text="VE sem padrão. Referência a validar: 4 válvulas 0,95 a 0,99; 2 válvulas 0,80 a 0,95."/>
             </GridPane>
 
@@ -152,10 +166,18 @@
                   <ComboBox fx:id="catalogoInjecao" prefWidth="300.0"/>
                   <Button fx:id="botaoSugerirInjecao" text="Sugerir" onAction="#sugerirInjecao"/>
                 </HBox>
+
+                <Label text="Turbo (mapa do compressor)" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <HBox spacing="6.0" GridPane.rowIndex="4" GridPane.columnIndex="1">
+                  <ComboBox fx:id="catalogoTurbo" prefWidth="300.0"/>
+                  <Button fx:id="botaoSugerirTurbo" text="Sugerir turbos" onAction="#sugerirTurbo"/>
+                </HBox>
+                <Label text="Câmbio (torque máximo)" GridPane.rowIndex="4" GridPane.columnIndex="2"/>
+                <ComboBox fx:id="catalogoCambio" prefWidth="300.0" GridPane.rowIndex="4" GridPane.columnIndex="3"/>
               </GridPane>
               <VBox fx:id="mensagensPecas" spacing="4.0"/>
               <Label styleClass="dica" wrapText="true"
-                     text="Peça escolhida do catálogo vale no lugar dos campos digitados dela, que ficam travados mostrando os dados do catálogo. O intercooler só troca o eps se tiver a eficiência cadastrada. Sugerir usa as regras da SPEC 7.3 com o que está preenchido."/>
+                     text="Peça escolhida do catálogo vale no lugar dos campos digitados dela, que ficam travados mostrando os dados do catálogo. O intercooler só troca o eps se tiver a eficiência cadastrada. Sugerir usa as regras da SPEC 7.3 com o que está preenchido. O turbo com mapa confere os pontos de potência e de torque; o câmbio com torque máximo entra no indicador torque × câmbio (no projeto, vale o câmbio do veículo)."/>
             </VBox>
 
             <Label styleClass="titulo-secao" text="Bico (opcional: preencha para avaliar o DC)"/>

@@ -88,7 +88,10 @@ public class AssistenteController {
     @FXML private TextField descricaoMotor;
     @FXML private MotorFormController formMotorController;
     @FXML private VBox painelMeta;
+    @FXML private ComboBox<TipoMeta> tipoMeta;
     @FXML private TextField potencia;
+    @FXML private TextField pressaoMeta;
+    @FXML private ComboBox<TipoMeta.Unidade> unidadePressaoMeta;
     @FXML private ComboBox<PontoMedicao> pontoMedicao;
     @FXML private TextField perdaTransmissao;
     @FXML private TextField rpmPotencia;
@@ -113,16 +116,26 @@ public class AssistenteController {
 
     @FXML
     private void initialize() {
+        CamposTela.configurar(tipoMeta, Arrays.asList(TipoMeta.values()), TipoMeta::rotulo);
+        CamposTela.configurar(unidadePressaoMeta, Arrays.asList(TipoMeta.Unidade.values()), TipoMeta.Unidade::simbolo);
         CamposTela.configurar(pontoMedicao, Arrays.asList(PontoMedicao.values()), PontoMedicao::rotulo);
         CamposTela.configurar(uso, Arrays.asList(Uso.values()), Uso::rotulo);
+        tipoMeta.setValue(TipoMeta.POTENCIA);
+        unidadePressaoMeta.setValue(TipoMeta.Unidade.BAR);
         pontoMedicao.setValue(PontoMedicao.VIRABREQUIM);
+        camposMeta.registrar(Campo.TIPO_META, tipoMeta, Enum::name);
         camposMeta.registrar(Campo.POTENCIA_CV, potencia);
+        camposMeta.registrar(Campo.PRESSAO_META, pressaoMeta);
+        camposMeta.registrar(Campo.UNIDADE_PRESSAO_META, unidadePressaoMeta, Enum::name);
         camposMeta.registrar(Campo.PONTO_MEDICAO, pontoMedicao, Enum::name);
         camposMeta.registrar(Campo.PERDA_TRANSMISSAO, perdaTransmissao);
         camposMeta.registrar(Campo.RPM_POTENCIA, rpmPotencia);
         camposMeta.registrar(Campo.RPM_TORQUE, rpmTorque);
         camposMeta.registrar(Campo.USO, uso, Enum::name);
         perdaTransmissao.disableProperty().bind(pontoMedicao.valueProperty().isNotEqualTo(PontoMedicao.RODA));
+        potencia.disableProperty().bind(tipoMeta.valueProperty().isEqualTo(TipoMeta.PRESSAO));
+        pressaoMeta.disableProperty().bind(tipoMeta.valueProperty().isNotEqualTo(TipoMeta.PRESSAO));
+        unidadePressaoMeta.disableProperty().bind(tipoMeta.valueProperty().isNotEqualTo(TipoMeta.PRESSAO));
 
         listaClientes.setCellFactory(lista -> celula(c -> c.cliente().nome() + " · " + c.cliente().telefone()));
         listaVeiculos.setCellFactory(lista -> celula(v -> v.veiculo().descricao()

@@ -31,11 +31,13 @@ import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
+import br.com.calibra.core.pecas.Cambio;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Intercooler;
 import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.TipoSensor;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.Uso;
@@ -59,6 +61,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -87,7 +90,10 @@ public class CalculadoraController {
 
     // ---------- Meta e peças ----------
     @FXML private Tab abaMeta;
+    @FXML private ComboBox<TipoMeta> tipoMeta;
     @FXML private TextField potencia;
+    @FXML private TextField pressaoMeta;
+    @FXML private ComboBox<TipoMeta.Unidade> unidadePressaoMeta;
     @FXML private ComboBox<PontoMedicao> pontoMedicao;
     @FXML private TextField perdaTransmissao;
     @FXML private TextField rpmPotencia;
@@ -98,6 +104,7 @@ public class CalculadoraController {
     @FXML private TextField bsfc;
     @FXML private TextField lambda;
     @FXML private TextField ve;
+    @FXML private TextField veTorque;
     @FXML private TextField temperaturaAmbiente;
     @FXML private TextField perdaDescarga;
     @FXML private TextField perdaAdmissao;
@@ -132,9 +139,12 @@ public class CalculadoraController {
     @FXML private ComboBox<ItemCatalogo<Intercooler>> catalogoIntercooler;
     @FXML private ComboBox<ItemCatalogo<Sensor>> catalogoSensorMap;
     @FXML private ComboBox<ItemCatalogo<Injecao>> catalogoInjecao;
+    @FXML private ComboBox<ItemCatalogo<Turbo>> catalogoTurbo;
+    @FXML private ComboBox<ItemCatalogo<Cambio>> catalogoCambio;
     @FXML private Button botaoSugerirBico;
     @FXML private Button botaoSugerirBomba;
     @FXML private Button botaoSugerirInjecao;
+    @FXML private Button botaoSugerirTurbo;
     @FXML private TextField tensao;
     @FXML private VBox mensagensPecas;
 
@@ -168,6 +178,11 @@ public class CalculadoraController {
     private CaixaCatalogo<Intercooler> caixaIntercooler;
     private CaixaCatalogo<Sensor> caixaSensorMap;
     private CaixaCatalogo<Injecao> caixaInjecao;
+    private CaixaCatalogo<Turbo> caixaTurbo;
+    private CaixaCatalogo<Cambio> caixaCambio;
+    /** No projeto, o câmbio é o do veículo (null = veículo sem câmbio do catálogo); na calculadora avulsa, não se usa. */
+    private boolean cambioDoVeiculo;
+    private Long cambioDoVeiculoId;
     /** Recursos da injeção que o projeto pede (ex.: câmbio controlado pela injeção). */
     private Supplier<Set<Recurso>> recursosExigidos = Set::of;
     private PecasEscolhidas ultimasPecas = PecasEscolhidas.NENHUMA;
@@ -190,13 +205,19 @@ public class CalculadoraController {
     // ===================== Montagem da tela =====================
 
     private void configurarEscolhas() {
+        CamposTela.configurar(tipoMeta, Arrays.asList(TipoMeta.values()), TipoMeta::rotulo);
+        CamposTela.configurar(unidadePressaoMeta, Arrays.asList(TipoMeta.Unidade.values()), TipoMeta.Unidade::simbolo);
         CamposTela.configurar(pontoMedicao, Arrays.asList(PontoMedicao.values()), PontoMedicao::rotulo);
         CamposTela.configurar(uso, Arrays.asList(Uso.values()), Uso::rotulo);
         CamposTela.configurar(caminhoAr, Arrays.asList(CaminhoAr.values()), CaminhoAr::rotulo);
     }
 
     private void registrarCampos() {
+        campos.registrar(Campo.TIPO_META, tipoMeta, Enum::name);
         campos.registrar(Campo.POTENCIA_CV, potencia);
+        campos.registrar(Campo.PRESSAO_META, pressaoMeta);
+        campos.registrar(Campo.UNIDADE_PRESSAO_META, unidadePressaoMeta, Enum::name);
+        campos.registrar(Campo.VE_TORQUE, veTorque);
         campos.registrar(Campo.PONTO_MEDICAO, pontoMedicao, Enum::name);
         campos.registrar(Campo.PERDA_TRANSMISSAO, perdaTransmissao);
         campos.registrar(Campo.RPM_POTENCIA, rpmPotencia);
@@ -242,6 +263,10 @@ public class CalculadoraController {
         caixaIntercooler = new CaixaCatalogo<>(catalogoIntercooler, "(usar o eps digitado)");
         caixaSensorMap = new CaixaCatalogo<>(catalogoSensorMap, "(digitar a faixa)");
         caixaInjecao = new CaixaCatalogo<>(catalogoInjecao, "(digitar os dados)");
+        caixaTurbo = new CaixaCatalogo<>(catalogoTurbo, "(sem turbo do catálogo)");
+        caixaCambio = new CaixaCatalogo<>(catalogoCambio, "(sem câmbio do catálogo)");
+        caixaTurbo.aoMudar(() -> peca(() -> { }));
+        caixaCambio.aoMudar(() -> peca(() -> { }));
         caixaBico.aoMudar(() -> peca(() -> mostrarBico(caixaBico.escolhido(), bicoVazao, bicoPressaoTeste,
                 bicoDensidadeTeste, bicoTempoMorto)));
         caixaBico2.aoMudar(() -> peca(() -> mostrarBico(caixaBico2.escolhido(), bico2Vazao, bico2PressaoTeste,
@@ -304,6 +329,8 @@ public class CalculadoraController {
 
     /** Padrões de cálculo e campos neutros. */
     private void preencherPadroes() {
+        tipoMeta.setValue(TipoMeta.POTENCIA);
+        unidadePressaoMeta.setValue(TipoMeta.Unidade.BAR);
         pontoMedicao.setValue(PontoMedicao.VIRABREQUIM);
         caminhoAr.setValue(CaminhoAr.K_AR);
         temperaturaAmbiente.setText("25");
@@ -312,6 +339,7 @@ public class CalculadoraController {
     }
 
     private void configurarReacoes() {
+        tipoMeta.valueProperty().addListener((obs, antes, depois) -> atualizarHabilitados());
         pontoMedicao.valueProperty().addListener((obs, antes, depois) -> atualizarHabilitados());
         caminhoAr.valueProperty().addListener((obs, antes, depois) -> atualizarHabilitados());
         motorController.aoMudarBicosPorCilindro(this::atualizarHabilitados);
@@ -345,6 +373,10 @@ public class CalculadoraController {
     // ===================== Reações =====================
 
     private void atualizarHabilitados() {
+        boolean pelaPressao = tipoMeta.getValue() == TipoMeta.PRESSAO;
+        potencia.setDisable(pelaPressao);
+        pressaoMeta.setDisable(!pelaPressao);
+        unidadePressaoMeta.setDisable(!pelaPressao);
         perdaTransmissao.setDisable(pontoMedicao.getValue() != PontoMedicao.RODA);
         kAr.setDisable(caminhoAr.getValue() != CaminhoAr.K_AR);
         bsfc.setDisable(caminhoAr.getValue() != CaminhoAr.BSFC);
@@ -405,7 +437,8 @@ public class CalculadoraController {
             ultimaEntrada = leitura.entrada();
             ultimasPecas = pecas;
             desatualizado = false;
-            painelResultado.getChildren().setAll(painel.montar(ultimoResultado));
+            painelResultado.getChildren().setAll(painel.montar(ultimoResultado,
+                    ultimaEntrada.turbo() == null ? null : ultimaEntrada.turbo().mapa()));
             botaoPdf.setDisable(false);
             long vermelhos = ultimoResultado.valor().semaforo().stream()
                     .filter(a -> a.cor() == Cor.VERMELHO).count();
@@ -456,6 +489,11 @@ public class CalculadoraController {
         caixaSensorMap.itens(catalogo.ativos(TipoCatalogo.SENSOR).stream()
                 .filter(item -> item.dados().tipo() == TipoSensor.MAP).toList());
         caixaInjecao.itens(catalogo.ativos(TipoCatalogo.INJECAO));
+        caixaTurbo.itens(catalogo.ativos(TipoCatalogo.TURBO));
+        caixaCambio.itens(catalogo.ativos(TipoCatalogo.CAMBIO));
+        if (cambioDoVeiculo) {
+            usarCambioDoVeiculo(cambioDoVeiculoId);
+        }
         motorController.atualizarCombustiveis();
     }
 
@@ -463,7 +501,28 @@ public class CalculadoraController {
     PecasEscolhidas pecasEscolhidas() {
         return new PecasEscolhidas(caixaBico.escolhido(), bicosPorCilindro() == 2 ? caixaBico2.escolhido() : null,
                 caixaBomba.escolhido(), caixaIntercooler.escolhido(), caixaSensorMap.escolhido(),
-                caixaInjecao.escolhido());
+                caixaInjecao.escolhido(), caixaTurbo.escolhido(), caixaCambio.escolhido());
+    }
+
+    /**
+     * Modo projeto: o câmbio do torque × câmbio é o do veículo (aba Veículo), na versão atual do catálogo; a lista
+     * fica travada. Trocar o câmbio do veículo depois de um cálculo deixa o resultado desatualizado.
+     *
+     * @param cambioItemId null se o veículo não tem câmbio do catálogo
+     */
+    void usarCambioDoVeiculo(Long cambioItemId) {
+        cambioDoVeiculo = true;
+        cambioDoVeiculoId = cambioItemId;
+        ItemCatalogo<Cambio> item = cambioItemId == null || catalogo == null ? null
+                : catalogo.buscar(TipoCatalogo.CAMBIO, cambioItemId).orElse(null);
+        ItemCatalogo<Cambio> atual = caixaCambio.escolhido();
+        boolean mesmo = item == null ? atual == null
+                : atual != null && atual.id() == item.id() && atual.versao() == item.versao();
+        if (!mesmo) {
+            caixaCambio.escolher(item);
+        }
+        catalogoCambio.setDisable(true);
+        catalogoCambio.setTooltip(new Tooltip("No projeto, vale o câmbio do veículo (troque na aba Veículo)."));
     }
 
     /**
@@ -483,6 +542,12 @@ public class CalculadoraController {
                         .ifPresent(caixaIntercooler::escolher);
                 case SENSOR_MAP -> catalogo.buscar(TipoCatalogo.SENSOR, peca.itemId()).ifPresent(caixaSensorMap::escolher);
                 case INJECAO -> catalogo.buscar(TipoCatalogo.INJECAO, peca.itemId()).ifPresent(caixaInjecao::escolher);
+                case TURBO -> catalogo.buscar(TipoCatalogo.TURBO, peca.itemId()).ifPresent(caixaTurbo::escolher);
+                case CAMBIO -> {
+                    if (!cambioDoVeiculo) {
+                        catalogo.buscar(TipoCatalogo.CAMBIO, peca.itemId()).ifPresent(caixaCambio::escolher);
+                    }
+                }
                 case COMBUSTIVEL -> {
                     // Vem com o motor do projeto.
                 }
@@ -551,6 +616,16 @@ public class CalculadoraController {
             sugestao.item().ifPresent(caixaInjecao::escolher);
             return sugestao;
         });
+    }
+
+    /** Os turbos do catálogo cujo mapa tem os pontos de potência e de torque, do mais eficiente para o menos. */
+    @FXML
+    private void sugerirTurbo() {
+        entradaParaSugerir(pecasEscolhidas().semTurbo(), Map.of()).ifPresent(entrada -> sugerir(() -> {
+            SugestaoPecas.Sugestao<Turbo> sugestao = SugestaoPecas.turbo(catalogo.ativos(TipoCatalogo.TURBO), entrada);
+            sugestao.item().ifPresent(caixaTurbo::escolher);
+            return sugestao;
+        }));
     }
 
     /** A entrada da tela sem a peça a sugerir; com erro de digitação, mostra o que corrigir. */

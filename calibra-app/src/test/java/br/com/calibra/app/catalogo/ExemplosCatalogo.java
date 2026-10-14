@@ -112,6 +112,22 @@ public final class ExemplosCatalogo {
         return new MapaCompressor.PontoMapa(vazao, pr);
     }
 
+    /**
+     * Mapa fictício para o caso golden B (kg/s × PR, referência 298 K e 100 kPa). O ponto de potência do caso B fica
+     * perto de 0,32 kg/s corrigidos a PR 2,9: dentro do mapa grande (até PR 3,4), acima do pequeno (até PR 2,5).
+     */
+    public static MapaCompressor mapaCasoB(boolean grande, double eficiencia) {
+        double topo = grande ? 3.4 : 2.5;
+        return new MapaCompressor(UnidadeVazao.KG_S, 298.0, 100.0,
+                List.of(ponto(0.08, 1.3), ponto(0.18, 2.5), ponto(0.24, topo)),
+                List.of(ponto(0.40, 1.3), ponto(0.46, 2.5), ponto(0.50, topo)),
+                List.of(new MapaCompressor.Ilha(eficiencia, List.of(ponto(0.22, 2.4), ponto(0.40, 2.4), ponto(0.38, 3.2),
+                        ponto(0.26, 3.2)))),
+                List.of(new MapaCompressor.LinhaRotacao(100_000, List.of(ponto(0.10, 1.8), ponto(0.45, 1.6))),
+                        new MapaCompressor.LinhaRotacao(160_000, List.of(ponto(0.24, topo), ponto(0.50, topo - 0.2)))),
+                180_000.0);
+    }
+
     public static Exemplo<Turbo> turbo() {
         CalibracaoImagem calibracao = new CalibracaoImagem(100, 10, 700, 60, 500, 1.0, 100, 3.0);
         return new Exemplo<>(TipoCatalogo.TURBO, new Turbo("Turbo teste 60", mapaFicticio(), 0.63, "turbo-1.png",

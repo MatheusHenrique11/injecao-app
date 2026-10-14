@@ -340,3 +340,12 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - Mostra a meta pela pressão, a VE do torque, o turbo (A/R e resumo do mapa) e o câmbio (torque máximo).
     - Mostra o ponto de torque estimado e os pontos de potência e de torque no mapa (vazão corrigida, PR, eficiência, rotação e folgas).
     - Mostra os limiares novos do compressor e do câmbio.
+130. **Turbo e câmbio no Dimensionamento:**
+    - "Sugerir turbos" escolhe, entre os turbos com mapa que têm os pontos de potência e de torque dentro, o mais eficiente no ponto de potência.
+    - A mensagem lista os outros que atendem, com a eficiência, e traz o compromisso do A/R. Os avisos dizem por que cada um dos outros ficou de fora.
+    - O câmbio se escolhe na calculadora avulsa. No projeto vale o câmbio do veículo, e a lista fica travada (troca-se na aba Veículo).
+131. **Mapa desenhado no resultado** a partir dos dados gravados, sem a imagem do fabricante:
+    - Usa o eixo de vazão em que o mapa foi digitalizado, com escala automática.
+    - Os pontos de potência (círculo) e de torque (quadrado) aparecem com a vazão corrigida pela referência do mapa.
+    - As linhas "No mapa" do resultado e do PDF usam o mesmo texto.
+132. **Meta pela pressão também no assistente** (etapa Meta e uso). A regra "só sobrealimentado" é conferida com o motor da etapa anterior.

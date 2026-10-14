@@ -85,23 +85,31 @@
               <ColumnConstraints minWidth="230.0"/>
               <ColumnConstraints minWidth="230.0" hgrow="SOMETIMES"/>
             </columnConstraints>
-            <Label text="Potência meta (cv)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-            <TextField fx:id="potencia" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+            <Label text="Meta pela" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <ComboBox fx:id="tipoMeta" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
             <Label text="Medida em" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
             <ComboBox fx:id="pontoMedicao" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
 
-            <Label text="Perda de transmissão (%)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-            <TextField fx:id="perdaTransmissao" promptText="só com meta na roda" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
-            <Label text="Uso" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
-            <ComboBox fx:id="uso" promptText="Escolha" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+            <Label text="Potência meta (cv)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <TextField fx:id="potencia" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+            <Label text="Pressão do turbo (acima da atmosfera)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+            <HBox spacing="6.0" GridPane.rowIndex="1" GridPane.columnIndex="3">
+              <TextField fx:id="pressaoMeta" promptText="ex.: 0,5" prefWidth="110.0"/>
+              <ComboBox fx:id="unidadePressaoMeta"/>
+            </HBox>
 
-            <Label text="Rotação de potência máxima (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-            <TextField fx:id="rpmPotencia" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-            <Label text="Rotação de torque máximo (rpm)" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
-            <TextField fx:id="rpmTorque" promptText="opcional por enquanto" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+            <Label text="Perda de transmissão (%)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <TextField fx:id="perdaTransmissao" promptText="só com meta na roda" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            <Label text="Uso" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+            <ComboBox fx:id="uso" promptText="Escolha" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+
+            <Label text="Rotação de potência máxima (rpm)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+            <TextField fx:id="rpmPotencia" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+            <Label text="Rotação de torque máximo (rpm)" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+            <TextField fx:id="rpmTorque" promptText="opcional: dá o ponto de torque" GridPane.rowIndex="3" GridPane.columnIndex="3"/>
           </GridPane>
           <Label styleClass="dica" wrapText="true"
-                 text="A meta pode ser ajustada depois, na aba Dimensionamento do projeto. A rotação de torque máximo será obrigatória para gerar o mapa base."/>
+                 text="A meta pode ser ajustada depois, na aba Dimensionamento do projeto. Pela pressão (só sobrealimentado), a potência sai do cálculo. A rotação de torque máximo será obrigatória para gerar o mapa base."/>
         </VBox>
 
         <!-- ===================== 5. Injeção (opcional) ===================== -->

@@ -16,6 +16,7 @@ import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.dimensionamento.SelecaoBico;
 import br.com.calibra.core.dimensionamento.SelecaoBomba;
 import br.com.calibra.core.dimensionamento.SelecaoInjecao;
+import br.com.calibra.core.dimensionamento.SelecaoTurbo;
 import br.com.calibra.core.memoria.Aviso;
 import br.com.calibra.core.memoria.NivelAviso;
 import br.com.calibra.core.memoria.Resultado;
@@ -24,12 +25,14 @@ import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Recurso;
+import br.com.calibra.core.pecas.Turbo;
 import br.com.calibra.core.unidades.Conversoes;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 
 /**
  * Os botões "Sugerir" do dimensionamento (SPEC 7.3): escolhem no catálogo, com as regras já testadas no núcleo
- * ({@link SelecaoBico}, {@link SelecaoBomba} e {@link SelecaoInjecao}), e explicam a escolha em português. Só
+ * ({@link SelecaoBico}, {@link SelecaoBomba}, {@link SelecaoInjecao} e {@link SelecaoTurbo}), e explicam a escolha em
+ * português. Só
  * os itens ativos entram (quem chama passa a lista). Sem JavaFX.
  */
 public final class SugestaoPecas {
@@ -135,6 +138,42 @@ public final class SugestaoPecas {
                         .map(injecao -> doCatalogo(injecoes, injecao).info().nome()).toList()) + ".";
         return new Sugestao<>(Optional.of(item), "Sugerida: " + item.info().nome() + pedidos + "." + outras,
                 List.of());
+    }
+
+    /**
+     * O turbo mais eficiente no ponto de potência, entre os que têm os pontos de potência e de torque dentro do mapa
+     * ({@link SelecaoTurbo}). A mensagem traz o compromisso do A/R (SPEC 7.3); os avisos dizem por que os outros
+     * ficaram de fora.
+     *
+     * @throws EntradaInvalidaException se a entrada não fecha
+     */
+    public static Sugestao<Turbo> turbo(List<ItemCatalogo<Turbo>> turbos, EntradaDimensionamento entrada) {
+        if (turbos.isEmpty()) {
+            return new Sugestao<>(Optional.empty(), "Nenhum turbo cadastrado no catálogo.", List.of());
+        }
+        Dimensionamento d = CalculoDimensionamento.calcular(entrada.comTurbo(null)).valor();
+        if (d.compressor() == null) {
+            return new Sugestao<>(Optional.empty(), "O turbo só entra em motor sobrealimentado.", List.of());
+        }
+        Resultado<List<SelecaoTurbo.Escolha>> resultado = SelecaoTurbo.escolher(
+                turbos.stream().map(ItemCatalogo::dados).toList(), d.compressor());
+        List<String> avisos = resultado.avisos().stream().map(Aviso::mensagem).toList();
+        List<SelecaoTurbo.Escolha> atendem = resultado.valor();
+        if (atendem.isEmpty()) {
+            return new Sugestao<>(Optional.empty(), "Nenhum turbo do catálogo tem os pontos de potência e de torque "
+                    + "dentro do mapa (PR " + formatar(d.compressor().razaoPressao(), 2) + ").", avisos);
+        }
+        SelecaoTurbo.Escolha melhor = atendem.getFirst();
+        ItemCatalogo<Turbo> item = doCatalogo(turbos, melhor.turbo());
+        String outros = atendem.size() == 1 ? ""
+                : " Também atendem: " + String.join(", ", atendem.subList(1, atendem.size()).stream()
+                        .map(escolha -> doCatalogo(turbos, escolha.turbo()).info().nome() + " ("
+                                + SelecaoTurbo.eficiencia(escolha.potencia()) + ")")
+                        .toList()) + ".";
+        return new Sugestao<>(Optional.of(item), "Sugerido: " + item.info().nome() + " ("
+                + SelecaoTurbo.eficiencia(melhor.potencia()) + " no ponto de potência"
+                + (melhor.torque() == null ? "" : ", " + SelecaoTurbo.eficiencia(melhor.torque()) + " no de torque")
+                + ")." + outros + " " + Turbo.COMPROMISSO_AR, avisos);
     }
 
     private static List<String> amarelos(Resultado<?> resultado) {

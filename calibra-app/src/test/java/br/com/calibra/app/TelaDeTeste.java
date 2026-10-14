@@ -119,7 +119,15 @@ final class TelaDeTeste {
         cena.getRoot().applyCss();
         cena.getRoot().layout();
         desligarCache(cena.getRoot());
-        WritableImage imagem = cena.snapshot(null);
+        gravar(cena.snapshot(null), nome);
+    }
+
+    /** Salva a imagem de uma parte da tela (ex.: o desenho do mapa, que fica abaixo da área visível) em target/. */
+    static void salvar(Node no, String nome) throws IOException {
+        gravar(no.snapshot(null, null), nome);
+    }
+
+    private static void gravar(WritableImage imagem, String nome) throws IOException {
         int largura = (int) imagem.getWidth();
         int altura = (int) imagem.getHeight();
         BufferedImage saida = new BufferedImage(largura, altura, BufferedImage.TYPE_INT_ARGB);

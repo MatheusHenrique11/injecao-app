@@ -4,6 +4,7 @@ import static br.com.calibra.core.util.NumeroBr.formatar;
 import static br.com.calibra.core.util.NumeroBr.percentual;
 
 import br.com.calibra.core.memoria.Valor;
+import br.com.calibra.core.pecas.MapaCompressor;
 import br.com.calibra.core.unidades.Conversoes;
 
 /**
@@ -68,5 +69,20 @@ public final class Apresentacao {
         boolean inteiro = numero == Math.rint(numero) && Math.abs(numero) < 1e9;
         String texto = inteiro ? formatar(numero, 0) : formatar(numero);
         return unidade == null || unidade.isBlank() ? texto : texto + " " + unidade;
+    }
+
+    /** Um ponto no mapa do compressor: vazão corrigida, PR, eficiência, rotação e as folgas do surge e do choke. */
+    public static String pontoNoMapa(MapaCompressor.PontoNoMapa ponto) {
+        String inicio = "vazão corrigida " + vazaoAr(ponto.vazaoCorrigidaKgS()) + SEPARADOR + "PR "
+                + formatar(ponto.razaoPressao(), 2);
+        if (!ponto.dentro()) {
+            return inicio + SEPARADOR + "fora do mapa (" + ponto.foraDoMapa() + ")";
+        }
+        return inicio + SEPARADOR + (ponto.eficiencia() == null ? "fora das ilhas desenhadas"
+                : "eficiência " + percentual(ponto.eficiencia(), 0))
+                + (ponto.rotacaoRpm() != null ? SEPARADOR + "turbo a " + formatar(ponto.rotacaoRpm(), 0) + " rpm"
+                        : ponto.acimaDasLinhas() ? SEPARADOR + "acima da maior linha de rotação" : "")
+                + SEPARADOR + "folga do surge " + percentual(ponto.margemSurge(), 0) + " e do choke "
+                + percentual(ponto.margemChoke(), 0);
     }
 }
