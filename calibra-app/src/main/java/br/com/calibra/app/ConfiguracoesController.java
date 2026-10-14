@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +23,11 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -35,11 +38,13 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CampoPadrao;
+import br.com.calibra.app.casos.FormularioOrcamento;
 import br.com.calibra.app.casos.FormularioPadroes;
 import br.com.calibra.app.casos.LogoOficina;
 import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.orcamento.PadroesOrcamento;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.backup.Backup;
 import br.com.calibra.dados.backup.BackupInvalidoException;
@@ -48,7 +53,10 @@ import br.com.calibra.dados.backup.MotivoBackup;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.config.ConfiguracaoRepositorio;
 
-/** Tela de Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo e backup. */
+/**
+ * Tela de Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo, padrões do orçamento
+ * e backup.
+ */
 public class ConfiguracoesController {
 
     private static final Logger LOG = Logger.getLogger(ConfiguracoesController.class.getName());
@@ -100,6 +108,16 @@ public class ConfiguracoesController {
     @FXML private TextField limiarCompressorEficiencia;
     @FXML private VBox mensagensPadroes;
 
+    // ---------- Orçamento ----------
+    @FXML private ComboBox<FormularioOrcamento.TipoDesconto> orcamentoTipoDesconto;
+    @FXML private TextField orcamentoDesconto;
+    @FXML private TextField orcamentoValorHora;
+    @FXML private TextField orcamentoPrazoDias;
+    @FXML private TextField orcamentoValidadeDias;
+    @FXML private TextField orcamentoPrazoObservacao;
+    @FXML private TextArea orcamentoCondicoes;
+    @FXML private VBox mensagensOrcamento;
+
     // ---------- Backup ----------
     @FXML private TabPane abasConfiguracoes;
     @FXML private Tab abaBackup;
@@ -125,6 +143,7 @@ public class ConfiguracoesController {
 
     private DadosOficina oficinaSalva = DadosOficina.vazia();
     private Parametros padroesSalvos = Parametros.padrao();
+    private PadroesOrcamento orcamentoSalvo = PadroesOrcamento.padrao();
     /** Imagem escolhida para o logo e ainda não salva; null = sem troca. */
     private Path logoEscolhido;
     private boolean logoRemovido;
@@ -161,6 +180,10 @@ public class ConfiguracoesController {
         camposPadrao.put(CampoPadrao.COMPRESSOR_EFICIENCIA_PONTOS, limiarCompressorEficiencia);
         camposPadrao.forEach((campo, texto) -> texto.textProperty().addListener((obs, antes, depois) ->
                 texto.pseudoClassStateChanged(EDITADO, !Objects.equals(depois, textosDaSpec.get(campo)))));
+        CamposTela.configurar(orcamentoTipoDesconto, Arrays.asList(FormularioOrcamento.TipoDesconto.values()),
+                FormularioOrcamento.TipoDesconto::rotulo);
+        orcamentoDesconto.disableProperty().bind(orcamentoTipoDesconto.valueProperty()
+                .isEqualTo(FormularioOrcamento.TipoDesconto.NENHUM));
     }
 
     /**
@@ -174,8 +197,10 @@ public class ConfiguracoesController {
         this.aoSalvarPadroes = aoSalvarPadroes;
         oficinaSalva = configuracao.ler(Chave.OFICINA);
         padroesSalvos = configuracao.ler(Chave.CALCULO);
+        orcamentoSalvo = configuracao.ler(Chave.ORCAMENTO);
         descartarOficina();
         descartarPadroes();
+        descartarPadroesOrcamento();
     }
 
     /**
@@ -339,6 +364,38 @@ public class ConfiguracoesController {
     private void preencherPadroes(Parametros parametros) {
         Map<CampoPadrao, String> textos = FormularioPadroes.textos(parametros);
         camposPadrao.forEach((campo, texto) -> texto.setText(textos.get(campo)));
+    }
+
+    // ===================== Orçamento =====================
+
+    @FXML
+    private void descartarPadroesOrcamento() {
+        FormularioOrcamento.TextosPadroes textos = FormularioOrcamento.escrever(orcamentoSalvo);
+        orcamentoTipoDesconto.setValue(textos.tipoDesconto());
+        orcamentoDesconto.setText(textos.desconto());
+        orcamentoValorHora.setText(textos.valorHora());
+        orcamentoPrazoDias.setText(textos.prazoDias());
+        orcamentoValidadeDias.setText(textos.validadeDias());
+        orcamentoPrazoObservacao.setText(textos.prazoObservacao());
+        orcamentoCondicoes.setText(textos.condicoes());
+        mensagensOrcamento.getChildren().clear();
+    }
+
+    @FXML
+    private void salvarPadroesOrcamento() {
+        FormularioOrcamento.LeituraPadroes leitura = FormularioOrcamento.ler(new FormularioOrcamento.TextosPadroes(
+                orcamentoTipoDesconto.getValue(), orcamentoDesconto.getText(), orcamentoPrazoDias.getText(),
+                orcamentoPrazoObservacao.getText(), orcamentoValidadeDias.getText(), orcamentoCondicoes.getText(),
+                orcamentoValorHora.getText()));
+        if (!leitura.erros().isEmpty()) {
+            mostrarErros(mensagensOrcamento, leitura.erros());
+            return;
+        }
+        if (gravar(Chave.ORCAMENTO, leitura.padroes(), mensagensOrcamento)) {
+            orcamentoSalvo = leitura.padroes();
+            descartarPadroesOrcamento();
+            mostrarOk(mensagensOrcamento, "Padrões do orçamento salvos. Valem para os próximos orçamentos.");
+        }
     }
 
     // ===================== Backup =====================

@@ -18,7 +18,8 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Projeto (SPEC 8.3): Resumo · Veículo · Motor · Dimensionamento. Peças e orçamento entram no bloco 2.5. -->
+<!-- Projeto (SPEC 8.3): Resumo · Veículo · Motor · Dimensionamento · Peças e orçamento (a última aba é montada pelo
+     ProjetoController com orcamento.fxml). -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.ProjetoController">
   <top>

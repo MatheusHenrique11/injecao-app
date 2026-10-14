@@ -74,8 +74,8 @@ import br.com.calibra.relatorios.DadosRelatorio;
 import br.com.calibra.relatorios.IdentificacaoProjeto;
 
 /**
- * Projeto (SPEC 8.3) em abas: Resumo, Veículo (editável, com histórico), Motor (versões e comparação) e
- * Dimensionamento (a calculadora com o motor do projeto, salvar cálculo e histórico).
+ * Projeto (SPEC 8.3) em abas: Resumo, Veículo (editável, com histórico), Motor (versões e comparação),
+ * Dimensionamento (a calculadora com o motor do projeto, salvar cálculo e histórico) e Peças e orçamento.
  */
 public class ProjetoController {
 
@@ -138,6 +138,9 @@ public class ProjetoController {
     private final Button botaoSalvarCalculo = new Button("_Salvar cálculo no projeto");
     private final TableView<SituacaoCalculo> calculos = new TableView<>();
     private Tab abaCalculosSalvos;
+
+    // ---------- Peças e orçamento ----------
+    private OrcamentoController orcamento;
 
     private CasosProjeto casos;
     private CasosCatalogo catalogo;
@@ -265,6 +268,33 @@ public class ProjetoController {
         calculadora.usarMotorDoProjeto(motor.configuracao());
         calculadora.usarCambioDoVeiculo(aberto.veiculo().cambioItemId());
         atualizarCalculos();
+        if (orcamento != null) {
+            orcamento.atualizar();
+        }
+    }
+
+    /** A aba do orçamento (para os testes de interface); null antes de {@link #usarOrcamento}. */
+    OrcamentoController orcamento() {
+        return orcamento;
+    }
+
+    /**
+     * A aba "Peças e orçamento" (bloco 2.5), logo depois do Dimensionamento. Ela relê a situação ao ser aberta (o
+     * cálculo ou o motor podem ter mudado) e avisa quando o status do projeto muda (enviado, aprovado).
+     */
+    void usarOrcamento(OrcamentoController.Recursos recursos) {
+        FXMLLoader carregador = new FXMLLoader(ProjetoController.class.getResource("orcamento.fxml"));
+        Parent tela = carregar(carregador);
+        Tab aba = new Tab("Peças e orçamento", tela);
+        aba.setId("abaOrcamento");
+        abas.getTabs().add(abas.getTabs().indexOf(abaDimensionamento) + 1, aba);
+        orcamento = carregador.getController();
+        orcamento.iniciar(recursos, servicos, projetoId, this::recarregar);
+        aba.setOnSelectionChanged(evento -> {
+            if (aba.isSelected()) {
+                orcamento.atualizar();
+            }
+        });
     }
 
     // ===================== Cabeçalho =====================

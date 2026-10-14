@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.ColumnConstraints?>
@@ -12,7 +14,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo e backup. -->
+<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo, padrões do orçamento
+     e backup. -->
 <TabPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
          fx:id="abasConfiguracoes" fx:controller="br.com.calibra.app.ConfiguracoesController"
          tabClosingPolicy="UNAVAILABLE">
@@ -197,6 +200,50 @@
           <Button text="Descartar alterações" onAction="#descartarPadroes"/>
         </HBox>
         <VBox fx:id="mensagensPadroes" spacing="4.0"/>
+      </VBox>
+    </ScrollPane>
+  </Tab>
+
+  <!-- ===================== Orçamento ===================== -->
+  <Tab fx:id="abaOrcamento" text="Orçamento">
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina">
+        <Label styleClass="titulo-secao" text="O que um orçamento novo traz preenchido"/>
+        <Label styleClass="dica" wrapText="true"
+               text="É a política comercial da oficina. Tudo se muda em cada orçamento; mudar aqui não mexe nos orçamentos já feitos."/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="200.0"/>
+            <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+            <ColumnConstraints minWidth="230.0"/>
+            <ColumnConstraints minWidth="200.0" hgrow="SOMETIMES"/>
+          </columnConstraints>
+          <Label text="Desconto" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <HBox spacing="6.0" GridPane.rowIndex="0" GridPane.columnIndex="1">
+            <ComboBox fx:id="orcamentoTipoDesconto"/>
+            <TextField fx:id="orcamentoDesconto" prefWidth="110.0"/>
+          </HBox>
+          <Label text="Valor da hora de mão de obra (R$)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+          <TextField fx:id="orcamentoValorHora" promptText="vazio: digitar em cada orçamento" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+          <Label text="Prazo (dias úteis)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <TextField fx:id="orcamentoPrazoDias" promptText="0 = a combinar" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <Label text="Validade do orçamento (dias)" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+          <TextField fx:id="orcamentoValidadeDias" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+          <Label text="Prazo conta" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <TextField fx:id="orcamentoPrazoObservacao" promptText="ex.: a partir da aprovação e da chegada das peças"
+                     GridPane.rowIndex="2" GridPane.columnIndex="1" GridPane.columnSpan="3"/>
+
+          <Label text="Condições de pagamento" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <TextArea fx:id="orcamentoCondicoes" prefRowCount="2" wrapText="true" promptText="ex.: 50% na aprovação e 50% na entrega"
+                    GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="3"/>
+        </GridPane>
+        <HBox spacing="10.0">
+          <Button fx:id="botaoSalvarOrcamento" text="Salvar padrões do orçamento" onAction="#salvarPadroesOrcamento"/>
+          <Button text="Descartar alterações" onAction="#descartarPadroesOrcamento"/>
+        </HBox>
+        <VBox fx:id="mensagensOrcamento" spacing="4.0"/>
       </VBox>
     </ScrollPane>
   </Tab>

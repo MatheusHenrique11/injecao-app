@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Peças e orçamento do projeto (bloco 2.5): itens do cálculo, serviços, desconto, prazo, validade, PDF, texto
+     para WhatsApp, envio, resposta do cliente e revisões. -->
+<ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.OrcamentoController" fitToWidth="true">
+  <VBox styleClass="pagina">
+    <HBox spacing="12.0" alignment="CENTER_LEFT">
+      <Label fx:id="numero" styleClass="titulo-secao"/>
+      <Label fx:id="situacao" styleClass="etiqueta-status"/>
+    </HBox>
+    <Label fx:id="explicacao" styleClass="dica" wrapText="true"/>
+    <HBox fx:id="faixaDesatualizado" spacing="10.0" alignment="CENTER_LEFT" visible="false" managed="false">
+      <Label fx:id="motivos" styleClass="faixa-desatualizado" wrapText="true" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+      <Button fx:id="botaoUsarCalculoMaisNovo" text="Usar o cálculo mais novo" onAction="#usarCalculoMaisNovo"/>
+    </HBox>
+
+    <Label styleClass="titulo-secao" text="Peças e serviços"/>
+    <Label styleClass="dica" wrapText="true"
+           text="As peças vêm do último cálculo salvo, com o preço de referência do catálogo (peça sem preço vem com o valor em branco). Some os serviços, como a mão de obra em horas. Valores em reais com vírgula (ex.: 1.234,56)."/>
+    <GridPane fx:id="gradeItens" styleClass="grade"/>
+    <HBox spacing="10.0">
+      <Button fx:id="botaoAdicionarPeca" text="+ Peça" onAction="#adicionarPeca"/>
+      <Button fx:id="botaoAdicionarServico" text="+ Serviço (mão de obra)" onAction="#adicionarServico"/>
+      <Button fx:id="botaoPecasDoCalculo" text="Trazer as peças do cálculo de novo" onAction="#trazerPecasDoCalculo"/>
+    </HBox>
+
+    <Label styleClass="titulo-secao" text="Desconto, prazo e condições"/>
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="170.0"/>
+        <ColumnConstraints minWidth="300.0" hgrow="SOMETIMES"/>
+        <ColumnConstraints minWidth="200.0"/>
+        <ColumnConstraints minWidth="200.0" hgrow="SOMETIMES"/>
+      </columnConstraints>
+      <Label text="Desconto" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <HBox spacing="6.0" GridPane.rowIndex="0" GridPane.columnIndex="1">
+        <ComboBox fx:id="tipoDesconto"/>
+        <TextField fx:id="desconto" prefWidth="110.0"/>
+      </HBox>
+      <Label text="Validade do orçamento (dias)" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+      <TextField fx:id="validadeDias" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+      <Label text="Prazo (dias úteis)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <TextField fx:id="prazoDias" promptText="0 = a combinar" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label text="Prazo conta" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+      <TextField fx:id="prazoObservacao" promptText="ex.: a partir da aprovação" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+
+      <Label text="Condições de pagamento" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <TextArea fx:id="condicoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="2" GridPane.columnIndex="1"
+                GridPane.columnSpan="3"/>
+
+      <Label text="Observações" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <TextArea fx:id="observacoesOrcamento" prefRowCount="2" wrapText="true" GridPane.rowIndex="3" GridPane.columnIndex="1"
+                GridPane.columnSpan="3"/>
+    </GridPane>
+
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="170.0"/>
+        <ColumnConstraints minWidth="160.0"/>
+      </columnConstraints>
+      <Label text="Peças" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <Label fx:id="totalPecas" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Serviços" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <Label fx:id="totalServicos" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label fx:id="rotuloDesconto" text="Desconto" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <Label fx:id="totalDesconto" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+      <Label styleClass="negrito" text="Total" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <Label fx:id="total" styleClass="negrito" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <HBox spacing="10.0">
+      <Button fx:id="botaoSalvar" text="Salvar rascunho" onAction="#salvarRascunho"/>
+      <Button fx:id="botaoDescartar" text="Descartar alterações" onAction="#descartar"/>
+    </HBox>
+    <VBox fx:id="mensagens" spacing="4.0"/>
+
+    <Label styleClass="titulo-secao" text="Envio e resposta do cliente"/>
+    <Label styleClass="dica" wrapText="true"
+           text="O Calibra não envia nada: gere o PDF ou copie o texto e mande você mesmo. Depois marque como enviado (a validade conta a partir daí) e registre a resposta do cliente. Aprovado não muda mais: para alterar, abra uma revisão nova."/>
+    <HBox spacing="10.0">
+      <Button fx:id="botaoPdf" text="Gerar PDF…" onAction="#gerarPdf"/>
+      <Button fx:id="botaoWhatsApp" text="Copiar texto para WhatsApp" onAction="#copiarWhatsApp"/>
+      <Button fx:id="botaoEnviado" text="Marcar como enviado" onAction="#marcarEnviado"/>
+      <Button fx:id="botaoAprovado" text="Aprovado pelo cliente…" onAction="#aprovado"/>
+      <Button fx:id="botaoRecusado" text="Recusado…" onAction="#recusado"/>
+      <Button fx:id="botaoNovaRevisao" text="Nova revisão" onAction="#novaRevisao"/>
+    </HBox>
+
+    <Label styleClass="titulo-secao" text="Revisões"/>
+    <TableView fx:id="revisoes" prefHeight="170.0">
+      <placeholder>
+        <Label styleClass="dica" text="Nenhum orçamento gravado ainda."/>
+      </placeholder>
+      <columns>
+        <TableColumn fx:id="colunaNumero" text="Número" prefWidth="170.0"/>
+        <TableColumn fx:id="colunaSituacao" text="Situação" prefWidth="110.0"/>
+        <TableColumn fx:id="colunaTotal" text="Total" prefWidth="120.0"/>
+        <TableColumn fx:id="colunaCriado" text="Criado em" prefWidth="130.0"/>
+        <TableColumn fx:id="colunaEnviado" text="Enviado em" prefWidth="130.0"/>
+        <TableColumn fx:id="colunaResposta" text="Resposta do cliente" prefWidth="320.0"/>
+      </columns>
+    </TableView>
+  </VBox>
+</ScrollPane>

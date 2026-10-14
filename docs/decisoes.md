@@ -387,3 +387,12 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - O cliente sai como está no cadastro no momento da geração: anonimizado, se foi anonimizado.
     - A validade conta da data do envio (no rascunho, da data da geração, e o PDF diz "RASCUNHO").
     - O texto do WhatsApp usa o *negrito* e o _itálico_ do WhatsApp e só vai para a área de transferência.
+142. **Aba "Peças e orçamento" no projeto**, depois do Dimensionamento:
+    - O editor mostra a revisão mais nova. Sem orçamento gravado, mostra a sugestão do último cálculo, que vira o orçamento ao clicar em "Salvar rascunho".
+    - Cada item é uma linha (tipo, descrição, quantidade, unidade, valor e total), e os totais se atualizam enquanto se digita.
+    - "+ Serviço" já traz a mão de obra com o valor da hora de Configurações. "Trazer as peças do cálculo de novo" refaz as peças e mantém os serviços.
+    - Só o rascunho se edita. O resto fica travado, com a explicação do porquê.
+    - O que está sendo digitado não se perde ao trocar de aba.
+143. **PDF, WhatsApp e envio gravam o rascunho antes:** o que sai é sempre o que está gravado. O texto do WhatsApp vai para a área de transferência, e o app não envia nada.
+144. **A resposta do cliente é registrada numa janela:** data com o calendário em português, hora, meio (pessoalmente, WhatsApp ou telefone) e observação. Marcar enviado e aprovar atualizam o status do projeto na hora.
+145. **Configurações ganha a aba Orçamento** com os padrões (decisão 137). O PDF da memória e o do orçamento passam a usar o mesmo gerador (`ArquivoPdf`): perguntar onde salvar, gerar em segundo plano e oferecer abrir.

@@ -22,6 +22,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.ImagensTurbo;
 import br.com.calibra.app.casos.ServicoBackup;
@@ -58,6 +59,7 @@ public class PrincipalController implements Navegacao {
 
     private CasosProjeto casosProjeto;
     private CasosCatalogo casosCatalogo;
+    private CasosOrcamento casosOrcamento;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -95,6 +97,7 @@ public class PrincipalController implements Navegacao {
         this.servicoBackup = new ServicoBackup(contexto.backup(), contexto.configuracao(), contexto.relogio());
         this.casosProjeto = new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp());
         this.casosCatalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+        this.casosOrcamento = new CasosOrcamento(contexto.banco(), contexto.relogio(), casosProjeto);
         atualizarStatus();
         voltarParaProjetos();
     }
@@ -153,8 +156,16 @@ public class PrincipalController implements Navegacao {
         ProjetoController projeto = carregador.getController();
         projeto.iniciar(casosProjeto, casosCatalogo, this, servicos, contexto.configuracao().ler(Chave.CALCULO),
                 projetoId);
+        projeto.usarOrcamento(new OrcamentoController.Recursos(casosOrcamento,
+                () -> contexto.configuracao().ler(Chave.ORCAMENTO), () -> contexto.configuracao().ler(Chave.OFICINA),
+                contexto.pastas().anexos(), contexto.versaoApp()));
         projetoAberto = projeto;
         abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
+    }
+
+    /** O projeto aberto na área de projetos; null na lista ou no assistente (para os testes de interface). */
+    ProjetoController projetoAberto() {
+        return projetoAberto;
     }
 
     private void abrirNaAreaDeProjetos(Parent tela, String titulo) {
