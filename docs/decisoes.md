@@ -354,3 +354,20 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - Resultado: 0,5 e 0,6 bar dão 211 e 224 cv ao nível do mar, e 201 e 214 cv a 600 m. A pesquisa, pela meta de potência, tinha chegado a cerca de 210, 225, 200 e 210–215. O teste confere essa diferença em até 5%.
     - Com a mesma pressão e a mesma VE, o torque estimado é igual nas duas rotações. A diferença real vem da VE no torque e da pressão que o turbo entrega nesse giro.
     - Sem limite de câmbio cadastrado para o A4CF1, o torque × câmbio não entra (não inventar dado técnico).
+
+## 13/10/2026 — Fase 2 (bloco 2.5: orçamento e prazo)
+
+134. **Orçamento no núcleo** (`core/orcamento`):
+    - Itens de peça ou serviço, com quantidade exata (ex.: 2,5 h) e valor em centavos. Cada total é arredondado no centavo, e meio centavo sobe.
+    - Desconto em valor ou em percentual (nunca os dois), sobre peças + serviços. O desconto não pode passar desse subtotal.
+    - Prazo em dias úteis mais uma observação. Validade em dias corridos, que vira uma data a partir do envio.
+    - Status: RASCUNHO → ENVIADO → APROVADO ou RECUSADO.
+      - Aprovar ou recusar só depois de enviar: quem aprova pessoalmente marca "enviado" antes (gerou o PDF ou o texto).
+      - Uma revisão nova (de enviado, aprovado ou recusado) marca a anterior como SUBSTITUIDO.
+      - Só o rascunho se edita.
+135. **Número ORC-AAAA-NNNN**, com a sequência recomeçando a cada ano. As revisões guardam o mesmo número ("ORC-2026-0007 rev. 2") para o cliente reconhecer o orçamento; a revisão não gasta número.
+136. **Banco V5** (o plano dizia V4, mas a V4 virou as sementes do catálogo):
+    - Tabela `orcamento` (uma linha por revisão, conteúdo em JSON, total em coluna) e `orcamento_status` (histórico).
+    - Cada revisão aponta para o cálculo e para a versão do motor.
+    - O próprio banco recusa mudar o conteúdo de quem não é rascunho e recusa apagar orçamento.
+137. **Padrões do orçamento** (Configurações, chave `orcamento`): sem desconto, prazo de 10 dias úteis "a partir da aprovação e da chegada das peças", validade de 15 dias, sem condições e sem valor da hora. É política comercial da oficina, editável; o valor da hora começa vazio.

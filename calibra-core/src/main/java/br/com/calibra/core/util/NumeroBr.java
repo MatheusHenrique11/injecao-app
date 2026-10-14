@@ -41,6 +41,17 @@ public final class NumeroBr {
         return Double.parseDouble(limpo.replace(".", "").replace(',', '.'));
     }
 
+    /**
+     * Como {@link #ler(String)}, mas exato (sem o arredondamento do ponto flutuante): para quantidades de orçamento,
+     * que multiplicam dinheiro. "2,5" vira 2.5 exatamente.
+     *
+     * @throws NumberFormatException com mensagem em português se o texto não for um número válido
+     */
+    public static BigDecimal lerDecimal(String texto) {
+        ler(texto);
+        return new BigDecimal(texto.strip().replace(".", "").replace(',', '.'));
+    }
+
     /** Formata com um número fixo de casas decimais e ponto de milhar. Ex.: 1057,8 com 1 casa → "1.057,8". */
     public static String formatar(double valor, int casasDecimais) {
         return formatar(valor, casasDecimais, casasDecimais);

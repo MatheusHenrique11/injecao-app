@@ -1,6 +1,7 @@
 package br.com.calibra.core.orcamento;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
@@ -48,6 +49,26 @@ public record Dinheiro(long centavos) implements Comparable<Dinheiro> {
 
     public Dinheiro mais(Dinheiro outro) {
         return new Dinheiro(Math.addExact(centavos, outro.centavos));
+    }
+
+    public Dinheiro menos(Dinheiro outro) {
+        return new Dinheiro(Math.subtractExact(centavos, outro.centavos));
+    }
+
+    /** Vezes uma quantidade (ex.: 2,5 horas), arredondado no centavo (meio centavo sobe). */
+    public Dinheiro vezes(BigDecimal quantidade) {
+        return new Dinheiro(BigDecimal.valueOf(centavos).multiply(quantidade).setScale(0, RoundingMode.HALF_UP)
+                .longValueExact());
+    }
+
+    /** Uma porcentagem deste valor (ex.: 10 = 10%), arredondada no centavo (meio centavo sobe). */
+    public Dinheiro percentual(BigDecimal porcento) {
+        return new Dinheiro(BigDecimal.valueOf(centavos).multiply(porcento).movePointLeft(2)
+                .setScale(0, RoundingMode.HALF_UP).longValueExact());
+    }
+
+    public boolean negativo() {
+        return centavos < 0;
     }
 
     @Override

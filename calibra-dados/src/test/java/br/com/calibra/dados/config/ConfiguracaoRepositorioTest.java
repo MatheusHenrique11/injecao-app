@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
@@ -13,6 +14,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.orcamento.Desconto;
+import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.PadroesOrcamento;
 import br.com.calibra.core.semaforo.LimiaresSemaforo;
 import br.com.calibra.dados.BaseDeTeste;
 
@@ -27,6 +31,17 @@ class ConfiguracaoRepositorioTest {
         assertEquals(DadosOficina.vazia(), base.configuracao.ler(Chave.OFICINA));
         assertEquals(LimiaresSemaforo.padrao(), base.configuracao.ler(Chave.CALCULO).limiares());
         assertTrue(base.configuracao.ler(Chave.BACKUP).usaPastaPadrao());
+    }
+
+    /** Bloco 2.5: padrões do orçamento, com desconto em percentual e valor da hora. */
+    @Test
+    void padroesDoOrcamento() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta);
+        assertEquals(PadroesOrcamento.padrao(), base.configuracao.ler(Chave.ORCAMENTO));
+        PadroesOrcamento editados = new PadroesOrcamento(Desconto.emPercentual(new BigDecimal("7.5")), 12,
+                "a partir da chegada das peças", 10, "50% na aprovação e 50% na entrega", Dinheiro.ler("180,00"));
+        base.configuracao.gravar(Chave.ORCAMENTO, editados);
+        assertEquals(editados, base.configuracao.ler(Chave.ORCAMENTO));
     }
 
     @Test

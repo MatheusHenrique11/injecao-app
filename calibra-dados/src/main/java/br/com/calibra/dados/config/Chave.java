@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.orcamento.PadroesOrcamento;
 
 /**
  * Uma configuração guardada na tabela {@code configuracao}: o nome, o tipo e o valor padrão.
@@ -18,6 +19,10 @@ public record Chave<T>(String nome, Class<T> tipo, Supplier<T> padrao) {
 
     /** Padrões de cálculo e limiares do semáforo (SPEC 7.1 e 7.4) para os cálculos novos. */
     public static final Chave<Parametros> CALCULO = new Chave<>("calculo", Parametros.class, Parametros::padrao);
+
+    /** O que um orçamento novo traz preenchido (desconto, prazo, validade, condições e valor da hora). */
+    public static final Chave<PadroesOrcamento> ORCAMENTO =
+            new Chave<>("orcamento", PadroesOrcamento.class, PadroesOrcamento::padrao);
 
     /** Pasta de backup escolhida pelo usuário. */
     public static final Chave<ConfiguracaoBackup> BACKUP =
