@@ -371,3 +371,19 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - Cada revisão aponta para o cálculo e para a versão do motor.
     - O próprio banco recusa mudar o conteúdo de quem não é rascunho e recusa apagar orçamento.
 137. **Padrões do orçamento** (Configurações, chave `orcamento`): sem desconto, prazo de 10 dias úteis "a partir da aprovação e da chegada das peças", validade de 15 dias, sem condições e sem valor da hora. É política comercial da oficina, editável; o valor da hora começa vazio.
+138. **Um número de orçamento por projeto:** o primeiro orçamento se cria; os seguintes são revisões dele. Criar outro com o rascunho aberto ou depois de enviado é recusado, com a mensagem de editar o rascunho ou de abrir revisão.
+139. **Itens sugeridos a partir do último cálculo salvo** (que precisa estar em dia com o motor, o núcleo e o catálogo):
+    - Entram, nesta ordem: bicos (um por cilindro, e a bancada secundária à parte), bomba, turbo (2 no biturbo), intercooler, sensor MAP e injeção.
+    - Cada peça do catálogo leva o nome e o preço de referência da versão usada no cálculo. Peça sem preço vem com o valor em branco, para preencher.
+    - Bico e injeção digitados no cálculo entram sem preço.
+    - O câmbio (do veículo) e o combustível (do motor) não entram.
+    - Os serviços (ex.: mão de obra em horas) a pessoa acrescenta.
+140. **Status do projeto com o orçamento:**
+    - Marcar como enviado leva o projeto a ORCADO; a aprovação, a APROVADO. Recusa não mexe no projeto, e o projeto nunca volta.
+    - Orçamento desatualizado não pode ser enviado: há cálculo mais novo, ou o motor ou uma peça mudou. O rascunho pode passar a usar o cálculo mais novo, e a pessoa confere os itens.
+    - Data e hora da resposta do cliente não podem estar no futuro. Com o projeto arquivado, nada muda no orçamento.
+141. **PDF e WhatsApp do orçamento** (`calibra-relatorios`):
+    - O PDF tem o cabeçalho da oficina com o logo (logo que não abre fica de fora), as tabelas de peças e serviços, os totais, o prazo e a validade, o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador.
+    - O cliente sai como está no cadastro no momento da geração: anonimizado, se foi anonimizado.
+    - A validade conta da data do envio (no rascunho, da data da geração, e o PDF diz "RASCUNHO").
+    - O texto do WhatsApp usa o *negrito* e o _itálico_ do WhatsApp e só vai para a área de transferência.

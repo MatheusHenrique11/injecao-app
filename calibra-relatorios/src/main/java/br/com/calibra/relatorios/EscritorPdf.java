@@ -1,6 +1,8 @@
 package br.com.calibra.relatorios;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +14,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 /**
  * Escreve texto corrido num PDF A4: quebra linhas, abre página nova quando acaba o espaço e põe o
@@ -145,6 +148,129 @@ final class EscritorPdf {
 
     void espaco(float pontos) {
         y -= pontos;
+    }
+
+    /**
+     * Cabeçalho da oficina: as linhas de texto à esquerda (a primeira em negrito) e o logo à direita, com no máximo
+     * 140 × 60 pontos. Logo que não abre (arquivo apagado ou corrompido) fica de fora: o PDF sai assim mesmo.
+     */
+    void cabecalhoOficina(List<String> linhas, Path logo) throws IOException {
+        float alturaLogo = 0f;
+        PDImageXObject imagem = carregarImagem(logo);
+        if (imagem != null) {
+            float escala = Math.min(140f / imagem.getWidth(), 60f / imagem.getHeight());
+            float largura = imagem.getWidth() * escala;
+            alturaLogo = imagem.getHeight() * escala;
+            conteudo.drawImage(imagem, MARGEM + LARGURA - largura, y - alturaLogo, largura, alturaLogo);
+        }
+        float inicio = y;
+        float larguraTexto = imagem == null ? LARGURA : LARGURA - 150f;
+        for (int i = 0; i < linhas.size(); i++) {
+            PDFont fonte = i == 0 ? negrito : normal;
+            float tamanho = i == 0 ? 12f : CORPO;
+            for (String linha : quebrar(limpar(linhas.get(i), fonte), fonte, tamanho, larguraTexto)) {
+                mostrar(linha, fonte, tamanho, MARGEM, y - tamanho);
+                y -= tamanho * ENTRELINHA;
+            }
+        }
+        y = Math.min(y, inicio - alturaLogo) - 6f;
+        conteudo.setStrokingColor(0.55f, 0.55f, 0.55f);
+        conteudo.moveTo(MARGEM, y);
+        conteudo.lineTo(MARGEM + LARGURA, y);
+        conteudo.stroke();
+        y -= 10f;
+    }
+
+    private PDImageXObject carregarImagem(Path arquivo) {
+        if (arquivo == null || !Files.isRegularFile(arquivo)) {
+            return null;
+        }
+        try {
+            return PDImageXObject.createFromFile(arquivo.toString(), documento);
+        } catch (IOException | IllegalArgumentException erro) {
+            return null;
+        }
+    }
+
+    /**
+     * Uma tabela com bordas finas: cabeçalho em negrito sobre fundo cinza e as linhas quebrando o texto dentro de
+     * cada célula. Se a página acabar, a tabela continua na próxima com o cabeçalho de novo.
+     *
+     * @param larguras a fração da largura útil de cada coluna (somam 1)
+     * @param aDireita as colunas alinhadas à direita (números)
+     */
+    void tabela(List<String> cabecalho, float[] larguras, boolean[] aDireita, List<List<String>> linhas)
+            throws IOException {
+        float alturaLinha = CORPO * ENTRELINHA;
+        float folga = 3f;
+        linhaDaTabela(cabecalho, larguras, aDireita, negrito, true, alturaLinha, folga);
+        for (List<String> linha : linhas) {
+            float altura = alturaDaLinha(linha, larguras, alturaLinha, folga);
+            if (y - altura < BASE) {
+                novaPagina();
+                linhaDaTabela(cabecalho, larguras, aDireita, negrito, true, alturaLinha, folga);
+            }
+            linhaDaTabela(linha, larguras, aDireita, normal, false, alturaLinha, folga);
+        }
+        espaco(4f);
+    }
+
+    private float alturaDaLinha(List<String> celulas, float[] larguras, float alturaLinha, float folga)
+            throws IOException {
+        int maior = 1;
+        for (int i = 0; i < celulas.size(); i++) {
+            maior = Math.max(maior, quebrar(limpar(celulas.get(i), normal), normal, CORPO,
+                    larguras[i] * LARGURA - 2 * folga).size());
+        }
+        return maior * alturaLinha + 2 * folga;
+    }
+
+    private void linhaDaTabela(List<String> celulas, float[] larguras, boolean[] aDireita, PDFont fonte,
+            boolean cabecalho, float alturaLinha, float folga) throws IOException {
+        List<List<String>> quebradas = new ArrayList<>();
+        int maior = 1;
+        for (int i = 0; i < celulas.size(); i++) {
+            List<String> partes = quebrar(limpar(celulas.get(i), fonte), fonte, CORPO, larguras[i] * LARGURA - 2 * folga);
+            quebradas.add(partes);
+            maior = Math.max(maior, partes.size());
+        }
+        float altura = maior * alturaLinha + 2 * folga;
+        garantir(altura);
+        if (cabecalho) {
+            conteudo.setNonStrokingColor(0.92f, 0.92f, 0.92f);
+            conteudo.addRect(MARGEM, y - altura, LARGURA, altura);
+            conteudo.fill();
+            conteudo.setNonStrokingColor(0f, 0f, 0f);
+        }
+        conteudo.setStrokingColor(0.75f, 0.75f, 0.75f);
+        conteudo.addRect(MARGEM, y - altura, LARGURA, altura);
+        conteudo.stroke();
+        float x = MARGEM;
+        for (int i = 0; i < quebradas.size(); i++) {
+            float larguraCelula = larguras[i] * LARGURA;
+            float linhaY = y - folga;
+            for (String parte : quebradas.get(i)) {
+                float posicao = aDireita[i] ? x + larguraCelula - folga - largura(parte, fonte, CORPO) : x + folga;
+                mostrar(parte, fonte, CORPO, posicao, linhaY - CORPO);
+                linhaY -= alturaLinha;
+            }
+            x += larguraCelula;
+        }
+        y -= altura;
+    }
+
+    /** Uma linha de total alinhada à direita: "Rótulo   R$ 1.234,56"; a de destaque vai em negrito e maior. */
+    void total(String rotulo, String valor, boolean destaque) throws IOException {
+        PDFont fonte = destaque ? negrito : normal;
+        float tamanho = destaque ? 11f : CORPO;
+        float altura = tamanho * ENTRELINHA;
+        garantir(altura);
+        String textoValor = limpar(valor, fonte);
+        String textoRotulo = limpar(rotulo, fonte);
+        float direita = MARGEM + LARGURA;
+        mostrar(textoRotulo, fonte, tamanho, direita - 110f - largura(textoRotulo, fonte, tamanho), y - tamanho);
+        mostrar(textoValor, fonte, tamanho, direita - largura(textoValor, fonte, tamanho), y - tamanho);
+        y -= altura;
     }
 
     /** Fecha a última página e escreve o rodapé com "página X de Y" em todas. */
