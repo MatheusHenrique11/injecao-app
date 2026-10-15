@@ -501,7 +501,7 @@ public class ConfiguracoesController {
     private boolean confirmarRestauracao(InfoBackup info) {
         ButtonType restaurar = new ButtonType("Restaurar", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(AlertType.CONFIRMATION, "Todos os dados atuais (projetos, cadastros e "
+        Alert alerta = Alertas.criar(AlertType.CONFIRMATION, "Todos os dados atuais (projetos, cadastros e "
                 + "configurações) serão trocados pelos do backup.\n\nAntes, o Calibra guarda os dados atuais num "
                 + "backup de segurança na pasta padrão. Ele aparece na lista de backups se você quiser voltar.\n\n"
                 + "O que estiver digitado e não salvo nas telas será perdido.", restaurar, cancelar);
@@ -513,7 +513,7 @@ public class ConfiguracoesController {
     }
 
     private void avisar(AlertType tipo, String titulo, String mensagem) {
-        Alert alerta = new Alert(tipo, mensagem, ButtonType.OK);
+        Alert alerta = Alertas.criar(tipo, mensagem, ButtonType.OK);
         alerta.initOwner(janela());
         alerta.setTitle(titulo);
         alerta.setHeaderText(titulo);

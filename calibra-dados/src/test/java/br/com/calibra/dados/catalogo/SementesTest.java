@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.zip.CRC32;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,27 @@ class SementesTest {
     void abrir() throws Exception {
         base = BaseDeTeste.criada(pasta);
         catalogo = new CatalogoRepositorio(base.relogio);
+    }
+
+    /**
+     * O checksum da V4 que os bancos guardam desde a 0.2.0. Se este teste falhar, o arquivo das sementes (ou a conta)
+     * mudou: migração aplicada não se edita, e o Flyway recusaria abrir os bancos já migrados. Item novo ou corrigido
+     * entra numa migração nova (V6 em diante).
+     */
+    @Test
+    void checksumDaV4NaoMuda() {
+        assertEquals(-451_915_068, Sementes.checksum());
+    }
+
+    /** Com o Git em autocrlf, uma cópia nova do repositório grava o JSON com CRLF: o checksum não pode mudar. */
+    @Test
+    void checksumIgualComQuebrasDeLinhaLfOuCrlf() {
+        byte[] lf = "{\n  \"itens\": []\n}\n".getBytes(StandardCharsets.UTF_8);
+        byte[] crlf = "{\r\n  \"itens\": []\r\n}\r\n".getBytes(StandardCharsets.UTF_8);
+        assertEquals(Sementes.checksum(lf), Sementes.checksum(crlf));
+        CRC32 semCr = new CRC32();
+        semCr.update(lf);
+        assertEquals((int) semCr.getValue(), Sementes.checksum(lf), "com LF, a conta é o CRC32 de sempre");
     }
 
     @Test

@@ -12,6 +12,7 @@ Nesta versão (0.2.0) já funcionam: projetos com cliente, veículo e motor; a c
 
 - **Instalar:** dê dois cliques em `Calibra-0.2.0.msi`. O Calibra instala só para o seu usuário do Windows, sem pedir senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`. Ele cria atalhos no menu Iniciar (pasta Calibra) e na área de trabalho. As telas do instalador são as do Windows, em inglês.
 - **Atualizar:** instale a versão nova por cima, do mesmo jeito. Os dados ficam, e só uma versão aparece em "Aplicativos instalados".
+- **Versão mais antiga por cima:** o Windows deixa instalar, mas ela não abre dados que uma versão mais nova já atualizou. O app avisa ("Instale a versão mais nova para abri-los") e não mexe em nada; é só instalar de novo a versão mais nova.
 - **Desinstalar:** Configurações do Windows → Aplicativos → Aplicativos instalados → Calibra → Desinstalar. **Os dados não são apagados** (item 3); se reinstalar, tudo volta.
 - O Calibra não usa internet: não atualiza sozinho, não manda nada para fora e não precisa de conta.
 
@@ -59,7 +60,7 @@ A tela **Projetos** lista os projetos, do mexido por último para o mais antigo.
 - **Resumo:** cliente (editar, histórico e anonimizar), veículo, motor, meta, injeção, último cálculo, histórico de status e observações do projeto.
 - **Veículo:** editável a qualquer momento. Cada salvamento grava, campo a campo, o valor antigo, o novo, a data e a hora; o histórico aparece embaixo.
 - **Motor:** editar e "Salvar como versão nova" cria a v2, v3... Versões nunca mudam nem são apagadas. Dá para comparar duas versões e usar uma antiga como ponto de partida. Cálculos e orçamentos feitos com uma versão antiga passam a aparecer como **desatualizados**.
-- **Dimensionamento:** a calculadora (item 6) com o motor do projeto. "Salvar cálculo no projeto" grava o cálculo com as justificativas dos vermelhos. A aba "Cálculos salvos" lista todos, com o motivo quando um ficou desatualizado (motor novo, núcleo de cálculo novo ou peça do catálogo com versão nova), e gera o PDF de qualquer um deles.
+- **Dimensionamento:** a calculadora (item 6) com o motor do projeto. "Salvar cálculo no projeto" grava o cálculo com as justificativas dos vermelhos. A aba "Cálculos salvos" lista todos, com o motivo quando um ficou desatualizado (motor novo, núcleo de cálculo novo, peça do catálogo com versão nova ou câmbio do veículo trocado), e gera o PDF de qualquer um deles.
 - **Peças e orçamento:** o orçamento (item 8).
 
 ### 5.4 Status do projeto
@@ -145,7 +146,7 @@ O orçamento fica na aba **Peças e orçamento** do projeto e sai do último cá
 6. **Aprovado pelo cliente…** ou **Recusado…:** informe a data, a hora e como o cliente respondeu (pessoalmente, WhatsApp ou telefone). Aprovado leva o projeto para Aprovado. **Orçamento aprovado não muda mais.**
 7. **Nova revisão:** para mudar um orçamento enviado, aprovado ou recusado. A revisão nova sai com o mesmo número ("ORC-2026-0001 rev. 2"), em rascunho, e a anterior fica como substituída. A tabela "Revisões" mostra todas.
 
-Se o motor ou o cálculo do projeto mudarem, o orçamento aparece como **desatualizado** e não pode ser enviado. No rascunho, "Usar o cálculo mais novo" resolve; depois confira os itens ("Trazer as peças do cálculo de novo" refaz as peças e mantém os serviços).
+Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento aparece como **desatualizado** e não pode ser enviado. No rascunho, "Usar o cálculo mais novo" resolve; depois confira os itens ("Trazer as peças do cálculo de novo" refaz as peças e mantém os serviços).
 
 ## 9. Backup e restauração
 

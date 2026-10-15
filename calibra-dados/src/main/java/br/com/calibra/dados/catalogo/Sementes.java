@@ -56,8 +56,21 @@ public final class Sementes {
 
     /** Impressão digital do arquivo: se ele mudar depois de aplicado, o Flyway acusa (migração não se edita). */
     public static int checksum() {
+        return checksum(bytes());
+    }
+
+    /**
+     * CRC32 do arquivo sem os CR ({@code \r}). Com o Git em autocrlf, uma cópia nova do repositório grava o arquivo
+     * com CRLF; o número não pode mudar por isso, senão o Flyway recusa os bancos que já têm a V4. Sem CR, o
+     * resultado é o mesmo do arquivo com LF, que é o que os bancos guardam desde a 0.2.0.
+     */
+    static int checksum(byte[] conteudo) {
         CRC32 crc = new CRC32();
-        crc.update(bytes());
+        for (byte umByte : conteudo) {
+            if (umByte != '\r') {
+                crc.update(umByte);
+            }
+        }
         return (int) crc.getValue();
     }
 

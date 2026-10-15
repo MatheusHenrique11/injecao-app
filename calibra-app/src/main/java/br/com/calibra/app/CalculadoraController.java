@@ -822,7 +822,7 @@ public class CalculadoraController {
     }
 
     private static void avisar(Alert.AlertType tipo, String titulo, String mensagem) {
-        Alert alerta = new Alert(tipo, mensagem, ButtonType.OK);
+        Alert alerta = Alertas.criar(tipo, mensagem, ButtonType.OK);
         alerta.setTitle(titulo);
         alerta.setHeaderText(titulo);
         alerta.showAndWait();

@@ -208,7 +208,7 @@ final class PainelCatalogo<T> extends VBox {
             mensagem.setText((item.arquivado() ? "Reativado: " : "Arquivado: ") + item.info().nome() + ".");
             atualizar();
         } catch (ErroDados erro) {
-            Alert alerta = new Alert(Alert.AlertType.ERROR, erro.getMessage(), ButtonType.OK);
+            Alert alerta = Alertas.criar(Alert.AlertType.ERROR, erro.getMessage(), ButtonType.OK);
             if (janela() != null) {
                 alerta.initOwner(janela());
             }
@@ -345,7 +345,7 @@ final class PainelCatalogo<T> extends VBox {
     private boolean confirmar(String titulo, String texto) {
         ButtonType sim = new ButtonType("Arquivar", ButtonBar.ButtonData.OK_DONE);
         ButtonType nao = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION, texto, sim, nao);
+        Alert alerta = Alertas.criar(Alert.AlertType.CONFIRMATION, texto, sim, nao);
         if (janela() != null) {
             alerta.initOwner(janela());
         }

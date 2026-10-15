@@ -324,7 +324,7 @@ public class PrincipalController implements Navegacao {
     private boolean sairMesmoAssim(String mensagem) {
         ButtonType sair = new ButtonType("Sair sem backup", ButtonBar.ButtonData.OK_DONE);
         ButtonType ficar = new ButtonType("Continuar no Calibra", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(AlertType.WARNING, mensagem + "\n\nSe sair agora, as mudanças desde o último "
+        Alert alerta = Alertas.criar(AlertType.WARNING, mensagem + "\n\nSe sair agora, as mudanças desde o último "
                 + "backup ficam só no banco de dados deste computador.", sair, ficar);
         alerta.initOwner(palco);
         alerta.setTitle("Backup ao fechar");

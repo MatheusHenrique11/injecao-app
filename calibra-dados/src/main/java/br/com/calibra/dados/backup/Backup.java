@@ -92,7 +92,7 @@ public final class Backup {
             Path parcial = destino.resolveSibling(destino.getFileName() + ".parcial");
             escreverZip(parcial, copia, anexos, manifesto);
             Arquivos.mover(parcial, destino);
-            manterMaisRecentes(pasta, MANTER);
+            manterMaisRecentes(pasta, MANTER, destino);
             LOG.info(() -> "Backup feito (" + motivo.rotulo() + "): " + destino);
             return new InfoBackup(destino, manifesto, Files.size(destino));
         } catch (IOException | SQLException erro) {
@@ -129,10 +129,15 @@ public final class Backup {
         }
     }
 
-    /** Apaga os backups mais antigos da pasta, deixando os {@code quantos} mais recentes. */
-    static void manterMaisRecentes(Path pasta, int quantos) throws IOException {
-        List<Path> todos = arquivosDeBackup(pasta);
-        for (Path antigo : todos.subList(Math.min(quantos, todos.size()), todos.size())) {
+    /**
+     * Apaga os backups mais antigos da pasta, deixando os {@code quantos} mais recentes, e nunca o que acabou de ser
+     * feito. A ordem vem da data no nome: com o relógio do PC atrasado, o backup novo pareceria o mais antigo e seria
+     * apagado na hora (todo backup falharia, e a restauração também).
+     */
+    static void manterMaisRecentes(Path pasta, int quantos, Path novo) throws IOException {
+        List<Path> outros = arquivosDeBackup(pasta).stream().filter(arquivo -> !arquivo.equals(novo)).toList();
+        int manterOutros = Math.max(0, quantos - 1);
+        for (Path antigo : outros.subList(Math.min(manterOutros, outros.size()), outros.size())) {
             Files.deleteIfExists(antigo);
             LOG.info(() -> "Backup antigo apagado (ficam os " + quantos + " mais recentes): " + antigo);
         }

@@ -228,7 +228,7 @@ public class AssistenteController {
 
     @FXML
     private void cancelar() {
-        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION, "O que foi digitado no assistente será perdido.",
+        Alert alerta = Alertas.criar(Alert.AlertType.CONFIRMATION, "O que foi digitado no assistente será perdido.",
                 ButtonType.YES, ButtonType.NO);
         alerta.setTitle("Cancelar o novo projeto");
         alerta.setHeaderText("Cancelar o novo projeto?");

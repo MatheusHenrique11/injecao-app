@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javafx.application.HostServices;
 import javafx.concurrent.Task;
@@ -21,6 +23,8 @@ import javafx.stage.Window;
  * arquivo no fim. Usado pela memória de cálculo e pelo orçamento.
  */
 final class ArquivoPdf {
+
+    private static final Logger LOG = Logger.getLogger(ArquivoPdf.class.getName());
 
     /** O que escreve o PDF no arquivo escolhido (roda fora da thread da tela). */
     @FunctionalInterface
@@ -61,7 +65,10 @@ final class ArquivoPdf {
             aoTerminar.run();
             estado.accept("O PDF não foi gerado.");
             Throwable erro = tarefa.getException();
-            Alert alerta = new Alert(Alert.AlertType.ERROR, (erro == null ? "Erro desconhecido." : erro.getMessage())
+            LOG.log(Level.SEVERE, "Não foi possível gerar o PDF em " + destino, erro);
+            String motivo = erro == null || erro.getMessage() == null
+                    ? "Erro inesperado. O detalhe foi gravado no log." : erro.getMessage();
+            Alert alerta = Alertas.criar(Alert.AlertType.ERROR, motivo
                     + "\nSe o arquivo estiver aberto em outro programa, feche-o e tente de novo.", ButtonType.OK);
             alerta.setTitle("Não foi possível gerar o PDF");
             alerta.setHeaderText("Não foi possível gerar o PDF");
@@ -89,7 +96,7 @@ final class ArquivoPdf {
     private static void oferecerAbrir(HostServices servicos, String titulo, Path arquivo) {
         ButtonType abrir = new ButtonType("Abrir", ButtonBar.ButtonData.OK_DONE);
         ButtonType fechar = new ButtonType("Fechar", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(Alert.AlertType.INFORMATION, "PDF salvo em:\n" + arquivo, abrir, fechar);
+        Alert alerta = Alertas.criar(Alert.AlertType.INFORMATION, "PDF salvo em:\n" + arquivo, abrir, fechar);
         alerta.setTitle(titulo);
         alerta.setHeaderText("PDF gerado.");
         Optional<ButtonType> resposta = alerta.showAndWait();

@@ -7,11 +7,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import br.com.calibra.app.catalogo.PecasEscolhidas;
@@ -191,19 +193,27 @@ public final class CasosProjeto {
 
     /**
      * Cálculos salvos do projeto, do mais novo para o mais antigo, com o que mudou desde cada um: o motor, o
-     * núcleo ou uma peça do catálogo que ganhou versão nova.
+     * núcleo, uma peça do catálogo que ganhou versão nova ou o câmbio do veículo.
      */
     public List<SituacaoCalculo> calculos(long projetoId) {
         return banco.ler(c -> {
             VersaoMotor atual = motores.atual(c, projetoId).orElseThrow();
+            ProjetoSalvo projeto = projetos.buscar(c, projetoId).orElseThrow();
+            Long cambioDoVeiculo = veiculos.buscar(c, projeto.veiculoId()).orElseThrow().cambioItemId();
             Map<Long, List<PecaUsada>> pecas = calculos.pecasDoProjeto(c, projetoId);
-            Map<Long, ResumoItem> itens = catalogo.resumos(c, pecas.values().stream().flatMap(List::stream)
-                    .map(PecaUsada::itemId).collect(Collectors.toSet()));
+            Set<Long> ids = pecas.values().stream().flatMap(List::stream).map(PecaUsada::itemId)
+                    .collect(Collectors.toCollection(HashSet::new));
+            if (cambioDoVeiculo != null) {
+                ids.add(cambioDoVeiculo);
+            }
+            Map<Long, ResumoItem> itens = catalogo.resumos(c, ids);
             Optional<PecaUsada> combustivelDoMotor = combustivelUsado(c, atual.configuracao());
             List<SituacaoCalculo> situacoes = new ArrayList<>();
             for (ResumoCalculo calculo : calculos.doProjeto(c, projetoId)) {
+                List<PecaUsada> doCalculo = pecas.getOrDefault(calculo.id(), List.of());
                 List<String> motivos = new ArrayList<>(motivos(calculo, atual));
-                motivos.addAll(motivosDasPecas(pecas.getOrDefault(calculo.id(), List.of()), itens, combustivelDoMotor));
+                motivos.addAll(motivosDasPecas(doCalculo, itens, combustivelDoMotor));
+                motivoDoCambio(doCalculo, cambioDoVeiculo, itens).ifPresent(motivos::add);
                 situacoes.add(new SituacaoCalculo(calculo, motivos));
             }
             return situacoes;
@@ -512,6 +522,28 @@ public final class CasosProjeto {
             motivos.add(motivo);
         }
         return motivos;
+    }
+
+    /**
+     * No projeto vale o câmbio do veículo (decisão 130). Se ele foi trocado, tirado ou posto depois do cálculo, o
+     * torque × câmbio do cálculo não vale mais. Versão nova do mesmo câmbio já entra em {@link #motivosDasPecas}.
+     */
+    static Optional<String> motivoDoCambio(List<PecaUsada> pecas, Long cambioDoVeiculo, Map<Long, ResumoItem> itens) {
+        Long doCalculo = pecas.stream().filter(peca -> peca.papel() == PapelPeca.CAMBIO).map(PecaUsada::itemId)
+                .findFirst().orElse(null);
+        if (Objects.equals(doCalculo, cambioDoVeiculo)) {
+            return Optional.empty();
+        }
+        return Optional.of("o câmbio do veículo mudou: " + nomeDoItem(doCalculo, itens) + " → "
+                + nomeDoItem(cambioDoVeiculo, itens));
+    }
+
+    private static String nomeDoItem(Long itemId, Map<Long, ResumoItem> itens) {
+        if (itemId == null) {
+            return "nenhum";
+        }
+        ResumoItem item = itens.get(itemId);
+        return item == null ? "item #" + itemId : item.nome();
     }
 
     /** O combustível do motor como peça do catálogo (item pelo código, na versão que o motor guarda). */

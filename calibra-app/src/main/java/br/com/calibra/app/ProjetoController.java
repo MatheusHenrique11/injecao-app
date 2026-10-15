@@ -811,7 +811,7 @@ public class ProjetoController {
     private boolean confirmar(String titulo, String mensagem) {
         ButtonType sim = new ButtonType("Sim", ButtonBar.ButtonData.OK_DONE);
         ButtonType nao = new ButtonType("Não", ButtonBar.ButtonData.CANCEL_CLOSE);
-        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION, mensagem, sim, nao);
+        Alert alerta = Alertas.criar(Alert.AlertType.CONFIRMATION, mensagem, sim, nao);
         if (abas.getScene() != null) {
             alerta.initOwner(abas.getScene().getWindow());
         }
@@ -821,7 +821,7 @@ public class ProjetoController {
     }
 
     private void avisar(Alert.AlertType tipo, String titulo, String mensagem) {
-        Alert alerta = new Alert(tipo, mensagem, ButtonType.OK);
+        Alert alerta = Alertas.criar(tipo, mensagem, ButtonType.OK);
         if (abas.getScene() != null) {
             alerta.initOwner(abas.getScene().getWindow());
         }

@@ -8,6 +8,7 @@ App desktop para Windows, 100% offline, para oficinas de preparação: dimension
 - Teste de interface (tag `ui`, fora do verify padrão, precisa da área de trabalho): `mvn -q install -DskipTests` e depois `mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum`
 - Avisos de compilação: o `-q` esconde; conferir com `mvn -B clean test-compile` e procurar `[WARNING]`
 - Instalador: `powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1` (roda os testes e gera `dist\Calibra-<versão>.msi`; WiX 3.14.1 em `%USERPROFILE%\tools\wix314`; `-VersaoMsi 0.1.99` gera um MSI de teste; `-PularTestes` só reempacota)
+- Testes de interface no app instalado (depois de instalar o MSI e de `mvn -q install -DskipTests`): `powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1` (`-Testes FluxoCompletoUiTest` para só o ensaio)
 - Planilha de conferência das fórmulas: `powershell -ExecutionPolicy Bypass -File docs\fase0\gerar-planilha.ps1 -Saida docs\fase0\cadeia-de-calculo.xlsx`
 
 ## Stack (não trocar sem perguntar)

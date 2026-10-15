@@ -33,11 +33,14 @@ mvn -q install -DskipTests             # instala os módulos no repositório loc
 mvn -q -pl calibra-app javafx:run      # abre o app (depois do install)
 mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum   # teste de interface (opcional)
 powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1  # gera dist\Calibra-<versão>.msi
+powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes de interface no app instalado
 ```
 
 O teste de interface precisa da área de trabalho do Windows. Ele salva imagens da tela em `calibra-app/target/`. O PDF de exemplo do caso B fica em `calibra-relatorios/target/exemplo-memoria-caso-B.pdf` depois do `verify`.
 
 O script do instalador roda os testes, monta o Java embutido, confere o pacote (`Inicio --conferir`) e gera o MSI. Com `-VersaoMsi 0.1.99` ele gera um MSI de teste com outra versão (ensaio de instalar por cima); com `-PularTestes`, só repete o empacotamento. O ícone sai de `scripts\gerar-icone.ps1`.
+
+O `testar-instalado.ps1` roda os testes de interface com o Java embutido e os jars do Calibra instalado pelo MSI (depois de `mvn -q install -DskipTests`). Com `-Testes FluxoCompletoUiTest`, roda só o ensaio do cadastro ao orçamento aprovado, com backup e restauração. Os testes usam pastas temporárias e não tocam nos dados do app.
 
 ## Documentação
 

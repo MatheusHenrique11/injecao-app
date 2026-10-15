@@ -94,6 +94,27 @@ class BackupTest {
         assertTrue(Files.exists(destino.resolve("anotacoes.txt")));
     }
 
+    /**
+     * PC sem internet com o relógio atrasado (bateria do relógio fraca): o backup novo tem data anterior à dos 30 da
+     * pasta. Ele fica, e sai o mais antigo dos outros; antes, o novo era apagado na hora e todo backup falhava.
+     */
+    @Test
+    void relogioAtrasadoNaoApagaOBackupNovo() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        Path destino = pasta.resolve("backups");
+        InfoBackup maisAntigo = base.backup.fazer(destino, MotivoBackup.AUTOMATICO);
+        for (int i = 1; i < Backup.MANTER; i++) {
+            base.backup.fazer(destino, MotivoBackup.AUTOMATICO);
+        }
+        base.relogio.avancarSegundos(-30L * 24 * 3600);
+
+        InfoBackup novo = base.backup.fazer(destino, MotivoBackup.MANUAL);
+
+        assertTrue(Files.exists(novo.arquivo()), "o backup que acabou de ser feito fica");
+        assertEquals(Backup.MANTER, Backup.listar(destino).size());
+        assertFalse(Files.exists(maisAntigo.arquivo()), "sai o mais antigo dos outros");
+    }
+
     @Test
     void doisBackupsNoMesmoSegundoNaoSeSobrepoem() throws Exception {
         BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));

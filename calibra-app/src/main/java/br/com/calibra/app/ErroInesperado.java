@@ -56,7 +56,7 @@ final class ErroInesperado {
                 return;
             }
             try {
-                Alert alerta = new Alert(AlertType.ERROR, mensagem);
+                Alert alerta = Alertas.criar(AlertType.ERROR, mensagem);
                 alerta.setTitle("Calibra — " + titulo);
                 alerta.setHeaderText(null);
                 alerta.showAndWait();

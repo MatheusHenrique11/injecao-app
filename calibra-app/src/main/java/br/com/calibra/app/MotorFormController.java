@@ -457,7 +457,7 @@ public class MotorFormController {
     }
 
     private static boolean confirmar(String titulo, String mensagem) {
-        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION, mensagem, ButtonType.YES, ButtonType.NO);
+        Alert alerta = Alertas.criar(Alert.AlertType.CONFIRMATION, mensagem, ButtonType.YES, ButtonType.NO);
         alerta.setTitle(titulo);
         alerta.setHeaderText(titulo);
         return alerta.showAndWait().filter(ButtonType.YES::equals).isPresent();

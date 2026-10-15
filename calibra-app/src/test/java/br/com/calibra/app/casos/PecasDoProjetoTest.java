@@ -76,9 +76,20 @@ class PecasDoProjetoTest {
     }
 
     private long novoProjeto() {
+        return novoProjeto(null);
+    }
+
+    /** @param cambioId câmbio do catálogo no veículo (null = nenhum) */
+    private long novoProjeto(Long cambioId) {
         EntradaDimensionamento entrada = CasosProjetoTest.casoB();
         return casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("João da Silva")),
-                new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "AP 2.0 turbo", entrada.motor(), entrada.meta()));
+                new VeiculoNovo(CasosProjetoTest.carro("ABC1D23"), cambioId), "AP 2.0 turbo", entrada.motor(),
+                entrada.meta()));
+    }
+
+    private ItemCatalogo<Cambio> cambio(String nome, double torqueMaximoNm) {
+        return catalogo.criar(TipoCatalogo.CAMBIO, new Cambio(nome, TipoCambio.MANUAL, torqueMaximoNm, FONTE, null),
+                new InfoCatalogo(nome, FONTE, null, false, null, ""));
     }
 
     /** O bico do caso B (1.050 cm³/min a 3 bar, 1,0 ms) cadastrado no catálogo. */
@@ -181,11 +192,10 @@ class PecasDoProjetoTest {
     /** Bloco 2.4: o turbo e o câmbio do cálculo também são gravados com a versão e deixam o cálculo desatualizado. */
     @Test
     void turboECambioEntramNoCalculoSalvo() {
-        long projeto = novoProjeto();
         Exemplo<Turbo> exemplo = ExemplosCatalogo.turbo();
         ItemCatalogo<Turbo> turbo = catalogo.criar(TipoCatalogo.TURBO, exemplo.dados(), exemplo.info());
-        ItemCatalogo<Cambio> cambio = catalogo.criar(TipoCatalogo.CAMBIO, new Cambio("Câmbio teste 6M",
-                TipoCambio.MANUAL, 600.0, FONTE, null), new InfoCatalogo("Câmbio teste 6M", FONTE, null, false, null, ""));
+        ItemCatalogo<Cambio> cambio = cambio("Câmbio teste 6M", 600.0);
+        long projeto = novoProjeto(cambio.id());
         EntradaDimensionamento entrada = CasosProjetoTest.casoB().comMotor(casos.abrir(projeto).motor().configuracao())
                 .comTurbo(turbo.dados()).comCambio(cambio.dados());
         PecasEscolhidas pecas = new PecasEscolhidas(null, null, null, null, null, null, turbo, cambio);
@@ -207,6 +217,39 @@ class PecasDoProjetoTest {
         catalogo.salvar(TipoCatalogo.TURBO, turbo.id(), turbo.dados().comMapa(null, null, null), turbo.info());
         assertEquals(List.of("o turbo mudou no catálogo: Turbo teste 60 v1 → v2"),
                 casos.calculos(projeto).getFirst().motivos());
+    }
+
+    /**
+     * No projeto vale o câmbio do veículo: trocado, tirado ou posto depois do cálculo, o torque × câmbio salvo não
+     * vale mais. O orçamento usa esses motivos e não deixa enviar.
+     */
+    @Test
+    void trocarOCambioDoVeiculoDeixaOCalculoDesatualizado() {
+        ItemCatalogo<Cambio> forte = cambio("Câmbio teste 6M", 600.0);
+        ItemCatalogo<Cambio> fraco = cambio("Câmbio teste 5M", 300.0);
+        long projeto = novoProjeto(forte.id());
+        long veiculo = casos.abrir(projeto).veiculo().id();
+        Veiculo carro = casos.abrir(projeto).veiculo().veiculo();
+        EntradaDimensionamento entrada = CasosProjetoTest.casoB().comMotor(casos.abrir(projeto).motor().configuracao());
+        casos.salvarCalculo(projeto, entrada.comCambio(forte.dados()), justificativas(),
+                new PecasEscolhidas(null, null, null, null, null, null, null, forte));
+        assertEquals(List.of(), casos.calculos(projeto).getFirst().motivos(), "o câmbio do cálculo é o do veículo");
+
+        casos.salvarVeiculo(veiculo, carro, fraco.id());
+        assertEquals(List.of("o câmbio do veículo mudou: Câmbio teste 6M → Câmbio teste 5M"),
+                casos.calculos(projeto).getFirst().motivos());
+        casos.salvarVeiculo(veiculo, carro, null);
+        assertEquals(List.of("o câmbio do veículo mudou: Câmbio teste 6M → nenhum"),
+                casos.calculos(projeto).getFirst().motivos());
+        casos.salvarVeiculo(veiculo, carro, forte.id());
+        assertFalse(casos.calculos(projeto).getFirst().desatualizado(), "voltou o câmbio do cálculo");
+
+        casos.salvarVeiculo(veiculo, carro, null);
+        relogio.andar(Duration.ofMinutes(5));
+        casos.salvarCalculo(projeto, entrada, justificativas(), new PecasEscolhidas(null, null, null, null, null, null));
+        casos.salvarVeiculo(veiculo, carro, fraco.id());
+        assertEquals(List.of("o câmbio do veículo mudou: nenhum → Câmbio teste 5M"),
+                casos.calculos(projeto).getFirst().motivos(), "cálculo sem câmbio e veículo que ganhou um");
     }
 
     @Test
