@@ -396,3 +396,25 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 143. **PDF, WhatsApp e envio gravam o rascunho antes:** o que sai é sempre o que está gravado. O texto do WhatsApp vai para a área de transferência, e o app não envia nada.
 144. **A resposta do cliente é registrada numa janela:** data com o calendário em português, hora, meio (pessoalmente, WhatsApp ou telefone) e observação. Marcar enviado e aprovar atualizam o status do projeto na hora.
 145. **Configurações ganha a aba Orçamento** com os padrões (decisão 137). O PDF da memória e o do orçamento passam a usar o mesmo gerador (`ArquivoPdf`): perguntar onde salvar, gerar em segundo plano e oferecer abrir.
+
+## 14/10/2026 — Fase 2 (bloco 2.6: instalador MSI 0.2.0 e fechamento)
+
+146. **WiX 3.14.1 pelo zip de binários oficial**, extraído em `%USERPROFILE%\tools\wix314`, como o Maven:
+    - Não precisa de administrador e não aparece em "Aplicativos instalados".
+    - O zip veio do lançamento oficial (GitHub `wixtoolset/wix3`, tag `wix3141rtm`), com o tamanho conferido. SHA-256: `6AC824E1642D6F7277D0ED7EA09411A508F6116BA6FAE0AA5F2C7DAA2FF43D31`.
+    - Os `.exe` do zip não têm assinatura digital; só o instalador `.exe` do WiX tem.
+147. **`maven-dependency-plugin` 3.11.0** (o mais novo estável da Maven Central, de maio de 2026), só no perfil `instalador` do `calibra-app`. O `mvn verify` do dia a dia não copia biblioteca nenhuma.
+148. **Java embutido (jlink), com o nosso código fora dos módulos Java** (substitui a decisão 33):
+    - O app e as bibliotecas rodam no classpath. O JavaFX entra no Java embutido como módulos, a partir dos jars `win` da Maven Central.
+    - O jdeps acha `java.base`, `java.desktop` e `java.sql`. Somam-se `javafx.controls`, `javafx.fxml` e o `jdk.localedata` só com en, pt e pt-BR (sem ele a vírgula decimal viraria ponto). Com as dependências, são 15 módulos.
+    - O JDK 25 da Temurin não traz a pasta `jmods`: o jlink usa o próprio Java instalado como fonte (JEP 493).
+149. **Conferência do pacote** (`Inicio --conferir`), no Java embutido, antes de gerar o MSI:
+    - Confere a vírgula decimal, o SQLite com as 5 migrações e as sementes, o PDF com fontes e imagem PNG, e o JavaFX.
+    - Usa uma pasta temporária e não mexe nos dados.
+    - O próprio script confere que o Java embutido não tem `java.net.http` (regra 2.1). Essa conferência fica no script para o código de produção nem citar o módulo de rede.
+150. **Instalação por usuário**, sem administrador, em `%LOCALAPPDATA%\Programs\Calibra`:
+    - Os dados já são por usuário e ficam separados, em `%LOCALAPPDATA%\Calibra`. Desinstalar não toca neles.
+    - Atalhos no menu Iniciar (grupo Calibra) e na área de trabalho.
+    - UpgradeCode fixo `45107A4F-BD64-4EDB-815D-3611CD926209`, para instalar por cima sem duplicar o app. Nunca mudar.
+    - O jpackage roda com a pasta temporária dele: o lançador que ele gera é somente leitura e travaria o `mvn clean` se ficasse no `target`.
+151. **Ícone próprio, gerado por `scripts\gerar-icone.ps1`**: um manômetro sobre o azul do app. Os PNG de 16 a 256 px vão para a janela, e o `.ico` para o instalador e o atalho. Os scripts PowerShell ficam em UTF-8 com BOM, porque o PowerShell 5.1 precisa disso para ler os acentos.

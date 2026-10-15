@@ -22,9 +22,18 @@ class CalibraAppTest {
     @Test
     void telasEEstiloEstaoNoApp() {
         for (String tela : new String[] {"principal.fxml", "inicio.fxml", "assistente.fxml", "projeto.fxml",
-                "cliente.fxml", "veiculo.fxml", "motor.fxml", "calculadora.fxml", "configuracoes.fxml"}) {
+                "cliente.fxml", "veiculo.fxml", "motor.fxml", "calculadora.fxml", "configuracoes.fxml",
+                "catalogos.fxml", "orcamento.fxml"}) {
             assertNotNull(CalibraApp.class.getResource(tela), tela);
         }
         assertNotNull(CalibraApp.folhaDeEstilo());
+    }
+
+    /** O ícone da janela, em todos os tamanhos (scripts\gerar-icone.ps1). */
+    @Test
+    void iconeEstaNoApp() {
+        for (int lado : CalibraApp.TAMANHOS_DO_ICONE) {
+            assertNotNull(CalibraApp.class.getResource("icones/calibra-" + lado + ".png"), lado + " px");
+        }
     }
 }

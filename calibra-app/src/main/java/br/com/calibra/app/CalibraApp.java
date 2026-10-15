@@ -2,6 +2,7 @@ package br.com.calibra.app;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,6 +13,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
@@ -56,6 +58,7 @@ public class CalibraApp extends Application {
                 Math.min(altura, area.getHeight() - BORDA_DA_JANELA));
         cena.getStylesheets().add(folhaDeEstilo());
         palco.setScene(cena);
+        palco.getIcons().setAll(icones());
         palco.setMinWidth(900);
         palco.setMinHeight(600);
         // Notebook com tela pequena (1366 × 768): a janela abre maximizada e as telas rolam.
@@ -70,6 +73,17 @@ public class CalibraApp extends Application {
         if (principal != null) {
             principal.encerrar();
         }
+    }
+
+    /** Tamanhos do ícone gerados por scripts\gerar-icone.ps1. */
+    static final List<Integer> TAMANHOS_DO_ICONE = List.of(16, 32, 48, 64, 128, 256);
+
+    /** O ícone da janela em vários tamanhos: o Windows escolhe o melhor para o título e a barra de tarefas. */
+    static List<Image> icones() {
+        return TAMANHOS_DO_ICONE.stream()
+                .map(lado -> new Image(Objects.requireNonNull(CalibraApp.class.getResource(
+                        "icones/calibra-" + lado + ".png"), "ícone de " + lado + " px").toExternalForm()))
+                .toList();
     }
 
     /** Endereço do calibra.css dentro do próprio app. */

@@ -1,6 +1,7 @@
 package br.com.calibra.app;
 
 import java.io.IOException;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +22,24 @@ public final class Inicio {
     }
 
     public static void main(String[] args) {
+        if (args.length > 0 && "--conferir".equals(args[0])) {
+            // Conferência do pacote (script do instalador): não abre a tela nem mexe na pasta de dados. O log das
+            // bibliotecas (Flyway, PDFBox) só mostra avisos, para o resultado ficar legível.
+            Logger raiz = Logger.getLogger("");
+            raiz.setLevel(Level.WARNING);
+            for (Handler saida : raiz.getHandlers()) {
+                saida.setLevel(Level.WARNING);
+            }
+            int codigo;
+            try {
+                codigo = Conferencia.imprimir(Conferencia.executar(), System.out);
+            } catch (IOException erro) {
+                System.out.println("FALHOU  pasta temporária: " + erro.getMessage());
+                codigo = 1;
+            }
+            System.exit(codigo);
+            return;
+        }
         PastasDados pastas = Partida.pastas();
         try {
             pastas.criar();

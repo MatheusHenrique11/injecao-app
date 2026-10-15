@@ -70,4 +70,50 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            Instalador (scripts\gerar-instalador.ps1): junta em target\instalador as bibliotecas do app, que rodam no
+            classpath, e o JavaFX, que entra no Java embutido (jlink) como módulos. Fica fora do verify do dia a dia.
+        -->
+        <profile>
+            <id>instalador</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>bibliotecas-do-app</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <excludeGroupIds>org.openjfx</excludeGroupIds>
+                                    <outputDirectory>${project.build.directory}/instalador/app</outputDirectory>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>javafx-para-o-jlink</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <includeScope>runtime</includeScope>
+                                    <includeGroupIds>org.openjfx</includeGroupIds>
+                                    <!-- Só os jars do Windows (com as classes e as DLLs); os sem sufixo são vazios. -->
+                                    <includeClassifiers>win</includeClassifiers>
+                                    <outputDirectory>${project.build.directory}/instalador/javafx</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
