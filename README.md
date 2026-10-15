@@ -6,7 +6,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
 ## Situação
 
-Fase 1.1 (0.1.1): núcleo de cálculo completo (SPEC 6.3 e 7), calculadora e PDF da memória de cálculo, testados também com motores do mercado brasileiro (AP, Opala, Omega, Família II, 5 cilindros Fiat e VW, G4GC). Ainda sem banco de dados, catálogos editáveis nem instalador (fase 2). Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
+Fase 2 (0.2.0): banco de dados com backup e restauração; projetos com cliente, veículo (com histórico) e motor (com versões); catálogos de peças, com o digitalizador do mapa do compressor; dimensionamento com as peças do catálogo, meta pela pressão do turbo e torque × câmbio; orçamento em PDF e em texto para WhatsApp; instalador MSI. O mapa base chega na fase 3. Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
 ## Módulos
 
@@ -23,7 +23,7 @@ Fase 1.1 (0.1.1): núcleo de cálculo completo (SPEC 6.3 e 7), calculadora e PDF
 - Eclipse Temurin 25 LTS (`java -version` → 25.0.x)
 - Apache Maven 3.9.x (`mvn -v`)
 - Git
-- WiX Toolset (só a partir da fase 2, para o instalador)
+- WiX Toolset 3.14.1, só para gerar o instalador. Basta o zip de binários do lançamento oficial (`wix314-binaries.zip`), extraído em `%USERPROFILE%\tools\wix314`.
 
 ## Comandos
 
@@ -32,9 +32,12 @@ mvn -q verify                          # compila e roda os testes
 mvn -q install -DskipTests             # instala os módulos no repositório local
 mvn -q -pl calibra-app javafx:run      # abre o app (depois do install)
 mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum   # teste de interface (opcional)
+powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1  # gera dist\Calibra-<versão>.msi
 ```
 
 O teste de interface precisa da área de trabalho do Windows. Ele salva imagens da tela em `calibra-app/target/`. O PDF de exemplo do caso B fica em `calibra-relatorios/target/exemplo-memoria-caso-B.pdf` depois do `verify`.
+
+O script do instalador roda os testes, monta o Java embutido, confere o pacote (`Inicio --conferir`) e gera o MSI. Com `-VersaoMsi 0.1.99` ele gera um MSI de teste com outra versão (ensaio de instalar por cima); com `-PularTestes`, só repete o empacotamento. O ícone sai de `scripts\gerar-icone.ps1`.
 
 ## Documentação
 

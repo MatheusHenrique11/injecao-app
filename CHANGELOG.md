@@ -2,6 +2,27 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [0.2.0] — 14/10/2026 — Fase 2
+
+### Adicionado
+- **Instalador MSI** (`scripts\gerar-instalador.ps1`): Java embutido (jlink) só com os módulos usados e o idioma pt-BR, conferência do pacote antes de gerar, instalação por usuário sem administrador em `%LOCALAPPDATA%\Programs\Calibra`, atalhos no menu Iniciar e na área de trabalho, e instalar por cima sem perder os dados. Ícone próprio.
+- **Banco de dados SQLite** em `%LOCALAPPDATA%\Calibra`, com migração automática ao abrir (backup antes; se falhar, volta o backup).
+- **Backup** automático (diário e ao fechar, se algo mudou), manual e para pen drive ou HD externo; ficam os 30 mais recentes. **Restauração** conferida, com backup de segurança antes.
+- **Logs** em arquivo e mensagem amigável para erro inesperado.
+- **Janela principal** com Projetos, Calculadora, Catálogos e Configurações; versão e último backup na barra de baixo.
+- **Configurações:** dados da oficina com logo, padrões de cálculo e limiares do semáforo, padrões do orçamento e backup.
+- **Projetos:** assistente (cliente, veículo, motor, meta e injeção), lista com busca sem acento, abas Resumo, Veículo (com histórico), Motor (versões e comparação), Dimensionamento (cálculo salvo com as justificativas, "desatualizado — recalcular" com o motivo) e Peças e orçamento. Status do projeto com histórico; arquivar e reativar.
+- **LGPD:** consentimento do cliente registrado e "anonimizar cliente".
+- **Catálogos** (bicos, bombas, injeções, turbos, combustíveis, intercoolers, sensores, câmbios, e motores e montagens), com fonte, "a verificar", preço de referência, versões, comparação entre versões e arquivamento. Os combustíveis da SPEC 7.2 e 19 motores e 6 montagens do mercado já vêm cadastrados.
+- **Peças do catálogo no dimensionamento**, com "Sugerir" para bico, bomba, injeção e turbo. Cálculo desatualizado quando uma peça ganha versão nova.
+- **Turbo:** digitalizador do mapa do compressor sobre a imagem do fabricante, ponto de potência e de torque no mapa (com o mapa desenhado no resultado) e semáforo do compressor.
+- **Meta pela pressão do turbo**, ponto de torque máximo (com a VE do torque) e indicador **torque × câmbio**.
+- **Orçamento:** itens do cálculo com o preço do catálogo, serviços, desconto, prazo e validade; PDF com o logo da oficina e o resumo técnico; texto para WhatsApp; enviado, aprovado (data, hora e meio) ou recusado; revisões com o mesmo número (ORC-AAAA-NNNN).
+
+### Mudado
+- **Núcleo de cálculo 1.1.0:** vazão corrigida, conta pela pressão, ponto de torque e torque × câmbio. Os casos golden A a D continuam iguais; cálculos salvos com o núcleo 1.0.0 aparecem como desatualizados.
+- O app abre por `br.com.calibra.app.Inicio`, que liga o log antes da tela.
+
 ## [0.1.1] — 09/10/2026 — Fase 1.1
 
 ### Mudado

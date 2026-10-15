@@ -418,3 +418,8 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
     - UpgradeCode fixo `45107A4F-BD64-4EDB-815D-3611CD926209`, para instalar por cima sem duplicar o app. Nunca mudar.
     - O jpackage roda com a pasta temporária dele: o lançador que ele gera é somente leitura e travaria o `mvn clean` se ficasse no `target`.
 151. **Ícone próprio, gerado por `scripts\gerar-icone.ps1`**: um manômetro sobre o azul do app. Os PNG de 16 a 256 px vão para a janela, e o `.ico` para o instalador e o atalho. Os scripts PowerShell ficam em UTF-8 com BOM, porque o PowerShell 5.1 precisa disso para ler os acentos.
+152. **Unidades preferidas na tela ficam para a fase 3**, junto do mapa base (SPEC 8.7, alterada). Até lá, a tela e os PDFs mostram os resultados em várias unidades ao mesmo tempo (ex.: 241,0 kPa · 2,41 bar · 34,95 psia).
+153. **Versão 0.2.0** (sai o SNAPSHOT) e a documentação da fase:
+    - manual com todas as telas da fase 2, backup, restauração e LGPD;
+    - CHANGELOG 0.2.0, README e o comando do instalador no CLAUDE.md;
+    - as mudanças da SPEC 6.2, 6.4, 7.1, 7.4, 8.5 e 8.7, cada uma com a nota "alterado em 14/10/2026" e a decisão.

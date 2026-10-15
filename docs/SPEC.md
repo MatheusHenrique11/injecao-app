@@ -132,6 +132,7 @@ Nome, telefone, e-mail (opcional), CPF ou CNPJ (opcional), consentimento registr
 | `uso acumulado` | km para terrestres; horas de motor para náuticos |
 | `cambio` | MANUAL, AUTOMATICO, AUTOMATIZADO, DUPLA_EMBREAGEM, CVT, NAUTICO_RABETA_OU_REVERSOR, JATO |
 | `cambioControladoPelaInjecao` | sim ou não; só para AUTOMATICO, AUTOMATIZADO e DUPLA_EMBREAGEM |
+| `cambioItemId` | opcional: câmbio do catálogo (8.5), do mesmo tipo do `cambio`; o torque máximo dele entra no indicador torque × câmbio (7.4). Alterado em 14/10/2026 — ver docs/decisoes.md, itens 93 e 111 |
 | `tracao` | DIANTEIRA, TRASEIRA, INTEGRAL (só terrestres) |
 | `pesoKg` | opcional |
 | `cor`, `observacoes` | opcionais |
@@ -197,8 +198,10 @@ Nome, telefone, e-mail (opcional), CPF ou CNPJ (opcional), consentimento registr
 | Campo | Regra |
 | --- | --- |
 | `potenciaMetaCv` e `pontoMedicao` | RODA ou VIRABREQUIM. Se RODA, `perdaTransmissaoPct` é obrigatório (o usuário informa) e o cálculo converte para virabrequim. |
+| meta pela pressão | alternativa à potência, só para sobrealimentado: a pressão do turbo acima da atmosférica (bar, psi ou kPa); a potência sai do cálculo (7.1). Com RODA e a perda, o cálculo estima também a potência na roda. Alterado em 14/10/2026 — ver docs/decisoes.md, itens 117 e 127 |
 | `rotacaoPotenciaMaxima` | obrigatória; até a `rotacaoMaxima` do motor. |
-| `rotacaoTorqueMaximo` | obrigatória para gerar mapa base. |
+| `rotacaoTorqueMaximo` | obrigatória para gerar mapa base; com ela, o cálculo estima o ponto de torque (7.1). |
+| `veTorque` | opcional: VE na rotação de torque máximo; sem ela, vale a VE da potência. Alterado em 14/10/2026 — ver docs/decisoes.md, item 116 |
 | `uso` | RUA, ARRANCADA, CIRCUITO_ENDURANCE, OFF_ROAD, NAUTICO. |
 | `injecaoEscolhida` | do catálogo; opcional até a etapa de mapa base. |
 | `status` | RASCUNHO → DIMENSIONADO → ORCADO → APROVADO → MAPA_BASE → EM_ACERTO → CONCLUIDO; ARQUIVADO a qualquer momento. |
@@ -233,6 +236,14 @@ Turbo (método Garrett)
   Tm         = T2 − eps × (T2 − T_amb)                        eps padrão 0,80 (ar-ar)
   Iterar MAP ↔ Tm a partir de Tm = 50 °C até |ΔTm| < 0,01 °C (máximo 100 iterações; se não convergir, erro)
   Aspirado: sem compressor; Tm = T_amb + 10 °C (padrão editável)
+
+  Alterado em 14/10/2026 (núcleo 1.1.0) — ver docs/decisoes.md, itens 114, 116 e 117:
+  Vazão corrigida = Wa × raiz(T1 / T_ref) / (P1 / P_ref)     T1 = T_amb; P1 = P_atm − dP_admissao;
+                                                     T_ref e P_ref são os do próprio mapa do compressor
+  Meta pela pressão: MAP = P_atm + pressão do turbo; PR, T2 e Tm sem iteração (o MAP é conhecido);
+                     Wa pela fórmula do MAP ao contrário; P_hp = Wa × k_ar (ou pelo BSFC)
+  Ponto de torque:   o mesmo MAP e a mesma Tm da potência, na rotação de torque, com a VE do torque:
+                     Wa = MAP × VE × (RPM/2) × Vd / (639,6 × (460 + Tm[°F])); daí a potência e o torque
 
 Tempo de injeção
   m_ar_cil [kg] = VE × MAP[Pa] × V_cil[m³] / (287,05 × Tm[K])
@@ -281,12 +292,15 @@ O teor de etanol da gasolina muda por decisão do governo (E30 em 2025, E32 em 2
 | --- | --- | --- | --- |
 | DC do bico, com tempo morto, na rotação de potência máxima | até 80% | 80% a 85% | acima de 85% |
 | Folga da bomba sobre a vazão necessária | 30% ou mais | 15% a 30% | menos de 15% |
-| Ponto no mapa do compressor | dentro das ilhas centrais | perto de surge, choke ou rotação máxima; ou turbo sem mapa cadastrado | fora do mapa |
+| Ponto no mapa do compressor (potência e torque; vale a pior cor) | eficiência até 5 pontos abaixo do pico do mapa | menos de 10% de vazão acima do surge ou de 5% até o choke (na mesma PR); acima de 95% da rotação máxima ou das linhas de rotação desenhadas; fora das ilhas ou mais de 5 pontos abaixo do pico; ou turbo sem mapa cadastrado | fora do mapa |
 | BMEP (referência: aspirado 13 bar; sobrealimentado 22 bar) | até a referência | até 15% acima | acima de 15% com pistões ou bielas originais; com os dois forjados, vira amarelo com aviso |
 | Velocidade média do pistão | até 20 m/s | 20 a 25 m/s | acima de 25 m/s |
 | Saídas da injeção | suficientes | — | insuficientes |
 | Faixa do sensor MAP | 1,2 × MAP máximo ou mais | 1,0 a 1,2 × MAP máximo | abaixo do MAP máximo |
 | Aspirado: MAP necessário ÷ P_atm local | até 0,90 | 0,90 a 0,98 | acima de 0,98 ("meta acima do possível para aspirado com essa VE") |
+| Torque estimado (o maior entre potência e torque máximo) ÷ torque máximo do câmbio | até 90% | 90% a 100% | acima de 100%; sem câmbio ou sem limite cadastrado, só aviso |
+
+Os números do mapa do compressor e a linha do torque × câmbio foram alterados em 14/10/2026 — ver docs/decisoes.md, itens 115 e 119. Os limiares desses dois indicadores ficam marcados "a validar" em Configurações.
 
 ### 7.5 Mapa base — conservador por padrão
 
@@ -351,9 +365,9 @@ O teor de etanol da gasolina muda por decisão do governo (E30 em 2025, E32 em 2
 2. **Assistente de novo projeto:** Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). O formulário do motor se adapta ao número de cilindros: ao mudar de 4 para 6, por exemplo, a ordem de ignição e os ângulos são sugeridos de novo e pedem confirmação.
 3. **Projeto (abas):** Resumo · Veículo (editável, com histórico) · Motor (editável, com versões e comparação entre elas) · Dimensionamento (cartões com semáforo e memória de cálculo) · Peças e orçamento · Mapa base · Sessões de acerto · Relatório.
 4. **Editor de tabela:** grade com cores por faixa; edição por célula ou seleção (somar, multiplicar em %, interpolar, suavizar); desfazer; comparação com outra versão em %; vista 3D que gira com o mouse; copiar e colar texto tabulado.
-5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, modelos de VE e de ignição.
+5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, câmbios (tipo e torque máximo), motores e montagens (geometria, biela e taxa, com fonte, para preencher o motor), modelos de VE e de ignição. Câmbios e motores e montagens: alterado em 14/10/2026 — ver docs/decisoes.md, itens 86 e 91.
 6. **Biblioteca:** busca por configuração (cilindros, cilindrada ±10%, aspiração, combustível, injeção, bicos, turbo, uso) e comparação entre mapa base e mapa final.
-7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), unidades, limiares do semáforo, padrões de cálculo, pasta de backup, restaurar backup.
+7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), limiares do semáforo, padrões de cálculo, padrões do orçamento, pasta de backup, restaurar backup. As unidades preferidas na tela passam para a fase 3, junto do mapa base; até lá, os resultados aparecem em várias unidades ao mesmo tempo (alterado em 14/10/2026 — ver docs/decisoes.md, itens 137 e 152).
 
 Fonte mínima de 13 px, tudo operável pelo teclado, tema claro.
 
