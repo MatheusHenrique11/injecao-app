@@ -107,6 +107,16 @@ class VeiculoTest {
                 errado.validar(ANO_ATUAL));
     }
 
+    /** A entrada de uma OS atualiza só o km; o resto do veículo fica igual. */
+    @Test
+    void comUsoAcumuladoTrocaSoOUso() {
+        Veiculo gol = carro("ABC1D23", TipoCambio.MANUAL, false, Tracao.DIANTEIRA);
+        Veiculo depois = gol.comUsoAcumulado(251_500.0);
+        assertEquals(251_500.0, depois.usoAcumulado());
+        assertEquals(gol, depois.comUsoAcumulado(250_000.0), "voltando o km, é o mesmo veículo");
+        assertNull(gol.comUsoAcumulado(null).usoAcumulado());
+    }
+
     @Test
     void trocarDeCarroParaLanchaTiraOsCamposDeCarro() {
         Veiculo gol = carro("ABC1D23", TipoCambio.AUTOMATICO, true, Tracao.DIANTEIRA);

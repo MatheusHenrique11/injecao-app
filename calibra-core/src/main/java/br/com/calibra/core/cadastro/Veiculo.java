@@ -116,6 +116,12 @@ public record Veiculo(
                 usoAcumulado, cambioDoTipo, controlado, nautico ? null : tracao, pesoKg, cor, observacoes);
     }
 
+    /** O mesmo veículo com outro uso acumulado (km ou horas de motor), como na entrada de uma OS. */
+    public Veiculo comUsoAcumulado(Double uso) {
+        return new Veiculo(tipo, marca, modelo, versao, anoFabricacao, anoModelo, placa, chassi, nomeEmbarcacao,
+                numeroInscricao, numeroCasco, uso, cambio, cambioControladoPelaInjecao, tracao, pesoKg, cor, observacoes);
+    }
+
     /** Marca, modelo e versão: "VW Gol GTi". */
     public String descricao() {
         return Stream.of(marca, modelo, versao).filter(texto -> !texto.isEmpty()).collect(Collectors.joining(" "));
