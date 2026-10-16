@@ -35,6 +35,7 @@ import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.catalogo.VersaoCatalogo;
+import br.com.calibra.dados.orcamento.CalculoDoOrcamento;
 import br.com.calibra.dados.orcamento.MudancaStatusOrcamento;
 import br.com.calibra.dados.orcamento.OrcamentoRepositorio;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
@@ -48,8 +49,9 @@ import br.com.calibra.relatorios.DadosOrcamento;
 
 /**
  * Casos de uso do orçamento (bloco 2.5): os itens saem do último cálculo do projeto (peças do catálogo com o preço de
- * referência da versão usada); cada projeto tem um número de orçamento, com revisões. Enviar leva o projeto a
- * ORCADO; a aprovação, a APROVADO. Sem JavaFX.
+ * referência da versão usada); cada OS tem um número de orçamento, com revisões (desde a fase 3, o orçamento
+ * pertence à OS; o do projeto vai para a OS atual dele). Enviar leva o projeto a ORCADO; a aprovação, a APROVADO.
+ * Sem JavaFX.
  */
 public final class CasosOrcamento {
 
@@ -74,6 +76,7 @@ public final class CasosOrcamento {
     private final CasosProjeto projetos;
     private final OrcamentoRepositorio orcamentos;
     private final ProjetoRepositorio projetoRepositorio;
+    private final OrdensDoProjeto ordensDoProjeto;
     private final CatalogoRepositorio catalogo;
 
     public CasosOrcamento(BancoDados banco, Clock relogio, CasosProjeto projetos) {
@@ -82,6 +85,7 @@ public final class CasosOrcamento {
         this.projetos = Objects.requireNonNull(projetos, "projetos");
         this.orcamentos = new OrcamentoRepositorio(relogio);
         this.projetoRepositorio = new ProjetoRepositorio(relogio);
+        this.ordensDoProjeto = new OrdensDoProjeto(relogio);
         this.catalogo = new CatalogoRepositorio(relogio);
     }
 
@@ -96,10 +100,10 @@ public final class CasosOrcamento {
         List<SituacaoOrcamento> lista = new ArrayList<>();
         for (OrcamentoSalvo orcamento : banco.ler(c -> orcamentos.doProjeto(c, projetoId))) {
             List<String> motivos = new ArrayList<>();
-            if (!Objects.equals(orcamento.calculoId(), maisNovo)) {
+            if (!Objects.equals(orcamento.calculo().calculoId(), maisNovo)) {
                 motivos.add("há um cálculo salvo mais novo que o deste orçamento");
             }
-            CasosProjeto.SituacaoCalculo calculo = porId.get(orcamento.calculoId());
+            CasosProjeto.SituacaoCalculo calculo = porId.get(orcamento.calculo().calculoId());
             if (calculo != null) {
                 motivos.addAll(calculo.motivos());
             }
@@ -182,10 +186,11 @@ public final class CasosOrcamento {
      */
     public DadosOrcamento documento(long orcamentoId, DadosOficina oficina, Path logo, String versaoApp) {
         OrcamentoSalvo orcamento = exigir(orcamentoId);
-        CasosProjeto.ProjetoAberto aberto = projetos.abrir(orcamento.projetoId());
-        CalculoSalvo calculo = projetos.calculo(orcamento.calculoId()).orElseThrow();
-        VersaoMotor motor = projetos.versoesMotor(orcamento.projetoId()).stream()
-                .filter(v -> v.id() == orcamento.motorVersaoId()).findFirst().orElseThrow();
+        CalculoDoOrcamento usado = exigirPreparacao(orcamento);
+        CasosProjeto.ProjetoAberto aberto = projetos.abrir(usado.projetoId());
+        CalculoSalvo calculo = projetos.calculo(usado.calculoId()).orElseThrow();
+        VersaoMotor motor = projetos.versoesMotor(usado.projetoId()).stream()
+                .filter(v -> v.id() == usado.motorVersaoId()).findFirst().orElseThrow();
         Veiculo veiculo = aberto.veiculo().veiculo();
         String textoVeiculo = veiculo.descricao() + (veiculo.anoModelo() == null ? "" : " " + veiculo.anoModelo())
                 + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao());
@@ -200,17 +205,19 @@ public final class CasosOrcamento {
     // ===================== Rascunho =====================
 
     /**
-     * Cria o orçamento do projeto (o primeiro; os seguintes são revisões dele), em RASCUNHO, com o último cálculo.
+     * Cria o orçamento do projeto (o primeiro; os seguintes são revisões dele), em RASCUNHO, com o último cálculo. Ele
+     * vai para a OS atual do projeto; sem OS em andamento, uma OS nova é aberta para ele (ABERTA, sem a entrada).
      *
-     * @throws EntradaInvalidaException se o conteúdo não passar, se o cálculo não estiver em dia ou se o projeto já
-     *     tiver orçamento
+     * @throws EntradaInvalidaException se o conteúdo não passar, se o cálculo não estiver em dia ou se a OS atual do
+     *     projeto já tiver orçamento
      */
     public OrcamentoSalvo criar(long projetoId, Orcamento conteudo) {
         exigirValido(conteudo);
         CalculoSalvo calculo = calculoEmDia(projetoId);
         return banco.transacao(c -> {
             exigirAtivo(c, projetoId);
-            List<OrcamentoSalvo> existentes = orcamentos.doProjeto(c, projetoId);
+            long osId = ordensDoProjeto.atual(c, projetoId);
+            List<OrcamentoSalvo> existentes = orcamentos.daOs(c, osId);
             if (!existentes.isEmpty()) {
                 OrcamentoSalvo ultimo = existentes.getFirst();
                 throw new OperacaoRecusadaException("O projeto já tem o orçamento " + ultimo.numero().comRevisao()
@@ -218,7 +225,8 @@ public final class CasosOrcamento {
             }
             int ano = LocalDate.now(relogio).getYear();
             NumeroOrcamento numero = new NumeroOrcamento(ano, orcamentos.proximoSequencial(c, ano), 1);
-            long id = orcamentos.inserir(c, projetoId, calculo.id(), calculo.versaoMotorId(), numero, conteudo);
+            long id = orcamentos.inserir(c, osId, new CalculoDoOrcamento(projetoId, calculo.id(),
+                    calculo.versaoMotorId()), numero, conteudo);
             return orcamentos.buscar(c, id).orElseThrow();
         });
     }
@@ -235,7 +243,7 @@ public final class CasosOrcamento {
     /** O rascunho passa a usar o cálculo mais novo do projeto (os itens ficam como estão, para a pessoa revisar). */
     public void usarCalculoMaisNovo(long orcamentoId) {
         OrcamentoSalvo orcamento = exigir(orcamentoId);
-        CalculoSalvo calculo = calculoEmDia(orcamento.projetoId());
+        CalculoSalvo calculo = calculoEmDia(exigirPreparacao(orcamento).projetoId());
         banco.transacao(c -> {
             orcamentos.atualizarCalculo(c, orcamentoId, calculo.id(), calculo.versaoMotorId());
             return null;
@@ -258,9 +266,11 @@ public final class CasosOrcamento {
                     + "). Use o cálculo mais novo e confira os itens antes de enviar.");
         }
         banco.transacao(c -> {
-            exigirAtivo(c, orcamento.projetoId());
+            exigirAtivo(c, orcamento);
             orcamentos.mudarStatus(c, orcamentoId, StatusOrcamento.ENVIADO, null, null, null);
-            avancarProjeto(c, orcamento.projetoId(), StatusProjeto.ORCADO);
+            if (orcamento.dePreparacao()) {
+                avancarProjeto(c, orcamento.calculo().projetoId(), StatusProjeto.ORCADO);
+            }
             return null;
         });
     }
@@ -294,10 +304,10 @@ public final class CasosOrcamento {
         }
         OrcamentoSalvo orcamento = exigir(orcamentoId);
         banco.transacao(c -> {
-            exigirAtivo(c, orcamento.projetoId());
+            exigirAtivo(c, orcamento);
             orcamentos.mudarStatus(c, orcamentoId, resposta, quando, meio, observacao);
-            if (resposta == StatusOrcamento.APROVADO) {
-                avancarProjeto(c, orcamento.projetoId(), StatusProjeto.APROVADO);
+            if (resposta == StatusOrcamento.APROVADO && orcamento.dePreparacao()) {
+                avancarProjeto(c, orcamento.calculo().projetoId(), StatusProjeto.APROVADO);
             }
             return null;
         });
@@ -314,12 +324,15 @@ public final class CasosOrcamento {
                     ? "O rascunho se edita direto: não precisa de revisão."
                     : "O orçamento " + anterior.numero().comRevisao() + " já foi substituído.");
         }
-        CalculoSalvo calculo = calculoEmDia(anterior.projetoId());
+        CalculoDoOrcamento usado = anterior.calculo();
+        CalculoSalvo calculo = usado == null ? null : calculoEmDia(usado.projetoId());
         return banco.transacao(c -> {
-            exigirAtivo(c, anterior.projetoId());
+            exigirAtivo(c, anterior);
             orcamentos.mudarStatus(c, orcamentoId, StatusOrcamento.SUBSTITUIDO, null, null, null);
-            long id = orcamentos.inserir(c, anterior.projetoId(), calculo.id(), calculo.versaoMotorId(),
-                    anterior.numero().proximaRevisao(), anterior.conteudo());
+            CalculoDoOrcamento novo = calculo == null ? null
+                    : new CalculoDoOrcamento(usado.projetoId(), calculo.id(), calculo.versaoMotorId());
+            long id = orcamentos.inserir(c, anterior.osId(), novo, anterior.numero().proximaRevisao(),
+                    anterior.conteudo());
             return orcamentos.buscar(c, id).orElseThrow();
         });
     }
@@ -340,9 +353,21 @@ public final class CasosOrcamento {
         return projetos.calculo(ultimo.calculo().id()).orElseThrow();
     }
 
+    /** O que mudou desde o orçamento de preparação; o da OS comum não depende de cálculo. */
     private List<String> motivos(OrcamentoSalvo orcamento) {
-        return orcamentos(orcamento.projetoId()).stream().filter(s -> s.orcamento().id() == orcamento.id())
+        if (!orcamento.dePreparacao()) {
+            return List.of();
+        }
+        return orcamentos(orcamento.calculo().projetoId()).stream().filter(s -> s.orcamento().id() == orcamento.id())
                 .findFirst().map(SituacaoOrcamento::motivos).orElse(List.of());
+    }
+
+    private static CalculoDoOrcamento exigirPreparacao(OrcamentoSalvo orcamento) {
+        if (!orcamento.dePreparacao()) {
+            throw new OperacaoRecusadaException("O orçamento " + orcamento.numero().comRevisao()
+                    + " não usa cálculo de preparação.");
+        }
+        return orcamento.calculo();
     }
 
     private OrcamentoSalvo exigir(long orcamentoId) {
@@ -354,6 +379,13 @@ public final class CasosOrcamento {
         List<String> erros = conteudo.validar();
         if (!erros.isEmpty()) {
             throw new EntradaInvalidaException(erros);
+        }
+    }
+
+    /** O orçamento de preparação exige o projeto ativo. */
+    private void exigirAtivo(Connection conexao, OrcamentoSalvo orcamento) throws SQLException {
+        if (orcamento.dePreparacao()) {
+            exigirAtivo(conexao, orcamento.calculo().projetoId());
         }
     }
 

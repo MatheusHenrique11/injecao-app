@@ -20,14 +20,15 @@ import br.com.calibra.dados.Sql;
 import br.com.calibra.dados.json.Json;
 
 /**
- * Orçamentos (bloco 2.5) na tabela {@code orcamento}, uma linha por revisão, com o histórico de status. O banco
- * recusa mudar o conteúdo de quem não é rascunho e apagar orçamento.
+ * Orçamentos (bloco 2.5) na tabela {@code orcamento}, uma linha por revisão, com o histórico de status. Desde a V6,
+ * o orçamento pertence a uma OS; o de preparação aponta também para o cálculo. O banco recusa mudar o conteúdo de
+ * quem não é rascunho e apagar orçamento.
  */
 public final class OrcamentoRepositorio {
 
-    private static final String COLUNAS = "id, projeto_id, calculo_id, motor_versao_id, ano, sequencial, revisao, "
-            + "status, conteudo_json, enviado_em, respondido_em, meio_resposta, observacao_resposta, criado_em, "
-            + "atualizado_em";
+    private static final String COLUNAS = "id, os_id, projeto_id, calculo_id, motor_versao_id, ano, sequencial, "
+            + "revisao, status, conteudo_json, enviado_em, respondido_em, meio_resposta, observacao_resposta, "
+            + "criado_em, atualizado_em";
 
     private final Clock relogio;
 
@@ -47,25 +48,30 @@ public final class OrcamentoRepositorio {
         }
     }
 
-    /** Revisão nova, em RASCUNHO. */
-    public long inserir(Connection conexao, long projetoId, long calculoId, long motorVersaoId, NumeroOrcamento numero,
+    /**
+     * Revisão nova, em RASCUNHO.
+     *
+     * @param calculo o cálculo de preparação; null no orçamento de uma OS comum
+     */
+    public long inserir(Connection conexao, long osId, CalculoDoOrcamento calculo, NumeroOrcamento numero,
             Orcamento conteudo) throws SQLException {
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement insercao = conexao.prepareStatement(
-                "INSERT INTO orcamento (projeto_id, calculo_id, motor_versao_id, ano, sequencial, revisao, status, "
-                        + "conteudo_json, total_centavos, criado_em, atualizado_em) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-            insercao.setLong(1, projetoId);
-            insercao.setLong(2, calculoId);
-            insercao.setLong(3, motorVersaoId);
-            insercao.setInt(4, numero.ano());
-            insercao.setInt(5, numero.sequencial());
-            insercao.setInt(6, numero.revisao());
-            insercao.setString(7, StatusOrcamento.RASCUNHO.name());
-            insercao.setString(8, Json.escrever(conteudo));
-            insercao.setLong(9, conteudo.total().centavos());
-            insercao.setString(10, Sql.texto(agora));
+                "INSERT INTO orcamento (os_id, projeto_id, calculo_id, motor_versao_id, ano, sequencial, revisao, "
+                        + "status, conteudo_json, total_centavos, criado_em, atualizado_em) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+            insercao.setLong(1, osId);
+            Sql.longo(insercao, 2, calculo == null ? null : calculo.projetoId());
+            Sql.longo(insercao, 3, calculo == null ? null : calculo.calculoId());
+            Sql.longo(insercao, 4, calculo == null ? null : calculo.motorVersaoId());
+            insercao.setInt(5, numero.ano());
+            insercao.setInt(6, numero.sequencial());
+            insercao.setInt(7, numero.revisao());
+            insercao.setString(8, StatusOrcamento.RASCUNHO.name());
+            insercao.setString(9, Json.escrever(conteudo));
+            insercao.setLong(10, conteudo.total().centavos());
             insercao.setString(11, Sql.texto(agora));
+            insercao.setString(12, Sql.texto(agora));
             insercao.executeUpdate();
         }
         long id = Sql.ultimoId(conexao);
@@ -144,12 +150,20 @@ public final class OrcamentoRepositorio {
         }
     }
 
-    /** As revisões do projeto, da mais nova para a mais antiga. */
+    /** As revisões dos orçamentos de preparação do projeto, da mais nova para a mais antiga. */
     public List<OrcamentoSalvo> doProjeto(Connection conexao, long projetoId) throws SQLException {
+        return lista(conexao, "SELECT " + COLUNAS + " FROM orcamento WHERE projeto_id = ? ORDER BY id DESC", projetoId);
+    }
+
+    /** As revisões do orçamento da OS, da mais nova para a mais antiga. */
+    public List<OrcamentoSalvo> daOs(Connection conexao, long osId) throws SQLException {
+        return lista(conexao, "SELECT " + COLUNAS + " FROM orcamento WHERE os_id = ? ORDER BY id DESC", osId);
+    }
+
+    private static List<OrcamentoSalvo> lista(Connection conexao, String sql, long parametro) throws SQLException {
         List<OrcamentoSalvo> orcamentos = new ArrayList<>();
-        try (PreparedStatement consulta = conexao.prepareStatement(
-                "SELECT " + COLUNAS + " FROM orcamento WHERE projeto_id = ? ORDER BY id DESC")) {
-            consulta.setLong(1, projetoId);
+        try (PreparedStatement consulta = conexao.prepareStatement(sql)) {
+            consulta.setLong(1, parametro);
             try (ResultSet linha = consulta.executeQuery()) {
                 while (linha.next()) {
                     orcamentos.add(ler(linha));
@@ -200,8 +214,10 @@ public final class OrcamentoRepositorio {
     }
 
     private static OrcamentoSalvo ler(ResultSet linha) throws SQLException {
-        return new OrcamentoSalvo(linha.getLong("id"), linha.getLong("projeto_id"), linha.getLong("calculo_id"),
-                linha.getLong("motor_versao_id"),
+        Long projetoId = Sql.longo(linha, "projeto_id");
+        CalculoDoOrcamento calculo = projetoId == null ? null : new CalculoDoOrcamento(projetoId,
+                linha.getLong("calculo_id"), linha.getLong("motor_versao_id"));
+        return new OrcamentoSalvo(linha.getLong("id"), linha.getLong("os_id"), calculo,
                 new NumeroOrcamento(linha.getInt("ano"), linha.getInt("sequencial"), linha.getInt("revisao")),
                 Sql.constante(linha, "status", StatusOrcamento.class),
                 Json.ler(linha.getString("conteudo_json"), Orcamento.class), Sql.dataHora(linha, "enviado_em"),

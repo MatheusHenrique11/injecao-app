@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
@@ -33,6 +34,8 @@ import br.com.calibra.dados.Cadastros;
 import br.com.calibra.dados.CasoBDados;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
+import br.com.calibra.dados.oficina.DadosAbertura;
+import br.com.calibra.dados.oficina.OrdemServicoRepositorio;
 import br.com.calibra.dados.projeto.CalculoRepositorio;
 import br.com.calibra.dados.projeto.MotorRepositorio;
 import br.com.calibra.dados.projeto.VersaoMotor;
@@ -48,6 +51,7 @@ class OrcamentoRepositorioTest {
     private long projeto;
     private long calculo;
     private long motorVersao;
+    private long os;
 
     @BeforeEach
     void abrir() throws Exception {
@@ -63,6 +67,12 @@ class OrcamentoRepositorioTest {
         calculo = base.banco.transacao(c -> calculos.salvar(c, projeto, v1.id(), entrada,
                 CalculoDimensionamento.calcular(entrada), List.of(new Justificativa(Indicador.DC_BICO, "Teste.",
                         LocalDateTime.of(2026, 10, 11, 18, 0))), List.of(), BaseDeTeste.VERSAO_APP));
+        os = base.banco.transacao(c -> {
+            long veiculo = repositorios.projetos().buscar(c, projeto).orElseThrow().veiculoId();
+            long cliente = repositorios.veiculos().buscar(c, veiculo).orElseThrow().clienteId();
+            return new OrdemServicoRepositorio(base.relogio).inserir(c, new NumeroOs(2026, 1),
+                    new DadosAbertura(cliente, veiculo, projeto, "Preparação", null, null, ""));
+        });
     }
 
     private static Orcamento conteudo(String valorBico) {
@@ -74,7 +84,8 @@ class OrcamentoRepositorioTest {
     }
 
     private long novo(NumeroOrcamento numero, Orcamento conteudo) {
-        return base.banco.transacao(c -> orcamentos.inserir(c, projeto, calculo, motorVersao, numero, conteudo));
+        return base.banco.transacao(c -> orcamentos.inserir(c, os, new CalculoDoOrcamento(projeto, calculo,
+                motorVersao), numero, conteudo));
     }
 
     private OrcamentoSalvo buscar(long id) {
@@ -109,8 +120,8 @@ class OrcamentoRepositorioTest {
         OrcamentoSalvo salvo = buscar(id);
         assertEquals(conteudo("450,00"), salvo.conteudo());
         assertEquals(StatusOrcamento.RASCUNHO, salvo.status());
-        assertEquals(calculo, salvo.calculoId());
-        assertEquals(motorVersao, salvo.motorVersaoId());
+        assertEquals(new CalculoDoOrcamento(projeto, calculo, motorVersao), salvo.calculo());
+        assertEquals(os, salvo.osId());
         assertNull(salvo.enviadoEm());
 
         base.banco.transacao(c -> {
@@ -119,6 +130,18 @@ class OrcamentoRepositorioTest {
         });
         assertEquals(Dinheiro.ler("2.205,00"), buscar(id).conteudo().total(), "(4 × 500 + 450) − 10%");
         assertEquals(id, base.banco.ler(c -> orcamentos.doProjeto(c, projeto)).getFirst().id());
+        assertEquals(id, base.banco.ler(c -> orcamentos.daOs(c, os)).getFirst().id());
+    }
+
+    /** OS comum: o orçamento sem cálculo; a referência pela metade o banco recusa. */
+    @Test
+    void orcamentoDeOsComumNaoTemCalculo() {
+        long id = base.banco.transacao(c -> orcamentos.inserir(c, os, null, new NumeroOrcamento(2026, 1, 1),
+                conteudo("450,00")));
+        assertNull(buscar(id).calculo());
+        assertTrue(base.banco.ler(c -> orcamentos.doProjeto(c, projeto)).isEmpty(), "não é orçamento de preparação");
+        assertThrows(ErroDados.class, () -> executar("UPDATE orcamento SET projeto_id = " + projeto + " WHERE id = "
+                + id), "projeto sem o cálculo e a versão do motor");
     }
 
     @Test
