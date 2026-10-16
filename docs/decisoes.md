@@ -460,3 +460,19 @@ Origem: a comparação com o PitStop Manager, outro projeto do dono (SaaS de ges
 ## 15/10/2026 — Fase 3, bloco 3.1: a OS no núcleo e no banco
 
 168. **O app de desenvolvimento usa uma pasta de dados só dele, `%LOCALAPPDATA%\Calibra-dev`** (opção `-Dcalibra.pasta` do `javafx:run` no `calibra-app/pom.xml`). Antes, ele usava a mesma pasta do app instalado: com a migração V6, rodar a versão de desenvolvimento atualizaria o banco de verdade, e o 0.2.0 instalado deixaria de abri-lo ("Instale a versão mais nova", decisão 44). Os dados de verdade ficam com o app instalado até a 0.3.0.
+169. **Regras da OS fixadas no bloco 3.1** (SPEC 6.5, alterada):
+    - o orçamento pode vir antes do veículo: a entrada é opcional na abertura e obrigatória para começar o serviço;
+    - só se executa com orçamento aprovado (Código de Defesa do Consumidor, art. 39, VI);
+    - o orçamento move a OS só antes da aprovação; depois, uma revisão nova (o cliente pediu mais coisa) não mexe no status, e o valor da OS é o total da última revisão aprovada;
+    - pagamento em partes, com a situação calculada; recebimento errado é cancelado com o motivo, nunca apagado;
+    - o km da entrada (e o da saída) vira o uso acumulado do veículo, com histórico; menor que o atual vira aviso e é gravado assim mesmo (troca de painel acontece);
+    - o projeto tem uma "OS atual" (a mais nova não entregue nem cancelada); o orçamento da aba do projeto vai para ela, e sem nenhuma uma OS é aberta para o projeto;
+    - mecânico na OS é opcional; mecânico inativo não entra em OS nova.
+170. **Migração V6 em Java, refazendo a tabela `orcamento`:**
+    - **Por quê:** a V5 exige projeto, cálculo e versão do motor no orçamento, e o SQLite não muda coluna.
+    - **Como:** o procedimento da documentação do SQLite (tabela nova, cópia, troca de nome, índices e gatilhos de novo). As chaves estrangeiras só desligam fora de transação, então a migração roda fora da transação do Flyway (`canExecuteInTransaction() = false`): desliga as chaves só nessa conexão, abre a própria transação e roda o `PRAGMA foreign_key_check` antes de gravar. Se algo der errado, nada é gravado, e o `Migracoes` ainda volta o backup feito antes.
+    - **Tabelas e gatilhos:** `mecanico`, `ordem_servico`, `os_status` e `os_pagamento`. OS e recebimento não se apagam, OS entregue ou cancelada não muda, recebimento só se cancela, uma vez. No orçamento, um CHECK exige projeto, cálculo e versão do motor juntos ou nenhum.
+    - **Dados:** cada projeto que já tinha orçamento ganha uma OS, numerada pelo ano e pela ordem do primeiro orçamento, sem entrada, com o serviço "Preparação" e a observação "criada na atualização para a 0.3.0". O status vem da última revisão: rascunho e recusado viram ABERTA; enviado, AGUARDANDO_APROVACAO; aprovado, APROVADA. Ids, números, conteúdo e histórico dos orçamentos não mudam (conferido no `MigracaoV6Test`).
+    - **Checksum:** um CRC32 do SQL da migração, sem os CR, para o Flyway acusar uma edição depois de aplicada.
+171. **A tabela de anexos fica para a V7, no bloco 3.2**, junto com a tela que a usa: migração aplicada não se edita, e cada bloco cria só o que usa e testa.
+172. **PDF e WhatsApp do orçamento da OS comum ficam para o bloco 3.3** (documentos). Até lá, o documento do orçamento continua só para o de preparação, que tem o resumo técnico do cálculo.

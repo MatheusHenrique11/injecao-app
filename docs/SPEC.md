@@ -241,6 +241,12 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
 | anexos | Fotos, documentos, nota fiscal (PDF emitido no site da prefeitura) e laudos, na OS e no veículo; validade opcional, que gera aviso na fase 5. |
 
 - **OS não é apagada:** a cancelada fica no histórico. Depois de ENTREGUE, só o pagamento e os anexos mudam.
+- **Regras da OS, fixadas no bloco 3.1** (alterado em 15/10/2026 — ver docs/decisoes.md, item 169):
+  1. **O orçamento pode vir antes do veículo:** a OS abre sem a entrada (orçamento por WhatsApp ou telefone), e a entrada é registrada quando o veículo chega. EM_EXECUCAO exige a entrada.
+  2. **Só se executa com orçamento aprovado** (Código de Defesa do Consumidor, art. 39, VI): da ABERTA não se pula para EM_EXECUCAO.
+  3. **O orçamento move a OS só antes da aprovação:** enviar leva a AGUARDANDO_APROVACAO, aprovar leva a APROVADA, e recusar ou abrir uma revisão volta para ABERTA. Depois de aprovada, uma revisão nova não muda o status da OS. O valor da OS é o total da última revisão aprovada.
+  4. **Pagamento em partes:** a OS aceita vários recebimentos (ex.: sinal na aprovação e o resto na entrega). A situação (pendente, parcial, pago) é calculada contra o valor da OS. Recebimento errado não se apaga: é cancelado, com o motivo, e deixa de contar.
+  - **Projeto e OS:** o orçamento feito pela aba do projeto vai para a OS atual dele, a mais nova que não foi entregue nem cancelada. Sem nenhuma, uma OS nova é aberta para o projeto, sem a entrada.
 - **Documentos e mensagens:**
   - PDF da OS: a via do cliente, com a vistoria e espaço para assinatura;
   - comprovante de entrega, com a garantia e o pagamento;
