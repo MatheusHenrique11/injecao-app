@@ -1,0 +1,305 @@
+package br.com.calibra.app.casos;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import br.com.calibra.app.casos.CasosOficina.Gravado;
+import br.com.calibra.app.casos.CasosOficina.NovaOs;
+import br.com.calibra.app.casos.CasosOficina.OsAberta;
+import br.com.calibra.app.casos.CasosOficina.SituacaoDoPagamento;
+import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
+import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
+import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
+import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
+import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.FormaPagamento;
+import br.com.calibra.core.oficina.Garantia;
+import br.com.calibra.core.oficina.ItemVistoria;
+import br.com.calibra.core.oficina.NivelCombustivel;
+import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.SituacaoPagamento;
+import br.com.calibra.core.oficina.StatusOs;
+import br.com.calibra.core.oficina.Vistoria;
+import br.com.calibra.core.orcamento.Desconto;
+import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemOrcamento;
+import br.com.calibra.core.orcamento.MeioAprovacao;
+import br.com.calibra.core.orcamento.Orcamento;
+import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.orcamento.TipoItem;
+import br.com.calibra.core.projeto.StatusProjeto;
+import br.com.calibra.core.semaforo.Indicador;
+import br.com.calibra.core.semaforo.Justificativa;
+import br.com.calibra.dados.BancoDados;
+import br.com.calibra.dados.Migracoes;
+import br.com.calibra.dados.OperacaoRecusadaException;
+import br.com.calibra.dados.PastasDados;
+import br.com.calibra.dados.backup.Backup;
+import br.com.calibra.dados.oficina.MudancaStatusOs;
+import br.com.calibra.dados.oficina.PagamentoSalvo;
+import br.com.calibra.dados.orcamento.OrcamentoSalvo;
+
+/**
+ * A OS (fase 3, bloco 3.1): da entrada à entrega de uma OS comum, o orçamento antes do veículo, a recusa e as
+ * revisões movendo a OS, a OS de preparação aberta pelo projeto e as mensagens das regras. Dados fictícios.
+ */
+class CasosOficinaTest {
+
+    @TempDir
+    Path raiz;
+
+    private final RelogioAjustavel relogio = new RelogioAjustavel(LocalDateTime.of(2026, 10, 13, 9, 0));
+    private CasosProjeto casos;
+    private CasosOrcamento orcamentos;
+    private CasosOficina oficina;
+
+    @BeforeEach
+    void abrirBanco() throws IOException {
+        PastasDados pastas = new PastasDados(raiz);
+        pastas.criar();
+        BancoDados banco = new BancoDados(pastas.banco());
+        Migracoes.migrar(banco, new Backup(pastas, banco, "0.3.0-teste", relogio));
+        casos = new CasosProjeto(banco, relogio, "0.3.0-teste");
+        orcamentos = new CasosOrcamento(banco, relogio, casos);
+        oficina = new CasosOficina(banco, relogio, casos);
+    }
+
+    private LocalDateTime agora() {
+        return LocalDateTime.now(relogio);
+    }
+
+    private EntradaVeiculo entrada(double km) {
+        return new EntradaVeiculo(agora(), km, NivelCombustivel.UM_QUARTO, new Vistoria(List.of(
+                new ItemVistoria("Lataria", "risco na porta direita"), new ItemVistoria("Estepe", "ok")), ""));
+    }
+
+    private long abrirComEntrada(String cliente, String placa) {
+        return oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente(cliente)),
+                new VeiculoNovo(CasosProjetoTest.carro(placa)), "Revisão e troca de óleo", null, null, "",
+                entrada(251_500.0))).osId();
+    }
+
+    /** 4 l de óleo a R$ 45,00 e 2 h de mão de obra. */
+    private static Orcamento revisao(String valorHora) {
+        return new Orcamento(List.of(
+                ItemOrcamento.digitado(TipoItem.PECA, "Óleo 5W30 (litro)", BigDecimal.valueOf(4), "l",
+                        Dinheiro.ler("45,00")),
+                ItemOrcamento.digitado(TipoItem.SERVICO, "Troca de óleo e filtros", BigDecimal.valueOf(2), "h",
+                        Dinheiro.ler(valorHora))),
+                Desconto.NENHUM, 1, "", 15, "", "");
+    }
+
+    private StatusOs status(long os) {
+        return oficina.buscar(os).os().status();
+    }
+
+    private void enviarEAprovar(OrcamentoSalvo orcamento) {
+        orcamentos.marcarEnviado(orcamento.id());
+        orcamentos.aprovar(orcamento.id(), agora().minusMinutes(5), MeioAprovacao.WHATSAPP, "Pode fazer.");
+    }
+
+    @Test
+    void osComumDaEntradaAEntrega() {
+        long carlos = oficina.novoMecanico("Carlos");
+        Gravado aberta = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Ana Costa")),
+                new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "Revisão e troca de óleo", carlos,
+                LocalDate.of(2026, 10, 15), "", entrada(251_500.0)));
+        assertEquals(List.of(), aberta.avisos());
+        long os = aberta.osId();
+        OsAberta lida = oficina.buscar(os);
+        assertEquals("OS-2026-0001", lida.os().numero().texto());
+        assertEquals(StatusOs.ABERTA, lida.os().status());
+        assertEquals("Carlos", lida.mecanico().nome());
+        assertEquals(251_500.0, lida.veiculo().veiculo().usoAcumulado(), "o km da entrada vai para o veículo");
+        assertTrue(casos.historicoVeiculo(lida.veiculo().id()).stream()
+                .anyMatch(evento -> evento.campo().equals("Uso acumulado")), "com histórico");
+        assertNull(lida.pagamento().valor(), "sem orçamento aprovado, sem valor");
+
+        assertTrue(orcamentos.sugestaoDaOs(os, PadroesOrcamento.padrao()).itens().isEmpty(), "OS comum: só os padrões");
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(os, revisao("180,00"));
+        assertFalse(orcamento.dePreparacao());
+        assertEquals(List.of(), orcamentos.orcamentosDaOs(os).getFirst().motivos(), "a OS comum não desatualiza");
+
+        OperacaoRecusadaException cedo = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, ""));
+        assertEquals("A OS OS-2026-0001 está \"Aberta\" e não pode passar para \"Em execução\".", cedo.getMessage());
+        orcamentos.marcarEnviado(orcamento.id());
+        assertEquals(StatusOs.AGUARDANDO_APROVACAO, status(os));
+        orcamentos.aprovar(orcamento.id(), agora().minusMinutes(5), MeioAprovacao.WHATSAPP, "Pode fazer.");
+        assertEquals(StatusOs.APROVADA, status(os));
+
+        oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("270,00"), "sinal"));
+        SituacaoDoPagamento parcial = oficina.pagamento(os);
+        assertEquals(Dinheiro.ler("540,00"), parcial.valor(), "4 × 45 + 2 × 180");
+        assertEquals(SituacaoPagamento.PARCIAL, parcial.situacao());
+        assertEquals(Dinheiro.ler("270,00"), parcial.falta());
+
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(os, StatusOs.AGUARDANDO_PECAS, "Filtro de óleo encomendado.");
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(os, StatusOs.PRONTA, "");
+        relogio.andar(Duration.ofHours(3));
+        assertEquals(List.of(), oficina.entregar(os, new Entrega(agora(), 251_530.0, new Garantia(90))).avisos());
+        OsAberta entregue = oficina.buscar(os);
+        assertEquals(StatusOs.ENTREGUE, entregue.os().status());
+        assertEquals(LocalDate.of(2027, 1, 11), entregue.os().garantiaAte(), "90 dias a partir de 13/10");
+        assertEquals(251_530.0, entregue.veiculo().veiculo().usoAcumulado(), "o km da saída também");
+
+        oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.DINHEIRO, Dinheiro.ler("270,00"),
+                "na entrega"));
+        long errado = oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.DINHEIRO,
+                Dinheiro.ler("270,00"), "lançado duas vezes"));
+        oficina.cancelarPagamento(errado, "Lançado duas vezes.");
+        SituacaoDoPagamento pago = oficina.pagamento(os);
+        assertEquals(SituacaoPagamento.PAGO, pago.situacao(), "recebimento depois da entrega vale");
+        assertEquals(Dinheiro.ler("540,00"), pago.recebido(), "o cancelado não conta");
+        assertEquals(3, pago.recebimentos().size(), "mas fica na lista");
+        assertTrue(pago.recebimentos().stream().anyMatch(PagamentoSalvo::cancelado));
+
+        assertEquals(List.of(StatusOs.ABERTA, StatusOs.AGUARDANDO_APROVACAO, StatusOs.APROVADA, StatusOs.EM_EXECUCAO,
+                StatusOs.AGUARDANDO_PECAS, StatusOs.EM_EXECUCAO, StatusOs.PRONTA, StatusOs.ENTREGUE),
+                oficina.historico(os).stream().map(MudancaStatusOs::status).toList());
+        assertEquals("Orçamento ORC-2026-0001 enviado.", oficina.historico(os).get(1).observacao());
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.editarAbertura(os, "Outra coisa", null, null, ""),
+                "entregue não muda");
+        OperacaoRecusadaException revisao = assertThrows(OperacaoRecusadaException.class,
+                () -> orcamentos.novaRevisao(orcamento.id()));
+        assertEquals("A OS OS-2026-0001 está \"Entregue\": o orçamento dela não muda mais.", revisao.getMessage());
+    }
+
+    /** Orçamento por WhatsApp antes do carro chegar: só começa o serviço depois da entrada. */
+    @Test
+    void orcamentoAntesDoVeiculo() {
+        long os = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Bruno Dias")),
+                new VeiculoNovo(CasosProjetoTest.carro("BCD2E34")), "Embreagem patinando", null, null,
+                "Orçamento pelo WhatsApp.", null)).osId();
+        assertFalse(oficina.buscar(os).os().veiculoChegou());
+        enviarEAprovar(orcamentos.criarNaOs(os, revisao("180,00")));
+
+        OperacaoRecusadaException semEntrada = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, ""));
+        assertEquals("Registre a entrada do veículo (km, tanque e vistoria) antes de começar o serviço.",
+                semEntrada.getMessage());
+        Gravado entrada = oficina.registrarEntrada(os, entrada(249_000.0));
+        assertEquals(List.of("O uso da entrada (249.000 km) é menor que o do cadastro do veículo (250.000 km). Gravei "
+                + "assim mesmo: confira se não foi erro de digitação ou troca de painel."), entrada.avisos());
+        assertEquals(249_000.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado());
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        assertEquals(StatusOs.EM_EXECUCAO, status(os));
+    }
+
+    /** Antes da aprovação, recusa e revisão voltam a OS para aberta; depois, a revisão não mexe na OS. */
+    @Test
+    void recusaERevisaoMovemAOsSoAntesDaAprovacao() {
+        long os = abrirComEntrada("Carla Mendes", "CDE3F45");
+        OrcamentoSalvo r1 = orcamentos.criarNaOs(os, revisao("180,00"));
+        orcamentos.marcarEnviado(r1.id());
+        orcamentos.recusar(r1.id(), agora(), MeioAprovacao.TELEFONE, "Achou caro.");
+        assertEquals(StatusOs.ABERTA, status(os));
+
+        OrcamentoSalvo r2 = orcamentos.novaRevisao(r1.id());
+        orcamentos.salvar(r2.id(), revisao("150,00"));
+        orcamentos.marcarEnviado(r2.id());
+        assertEquals(StatusOs.AGUARDANDO_APROVACAO, status(os));
+        OrcamentoSalvo r3 = orcamentos.novaRevisao(r2.id());
+        assertEquals(StatusOs.ABERTA, status(os), "revisão antes da aprovação volta a OS para aberta");
+        enviarEAprovar(r3);
+        assertEquals(StatusOs.APROVADA, status(os));
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+
+        OrcamentoSalvo r4 = orcamentos.novaRevisao(r3.id());
+        orcamentos.salvar(r4.id(), revisao("200,00"));
+        orcamentos.marcarEnviado(r4.id());
+        assertEquals(StatusOs.EM_EXECUCAO, status(os), "o cliente pediu mais coisa: a OS segue o serviço");
+        assertEquals(Dinheiro.ler("480,00"), oficina.pagamento(os).valor(), "vale a rev. 3, aprovada (4 × 45 + 2 × 150)");
+        orcamentos.aprovar(r4.id(), agora(), MeioAprovacao.PESSOALMENTE, "");
+        assertEquals(Dinheiro.ler("580,00"), oficina.pagamento(os).valor(), "agora a rev. 4");
+        assertEquals(StatusOs.EM_EXECUCAO, status(os));
+    }
+
+    /** O orçamento pela aba do projeto abre a OS do projeto, e a OS e o projeto acompanham o orçamento. */
+    @Test
+    void osDePreparacaoPeloProjeto() {
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        long projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("Diego Rocha")),
+                new VeiculoNovo(CasosProjetoTest.carro("DEF4G56")), "AP 2.0 turbo", casoB.motor(), casoB.meta()));
+        casos.salvarCalculo(projeto, casoB.comMotor(casos.abrir(projeto).motor().configuracao()),
+                List.of(new Justificativa(Indicador.DC_BICO, "Bico provisório.", agora())));
+
+        OrcamentoSalvo orcamento = orcamentos.criar(projeto, revisao("180,00"));
+        assertTrue(orcamento.dePreparacao());
+        long os = oficina.osAtualDoProjeto(projeto);
+        assertEquals(os, orcamento.osId());
+        OsAberta aberta = oficina.buscar(os);
+        assertEquals(projeto, aberta.os().projetoId());
+        assertEquals("Preparação", aberta.os().servicoPedido());
+        assertFalse(aberta.os().veiculoChegou(), "o carro pode chegar depois");
+
+        orcamentos.marcarEnviado(orcamento.id());
+        assertEquals(StatusOs.AGUARDANDO_APROVACAO, status(os));
+        assertEquals(StatusProjeto.ORCADO, casos.abrir(projeto).projeto().status());
+        orcamentos.aprovar(orcamento.id(), agora(), MeioAprovacao.PESSOALMENTE, "");
+        assertEquals(StatusOs.APROVADA, status(os));
+        assertEquals(StatusProjeto.APROVADO, casos.abrir(projeto).projeto().status());
+        assertEquals(os, oficina.osAtualDoProjeto(projeto), "não abre outra OS");
+        assertEquals(List.of(orcamento.id()), orcamentos.orcamentosDaOs(os).stream()
+                .map(situacao -> situacao.orcamento().id()).toList());
+    }
+
+    @Test
+    void regrasEmPortugues() {
+        EntradaInvalidaException erros = assertThrows(EntradaInvalidaException.class, () -> oficina.abrir(new NovaOs(
+                new ClienteNovo(CasosProjetoTest.cliente("Eva Lima")), new VeiculoExistente(1), " ", null, null, "",
+                new EntradaVeiculo(agora().plusDays(1), null, null, null))));
+        assertEquals(List.of("Cliente novo precisa de veículo novo.", "Descreva o serviço pedido pelo cliente.",
+                "A data e a hora da entrada não podem estar no futuro."), erros.erros());
+
+        long fabio = oficina.novoMecanico("Fábio");
+        oficina.ativarMecanico(fabio, false);
+        OperacaoRecusadaException inativo = assertThrows(OperacaoRecusadaException.class, () -> oficina.abrir(
+                new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Eva Lima")),
+                        new VeiculoNovo(CasosProjetoTest.carro("EFG5H67")), "Revisão", fabio, null, "", null)));
+        assertEquals("O mecânico Fábio está inativo.", inativo.getMessage());
+        assertEquals(List.of(), oficina.mecanicos(false));
+
+        long os = abrirComEntrada("Eva Lima", "EFG5H67");
+        OperacaoRecusadaException doOrcamento = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.mudarStatus(os, StatusOs.APROVADA, ""));
+        assertEquals("Esse passo vem do orçamento: marque como enviado, ou registre a aprovação ou a recusa.",
+                doOrcamento.getMessage());
+        EntradaInvalidaException antes = assertThrows(EntradaInvalidaException.class,
+                () -> oficina.entregar(os, new Entrega(agora().minusDays(1), null, new Garantia(90))));
+        assertEquals("A entrega não pode ser antes da entrada do veículo.", antes.getMessage());
+        EntradaInvalidaException semMotivo = assertThrows(EntradaInvalidaException.class,
+                () -> oficina.cancelar(os, " "));
+        assertEquals("Escreva o motivo do cancelamento.", semMotivo.getMessage());
+
+        oficina.cancelar(os, "Cliente desistiu.");
+        assertEquals(StatusOs.CANCELADA, status(os));
+        OperacaoRecusadaException cancelada = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("10,00"),
+                        "")));
+        assertEquals("A OS OS-2026-0001 está cancelada e não recebe pagamento.", cancelada.getMessage(),
+                "as tentativas que falharam não gastaram número");
+        assertThrows(OperacaoRecusadaException.class, () -> orcamentos.criarNaOs(os, revisao("180,00")),
+                "OS cancelada não ganha orçamento");
+    }
+}

@@ -160,6 +160,16 @@ public final class OrcamentoRepositorio {
         return lista(conexao, "SELECT " + COLUNAS + " FROM orcamento WHERE os_id = ? ORDER BY id DESC", osId);
     }
 
+    /**
+     * A revisão aprovada mais nova do orçamento da OS, mesmo que depois substituída por uma revisão nova (o cliente
+     * pediu mais coisa): o total dela é o valor da OS até a revisão nova ser aprovada.
+     */
+    public Optional<OrcamentoSalvo> ultimoAprovado(Connection conexao, long osId) throws SQLException {
+        return lista(conexao, "SELECT " + COLUNAS + " FROM orcamento o WHERE os_id = ? AND EXISTS (SELECT 1 FROM "
+                + "orcamento_status s WHERE s.orcamento_id = o.id AND s.status = 'APROVADO') ORDER BY id DESC LIMIT 1",
+                osId).stream().findFirst();
+    }
+
     private static List<OrcamentoSalvo> lista(Connection conexao, String sql, long parametro) throws SQLException {
         List<OrcamentoSalvo> orcamentos = new ArrayList<>();
         try (PreparedStatement consulta = conexao.prepareStatement(sql)) {

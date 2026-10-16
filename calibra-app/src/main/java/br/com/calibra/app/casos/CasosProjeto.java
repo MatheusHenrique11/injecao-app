@@ -238,21 +238,10 @@ public final class CasosProjeto {
      * @throws EntradaInvalidaException com todas as mensagens, se algo não passar nas regras (nada é gravado)
      */
     public long criarProjeto(NovoProjeto novo) {
-        LocalDate hoje = LocalDate.now(relogio);
-        List<String> erros = new ArrayList<>();
         if (novo.cliente() == null || novo.veiculo() == null) {
             throw new EntradaInvalidaException("Escolha o cliente e o veículo do projeto.");
         }
-        if (novo.cliente() instanceof ClienteNovo(Cliente dados)) {
-            erros.addAll(dados.validar(hoje));
-        }
-        Veiculo veiculoNovo = novo.veiculo() instanceof VeiculoNovo veiculo ? veiculo.dados().ajustadoAoTipo() : null;
-        if (veiculoNovo != null) {
-            erros.addAll(veiculoNovo.validar(hoje.getYear()));
-        }
-        if (novo.cliente() instanceof ClienteNovo && novo.veiculo() instanceof VeiculoExistente) {
-            erros.add("Cliente novo precisa de veículo novo.");
-        }
+        List<String> erros = new ArrayList<>(errosDaEscolha(novo.cliente(), novo.veiculo()));
         erros.addAll(errosDoMotor(novo.motor()));
         if (novo.motor() != null) {
             erros.addAll(CalculoDimensionamento.validarMeta(novo.meta(), novo.motor()));
@@ -261,36 +250,72 @@ public final class CasosProjeto {
             throw new EntradaInvalidaException(erros);
         }
         return banco.transacao(c -> {
-            long clienteId = switch (novo.cliente()) {
-                case ClienteNovo(Cliente dados) -> clientes.inserir(c, dados);
-                case ClienteExistente(long id) -> {
-                    ClienteSalvo existente = clientes.buscar(c, id).orElseThrow(
-                            () -> new OperacaoRecusadaException("Cliente #" + id + " não encontrado."));
-                    if (existente.cliente().anonimizado()) {
-                        throw new OperacaoRecusadaException("Cliente anonimizado não recebe projeto novo.");
-                    }
-                    yield id;
-                }
-            };
-            long veiculoId = switch (novo.veiculo()) {
-                case VeiculoNovo veiculo -> {
-                    conferirCambio(c, veiculo.cambioItemId(), veiculoNovo);
-                    yield veiculos.inserir(c, clienteId, veiculoNovo, veiculo.cambioItemId());
-                }
-                case VeiculoExistente(long id) -> {
-                    VeiculoSalvo existente = veiculos.buscar(c, id).orElseThrow(
-                            () -> new OperacaoRecusadaException("Veículo #" + id + " não encontrado."));
-                    if (existente.clienteId() != clienteId) {
-                        throw new OperacaoRecusadaException("O veículo escolhido é de outro cliente.");
-                    }
-                    yield id;
-                }
-            };
+            ClienteEVeiculo escolhidos = gravarEscolha(c, novo.cliente(), novo.veiculo(), "projeto novo");
             conferirInjecao(c, novo.injecaoItemId());
-            long projetoId = projetos.inserir(c, veiculoId, novo.meta(), "", novo.injecaoItemId());
+            long projetoId = projetos.inserir(c, escolhidos.veiculoId(), novo.meta(), "", novo.injecaoItemId());
             motores.salvarVersao(c, projetoId, novo.descricaoMotor(), novo.motor());
             return projetoId;
         });
+    }
+
+    /** O cliente e o veículo gravados (novos) ou conferidos (existentes). */
+    record ClienteEVeiculo(long clienteId, long veiculoId) {
+    }
+
+    /**
+     * As regras do cliente e do veículo escolhidos no assistente ou na Nova OS: os novos passam pela validação do
+     * cadastro, e cliente novo pede veículo novo. Vazio = pode gravar.
+     */
+    List<String> errosDaEscolha(EscolhaCliente cliente, EscolhaVeiculo veiculo) {
+        LocalDate hoje = LocalDate.now(relogio);
+        List<String> erros = new ArrayList<>();
+        if (cliente instanceof ClienteNovo(Cliente dados)) {
+            erros.addAll(dados.validar(hoje));
+        }
+        if (veiculo instanceof VeiculoNovo novo) {
+            erros.addAll(novo.dados().ajustadoAoTipo().validar(hoje.getYear()));
+        }
+        if (cliente instanceof ClienteNovo && veiculo instanceof VeiculoExistente) {
+            erros.add("Cliente novo precisa de veículo novo.");
+        }
+        return erros;
+    }
+
+    /**
+     * Grava o cliente e o veículo novos ou confere os existentes (o cliente não pode estar anonimizado, e o veículo
+     * tem de ser dele). Roda dentro da transação de quem chama.
+     *
+     * @param paraQue o que vai ser criado, para a mensagem (ex.: "projeto novo", "OS nova")
+     */
+    ClienteEVeiculo gravarEscolha(Connection c, EscolhaCliente cliente, EscolhaVeiculo veiculo, String paraQue)
+            throws SQLException {
+        long clienteId = switch (cliente) {
+            case ClienteNovo(Cliente dados) -> clientes.inserir(c, dados);
+            case ClienteExistente(long id) -> {
+                ClienteSalvo existente = clientes.buscar(c, id).orElseThrow(
+                        () -> new OperacaoRecusadaException("Cliente #" + id + " não encontrado."));
+                if (existente.cliente().anonimizado()) {
+                    throw new OperacaoRecusadaException("Cliente anonimizado não recebe " + paraQue + ".");
+                }
+                yield id;
+            }
+        };
+        long veiculoId = switch (veiculo) {
+            case VeiculoNovo novo -> {
+                Veiculo ajustado = novo.dados().ajustadoAoTipo();
+                conferirCambio(c, novo.cambioItemId(), ajustado);
+                yield veiculos.inserir(c, clienteId, ajustado, novo.cambioItemId());
+            }
+            case VeiculoExistente(long id) -> {
+                VeiculoSalvo existente = veiculos.buscar(c, id).orElseThrow(
+                        () -> new OperacaoRecusadaException("Veículo #" + id + " não encontrado."));
+                if (existente.clienteId() != clienteId) {
+                    throw new OperacaoRecusadaException("O veículo escolhido é de outro cliente.");
+                }
+                yield id;
+            }
+        };
+        return new ClienteEVeiculo(clienteId, veiculoId);
     }
 
     // ===================== Cliente e veículo =====================

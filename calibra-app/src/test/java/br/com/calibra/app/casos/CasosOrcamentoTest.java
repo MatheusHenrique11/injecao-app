@@ -26,6 +26,7 @@ import br.com.calibra.app.catalogo.PecasEscolhidas;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.MeioAprovacao;
@@ -64,6 +65,7 @@ class CasosOrcamentoTest {
     private CasosProjeto casos;
     private CasosCatalogo catalogo;
     private CasosOrcamento orcamentos;
+    private CasosOficina oficina;
     private long projeto;
 
     @BeforeEach
@@ -75,6 +77,7 @@ class CasosOrcamentoTest {
         casos = new CasosProjeto(banco, relogio, "0.2.0-teste");
         catalogo = new CasosCatalogo(banco, relogio);
         orcamentos = new CasosOrcamento(banco, relogio, casos);
+        oficina = new CasosOficina(banco, relogio, casos);
         EntradaDimensionamento entrada = CasosProjetoTest.casoB();
         projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("João da Silva")),
                 new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "AP 2.0 turbo", entrada.motor(), entrada.meta()));
@@ -110,6 +113,10 @@ class CasosOrcamentoTest {
         return casos.abrir(projeto).projeto().status();
     }
 
+    private StatusOs statusDaOs(OrcamentoSalvo orcamento) {
+        return oficina.buscar(orcamento.osId()).os().status();
+    }
+
     @Test
     void itensSaemDoCalculoComOPrecoDoCatalogo() {
         EntradaInvalidaException semCalculo = assertThrows(EntradaInvalidaException.class,
@@ -135,6 +142,7 @@ class CasosOrcamentoTest {
         assertEquals("ORC-2026-0001", criado.numero().comRevisao());
         assertEquals(StatusOrcamento.RASCUNHO, criado.status());
         assertEquals(StatusProjeto.DIMENSIONADO, statusDoProjeto());
+        assertEquals(StatusOs.ABERTA, statusDaOs(criado), "o orçamento do projeto vai para uma OS aberta para ele");
         OperacaoRecusadaException segundo = assertThrows(OperacaoRecusadaException.class,
                 () -> orcamentos.criar(projeto, completo()));
         assertEquals("O projeto já tem o orçamento ORC-2026-0001: edite o rascunho.", segundo.getMessage());
@@ -145,6 +153,7 @@ class CasosOrcamentoTest {
 
         orcamentos.marcarEnviado(criado.id());
         assertEquals(StatusProjeto.ORCADO, statusDoProjeto());
+        assertEquals(StatusOs.AGUARDANDO_APROVACAO, statusDaOs(criado));
         assertNotNull(orcamentos.buscar(criado.id()).orElseThrow().enviadoEm());
 
         EntradaInvalidaException futuro = assertThrows(EntradaInvalidaException.class, () -> orcamentos.aprovar(
@@ -154,6 +163,7 @@ class CasosOrcamentoTest {
         orcamentos.aprovar(criado.id(), LocalDateTime.of(2026, 10, 13, 10, 30), MeioAprovacao.WHATSAPP,
                 "Aprovou por mensagem.");
         assertEquals(StatusProjeto.APROVADO, statusDoProjeto());
+        assertEquals(StatusOs.APROVADA, statusDaOs(criado));
         OrcamentoSalvo aprovado = orcamentos.buscar(criado.id()).orElseThrow();
         assertEquals(MeioAprovacao.WHATSAPP, aprovado.meioResposta());
         assertEquals(LocalDateTime.of(2026, 10, 13, 10, 30), aprovado.respondidoEm());
@@ -168,6 +178,7 @@ class CasosOrcamentoTest {
         assertEquals(comDesconto, revisao.conteudo(), "a revisão começa igual à anterior");
         assertEquals(StatusOrcamento.SUBSTITUIDO, orcamentos.buscar(criado.id()).orElseThrow().status());
         assertEquals(StatusProjeto.APROVADO, statusDoProjeto(), "o projeto não volta");
+        assertEquals(StatusOs.APROVADA, statusDaOs(revisao), "nem a OS: depois da aprovação, a revisão não a move");
         assertEquals(List.of(revisao.id(), criado.id()),
                 orcamentos.orcamentos(projeto).stream().map(s -> s.orcamento().id()).toList());
     }
@@ -182,6 +193,7 @@ class CasosOrcamentoTest {
         orcamentos.recusar(criado.id(), LocalDateTime.of(2026, 10, 13, 8, 0), MeioAprovacao.TELEFONE, "Achou caro.");
         assertEquals(StatusOrcamento.RECUSADO, orcamentos.buscar(criado.id()).orElseThrow().status());
         assertEquals(StatusProjeto.ORCADO, statusDoProjeto());
+        assertEquals(StatusOs.ABERTA, statusDaOs(criado), "a recusa volta a OS para aberta");
         EntradaInvalidaException semMeio = assertThrows(EntradaInvalidaException.class,
                 () -> orcamentos.aprovar(criado.id(), null, null, ""));
         assertEquals(2, semMeio.erros().size(), semMeio.erros()::toString);

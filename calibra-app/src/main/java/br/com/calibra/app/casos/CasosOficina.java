@@ -1,0 +1,385 @@
+package br.com.calibra.app.casos;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
+import br.com.calibra.app.casos.CasosProjeto.EscolhaVeiculo;
+import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.NumeroOs;
+import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.SituacaoPagamento;
+import br.com.calibra.core.oficina.StatusOs;
+import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.util.NumeroBr;
+import br.com.calibra.dados.BancoDados;
+import br.com.calibra.dados.OperacaoRecusadaException;
+import br.com.calibra.dados.cadastro.ClienteRepositorio;
+import br.com.calibra.dados.cadastro.ClienteSalvo;
+import br.com.calibra.dados.cadastro.VeiculoRepositorio;
+import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.oficina.DadosAbertura;
+import br.com.calibra.dados.oficina.FiltroOs;
+import br.com.calibra.dados.oficina.MecanicoRepositorio;
+import br.com.calibra.dados.oficina.MecanicoSalvo;
+import br.com.calibra.dados.oficina.MudancaStatusOs;
+import br.com.calibra.dados.oficina.OrdemServicoRepositorio;
+import br.com.calibra.dados.oficina.OrdemServicoSalva;
+import br.com.calibra.dados.oficina.PagamentoRepositorio;
+import br.com.calibra.dados.oficina.PagamentoSalvo;
+import br.com.calibra.dados.oficina.ResumoOs;
+import br.com.calibra.dados.orcamento.OrcamentoRepositorio;
+import br.com.calibra.dados.orcamento.OrcamentoSalvo;
+
+/**
+ * Casos de uso da oficina (fase 3, SPEC 6.5): abrir a OS (com ou sem a entrada do veículo), registrar a entrada, a
+ * execução, a entrega com garantia, o cancelamento e os recebimentos. Até APROVADA, quem move a OS é o orçamento
+ * ({@link CasosOrcamento}); só se executa com orçamento aprovado e com a entrada registrada. Sem JavaFX.
+ */
+public final class CasosOficina {
+
+    /**
+     * O que se informa ao abrir uma OS.
+     *
+     * @param mecanicoId null = nenhum
+     * @param previsaoEntrega null = sem previsão
+     * @param entrada null = o veículo chega depois (orçamento antes do veículo)
+     */
+    public record NovaOs(EscolhaCliente cliente, EscolhaVeiculo veiculo, String servicoPedido, Long mecanicoId,
+            LocalDate previsaoEntrega, String observacoes, EntradaVeiculo entrada) {
+    }
+
+    /** O que foi gravado e os avisos que não impediram (ex.: km menor que o do cadastro do veículo). */
+    public record Gravado(long osId, List<String> avisos) {
+
+        public Gravado {
+            avisos = List.copyOf(avisos);
+        }
+    }
+
+    /**
+     * A situação do pagamento da OS.
+     *
+     * @param valor o total da última revisão aprovada do orçamento; null sem orçamento aprovado
+     * @param falta null sem orçamento aprovado
+     * @param situacao null sem orçamento aprovado
+     */
+    public record SituacaoDoPagamento(Dinheiro valor, Dinheiro recebido, Dinheiro falta, SituacaoPagamento situacao,
+            List<PagamentoSalvo> recebimentos) {
+
+        public SituacaoDoPagamento {
+            recebimentos = List.copyOf(recebimentos);
+        }
+    }
+
+    /** A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum) e o pagamento. */
+    public record OsAberta(OrdemServicoSalva os, ClienteSalvo cliente, VeiculoSalvo veiculo, MecanicoSalvo mecanico,
+            SituacaoDoPagamento pagamento) {
+    }
+
+    private final BancoDados banco;
+    private final Clock relogio;
+    private final CasosProjeto projetos;
+    private final OrdemServicoRepositorio ordens;
+    private final PagamentoRepositorio pagamentos;
+    private final MecanicoRepositorio mecanicos;
+    private final OrcamentoRepositorio orcamentos;
+    private final ClienteRepositorio clientes;
+    private final VeiculoRepositorio veiculos;
+    private final OrdensDoProjeto ordensDoProjeto;
+
+    public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos) {
+        this.banco = Objects.requireNonNull(banco, "banco");
+        this.relogio = Objects.requireNonNull(relogio, "relogio");
+        this.projetos = Objects.requireNonNull(projetos, "projetos");
+        this.ordens = new OrdemServicoRepositorio(relogio);
+        this.pagamentos = new PagamentoRepositorio(relogio);
+        this.mecanicos = new MecanicoRepositorio(relogio);
+        this.orcamentos = new OrcamentoRepositorio(relogio);
+        this.clientes = new ClienteRepositorio(relogio);
+        this.veiculos = new VeiculoRepositorio(relogio);
+        this.ordensDoProjeto = new OrdensDoProjeto(relogio);
+    }
+
+    // ===================== Abertura e entrada =====================
+
+    /**
+     * Abre a OS, ABERTA, com o cliente e o veículo (novos ou existentes) e, se o veículo já chegou, a entrada.
+     *
+     * @throws EntradaInvalidaException com todas as mensagens, se algo não passar (nada é gravado)
+     */
+    public Gravado abrir(NovaOs nova) {
+        if (nova.cliente() == null || nova.veiculo() == null) {
+            throw new EntradaInvalidaException("Escolha o cliente e o veículo da OS.");
+        }
+        List<String> erros = new ArrayList<>(projetos.errosDaEscolha(nova.cliente(), nova.veiculo()));
+        if (nova.servicoPedido() == null || nova.servicoPedido().isBlank()) {
+            erros.add("Descreva o serviço pedido pelo cliente.");
+        }
+        if (nova.entrada() != null) {
+            erros.addAll(nova.entrada().validar(agora()));
+        }
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            CasosProjeto.ClienteEVeiculo escolhidos = projetos.gravarEscolha(c, nova.cliente(), nova.veiculo(),
+                    "OS nova");
+            exigirMecanicoAtivo(c, nova.mecanicoId());
+            int ano = LocalDate.now(relogio).getYear();
+            long id = ordens.inserir(c, new NumeroOs(ano, ordens.proximoSequencial(c, ano)), new DadosAbertura(
+                    escolhidos.clienteId(), escolhidos.veiculoId(), null, nova.servicoPedido(), nova.mecanicoId(),
+                    nova.previsaoEntrega(), nova.observacoes()));
+            List<String> avisos = nova.entrada() == null ? List.of()
+                    : gravarEntrada(c, id, escolhidos.veiculoId(), nova.entrada());
+            return new Gravado(id, avisos);
+        });
+    }
+
+    /** Muda o que foi informado na abertura (o serviço pedido, o mecânico, a previsão e as observações). */
+    public void editarAbertura(long osId, String servicoPedido, Long mecanicoId, LocalDate previsaoEntrega,
+            String observacoes) {
+        if (servicoPedido == null || servicoPedido.isBlank()) {
+            throw new EntradaInvalidaException("Descreva o serviço pedido pelo cliente.");
+        }
+        banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            if (!Objects.equals(mecanicoId, os.mecanicoId())) {
+                exigirMecanicoAtivo(c, mecanicoId);
+            }
+            ordens.atualizarAbertura(c, osId, servicoPedido, mecanicoId, previsaoEntrega, observacoes);
+            return null;
+        });
+    }
+
+    /**
+     * Registra (ou corrige) a chegada do veículo. O km atualiza o uso acumulado do veículo, com histórico; menor que o
+     * do cadastro, vira aviso e é gravado assim mesmo (troca de painel acontece).
+     */
+    public Gravado registrarEntrada(long osId, EntradaVeiculo entrada) {
+        List<String> erros = entrada == null ? List.of("Informe a entrada do veículo.") : entrada.validar(agora());
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            return new Gravado(osId, gravarEntrada(c, osId, os.veiculoId(), entrada));
+        });
+    }
+
+    // ===================== Execução, entrega e cancelamento =====================
+
+    /**
+     * Um passo da execução: em execução, aguardando peças ou pronta (SPEC 6.5). Os passos até APROVADA vêm do
+     * orçamento; a entrega e o cancelamento têm métodos próprios. Começar o serviço exige a entrada do veículo.
+     */
+    public void mudarStatus(long osId, StatusOs destino, String observacao) {
+        if (destino == null) {
+            throw new EntradaInvalidaException("Escolha o novo status da OS.");
+        }
+        switch (destino) {
+            case ABERTA, AGUARDANDO_APROVACAO, APROVADA -> throw new OperacaoRecusadaException(
+                    "Esse passo vem do orçamento: marque como enviado, ou registre a aprovação ou a recusa.");
+            case ENTREGUE -> throw new OperacaoRecusadaException("Use a entrega, com o km de saída e a garantia.");
+            case CANCELADA -> throw new OperacaoRecusadaException("Use o cancelamento, com o motivo.");
+            default -> {
+            }
+        }
+        banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            if (destino == StatusOs.EM_EXECUCAO && !os.veiculoChegou()) {
+                throw new OperacaoRecusadaException("Registre a entrada do veículo (km, tanque e vistoria) antes de "
+                        + "começar o serviço.");
+            }
+            ordens.mudarStatus(c, osId, destino, observacao);
+            return null;
+        });
+    }
+
+    /**
+     * Entrega a OS pronta, com o km de saída e a garantia. O km atualiza o uso acumulado do veículo. Depois disso a OS
+     * não muda mais (só os recebimentos).
+     */
+    public Gravado entregar(long osId, Entrega entrega) {
+        List<String> erros = entrega == null ? List.of("Informe a entrega.") : entrega.validar(agora());
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            if (os.entrada() != null && entrega.quando().isBefore(os.entrada().quando())) {
+                throw new EntradaInvalidaException("A entrega não pode ser antes da entrada do veículo.");
+            }
+            List<String> avisos = new ArrayList<>(entrega.avisos(os.entrada() == null ? null : os.entrada().uso()));
+            ordens.entregar(c, osId, entrega);
+            List<String> doCadastro = atualizarUso(c, os.veiculoId(), entrega.usoSaida(), "da saída");
+            if (avisos.isEmpty()) {
+                avisos.addAll(doCadastro);
+            }
+            return new Gravado(osId, avisos);
+        });
+    }
+
+    /** Cancela a OS (a qualquer momento antes da entrega), com o motivo. */
+    public void cancelar(long osId, String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new EntradaInvalidaException("Escreva o motivo do cancelamento.");
+        }
+        banco.transacao(c -> {
+            ordens.cancelar(c, osId, motivo);
+            return null;
+        });
+    }
+
+    // ===================== Pagamento =====================
+
+    /** Registra um recebimento (ex.: o sinal na aprovação, o resto na entrega); vale também depois da entrega. */
+    public long registrarPagamento(long osId, Pagamento pagamento) {
+        List<String> erros = pagamento == null ? List.of("Informe o recebimento.") : pagamento.validar(agora());
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            if (os.status() == StatusOs.CANCELADA) {
+                throw new OperacaoRecusadaException("A OS " + os.numero().texto() + " está cancelada e não recebe "
+                        + "pagamento.");
+            }
+            return pagamentos.registrar(c, osId, pagamento);
+        });
+    }
+
+    /** Cancela um recebimento lançado errado; ele fica no histórico, com o motivo, e deixa de contar. */
+    public void cancelarPagamento(long pagamentoId, String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new EntradaInvalidaException("Escreva o motivo do cancelamento do recebimento.");
+        }
+        banco.transacao(c -> {
+            pagamentos.cancelar(c, pagamentoId, motivo);
+            return null;
+        });
+    }
+
+    /** O valor da OS (a última revisão aprovada do orçamento), o que foi recebido e o que falta. */
+    public SituacaoDoPagamento pagamento(long osId) {
+        return banco.ler(c -> situacaoDoPagamento(c, osId));
+    }
+
+    // ===================== Consultas =====================
+
+    public List<ResumoOs> listar(FiltroOs filtro) {
+        return banco.ler(c -> ordens.pesquisar(c, filtro, 500));
+    }
+
+    /** A OS com o cliente, o veículo, o mecânico e o pagamento. */
+    public OsAberta buscar(long osId) {
+        return banco.ler(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            ClienteSalvo cliente = clientes.buscar(c, os.clienteId()).orElseThrow();
+            VeiculoSalvo veiculo = veiculos.buscar(c, os.veiculoId()).orElseThrow();
+            MecanicoSalvo mecanico = os.mecanicoId() == null ? null
+                    : mecanicos.buscar(c, os.mecanicoId()).orElse(null);
+            return new OsAberta(os, cliente, veiculo, mecanico, situacaoDoPagamento(c, osId));
+        });
+    }
+
+    public List<MudancaStatusOs> historico(long osId) {
+        return banco.ler(c -> ordens.historico(c, osId));
+    }
+
+    /** A OS atual do projeto de preparação; sem nenhuma em andamento, abre uma para ele (ABERTA, sem a entrada). */
+    public long osAtualDoProjeto(long projetoId) {
+        return banco.transacao(c -> ordensDoProjeto.atual(c, projetoId));
+    }
+
+    // ===================== Mecânicos =====================
+
+    public List<MecanicoSalvo> mecanicos(boolean incluirInativos) {
+        return banco.ler(c -> mecanicos.listar(c, incluirInativos));
+    }
+
+    public long novoMecanico(String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new EntradaInvalidaException("Informe o nome do mecânico.");
+        }
+        return banco.transacao(c -> mecanicos.inserir(c, nome));
+    }
+
+    /** Quem saiu da oficina fica inativo: some da escolha nas OS novas, e as antigas continuam com ele. */
+    public void ativarMecanico(long mecanicoId, boolean ativo) {
+        banco.transacao(c -> {
+            mecanicos.ativar(c, mecanicoId, ativo);
+            return null;
+        });
+    }
+
+    // ===================== Regras =====================
+
+    private List<String> gravarEntrada(Connection conexao, long osId, long veiculoId, EntradaVeiculo entrada)
+            throws SQLException {
+        ordens.registrarEntrada(conexao, osId, entrada);
+        return atualizarUso(conexao, veiculoId, entrada.uso(), "da entrada");
+    }
+
+    /** O km (ou as horas de motor) da OS vira o uso acumulado do veículo, com histórico; menor que o atual, avisa. */
+    private List<String> atualizarUso(Connection conexao, long veiculoId, Double uso, String deOnde)
+            throws SQLException {
+        if (uso == null) {
+            return List.of();
+        }
+        VeiculoSalvo salvo = veiculos.buscar(conexao, veiculoId).orElseThrow();
+        Double atual = salvo.veiculo().usoAcumulado();
+        if (Objects.equals(atual, uso)) {
+            return List.of();
+        }
+        veiculos.atualizar(conexao, veiculoId, salvo.veiculo().comUsoAcumulado(uso), salvo.cambioItemId());
+        if (atual == null || uso >= atual) {
+            return List.of();
+        }
+        String unidade = salvo.veiculo().tipo() != null && salvo.veiculo().tipo().nautico() ? " h" : " km";
+        return List.of("O uso " + deOnde + " (" + NumeroBr.formatar(uso, 0) + unidade + ") é menor que o do cadastro "
+                + "do veículo (" + NumeroBr.formatar(atual, 0) + unidade + "). Gravei assim mesmo: confira se não foi "
+                + "erro de digitação ou troca de painel.");
+    }
+
+    private SituacaoDoPagamento situacaoDoPagamento(Connection conexao, long osId) throws SQLException {
+        Optional<OrcamentoSalvo> aprovado = orcamentos.ultimoAprovado(conexao, osId);
+        Dinheiro recebido = pagamentos.recebido(conexao, osId);
+        List<PagamentoSalvo> lista = pagamentos.daOs(conexao, osId);
+        if (aprovado.isEmpty()) {
+            return new SituacaoDoPagamento(null, recebido, null, null, lista);
+        }
+        Dinheiro valor = aprovado.get().conteudo().total();
+        return new SituacaoDoPagamento(valor, recebido, SituacaoPagamento.falta(valor, recebido),
+                SituacaoPagamento.de(valor, recebido), lista);
+    }
+
+    private OrdemServicoSalva exigir(Connection conexao, long osId) throws SQLException {
+        return ordens.buscar(conexao, osId).orElseThrow(
+                () -> new OperacaoRecusadaException("OS #" + osId + " não encontrada."));
+    }
+
+    private void exigirMecanicoAtivo(Connection conexao, Long mecanicoId) throws SQLException {
+        if (mecanicoId == null) {
+            return;
+        }
+        MecanicoSalvo mecanico = mecanicos.buscar(conexao, mecanicoId).orElseThrow(
+                () -> new OperacaoRecusadaException("Mecânico #" + mecanicoId + " não encontrado."));
+        if (!mecanico.ativo()) {
+            throw new OperacaoRecusadaException("O mecânico " + mecanico.nome() + " está inativo.");
+        }
+    }
+
+    private LocalDateTime agora() {
+        return LocalDateTime.now(relogio);
+    }
+}
