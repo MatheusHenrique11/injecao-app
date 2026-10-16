@@ -437,3 +437,22 @@ Origem: o pedido de cobrir os motores do mercado, não só o 2.0, e a pesquisa e
 159. **Falha ao gerar PDF vai para o log** com o detalhe (SPEC 10); a janela mostra a mensagem do erro ou "Erro inesperado. O detalhe foi gravado no log.".
 160. **Cálculo na thread da tela, por enquanto** (achado da revisão final, menor). A SPEC 10 pede cálculos em `Task` com indicador de progresso. O cálculo roda direto no clique e leva 46 a 74 ms no app instalado (meta do bloco: menos de 1 s), então a tela não trava. Passar para `Task` mexe em todas as telas de cálculo; fica para a fase 3, junto do mapa base, que deixa o cálculo mais pesado. Também na fase 3: um aviso de progresso na abertura, para o backup e a migração antes da janela numa atualização com muitos anexos (hoje a janela abre em 2 a 3,5 s).
 161. **O MSI deixa instalar uma versão mais antiga por cima** (visto no ensaio: o MSI de teste 0.1.99 substituiu o 0.2.0). É o comportamento do jpackage. Os dados ficam protegidos: o app mais antigo não abre um banco atualizado por um mais novo (`BancoMaisNovoException`, decisão 44) e não mexe em nada. O manual explica.
+
+## 15/10/2026 — Novo escopo: gestão da oficina + preparação (SPEC 1.1)
+
+Origem: a comparação com o PitStop Manager, outro projeto do dono (SaaS de gestão de oficinas). O dono quer que o Calibra absorva parte dessa gestão, offline e só para a loja dele. O plano aprovado fica em `C:\Users\mathe\.claude\plans\proud-twirling-blanket.md`.
+
+162. **O Calibra é só da oficina do dono:** gestão do dia a dia e preparação num app só, gratuito, sem assinatura, sem cobrança pelo software e sem venda ou licença para outras oficinas. A antiga fase 6 ("Produto para outras oficinas", com o módulo `calibra-licenca`) sai do roteiro. A loja continua cobrando os clientes dela; o Calibra só registra o pagamento na entrega da OS.
+163. **Um computador, sem rede e sem login** (escolha do dono). A arquitetura não muda: SQLite local, backup no pen drive, uso em rede continua fora do escopo. Os mecânicos são um cadastro simples (nome e ativo), para pôr na OS; não há senha nem perfis.
+164. **Da gestão, entram a OS com a entrada do veículo (fase 3) e a agenda com os lembretes (fase 5).** Estoque e financeiro (caixa, contas a pagar e a receber) ficam fora por agora; se o dia a dia pedir, voltam como fases novas, com plano próprio.
+165. **Roteiro intercalado:** fase 3 Oficina (OS), 4 Mapa base, 5 Agenda e lembretes, 6 Acerto, relatório e biblioteca, 7 Aprendizado e integrações. O que as decisões 152 (unidades preferidas) e 160 (cálculo em segundo plano) deixaram para a "fase 3, junto do mapa base" passa para a fase 4. Os níveis de saída do mapa mudam de fase junto (C e B na 4, A na 7).
+166. **A OS é o centro da loja, e o projeto de preparação passa a ser opcional e ligado a ela** (SPEC 6.5):
+    - o orçamento passa a pertencer à OS: na de preparação, continua apontando para o cálculo; na comum, não aponta para cálculo nenhum;
+    - o status comercial (aguardando aprovação, aprovada, entregue) fica na OS; o técnico (dimensionado, mapa base, em acerto) fica no projeto; ORCADO e APROVADO do projeto acompanham o orçamento da OS;
+    - como hoje o orçamento exige projeto, cálculo e versão do motor, a migração V6 refaz a tabela e cria uma OS para cada projeto que já tem orçamento; o detalhe fica no plano do bloco 3.1;
+    - um catálogo de serviços (mão de obra padrão: nome, horas e preço) alimenta o orçamento da OS comum.
+167. **Do PitStop, adaptado ao offline:**
+    - OS com status, histórico, mecânico e km de entrada e saída; histórico por veículo; painel; documentos do veículo (como anexos, com validade opcional);
+    - o acompanhamento por link e os avisos automáticos viram texto para o WhatsApp e PDF para imprimir;
+    - a nota fiscal (NFS-e) vira um anexo: o PDF da nota emitida no site da prefeitura;
+    - ficam de fora: assinatura e planos, Stripe, várias oficinas, login e perfis, metas por mecânico, app de celular, consulta de CNPJ e Detran.

@@ -1,6 +1,6 @@
 # Calibra — instruções do projeto
 
-App desktop para Windows, 100% offline, para oficinas de preparação: dimensiona peças, faz orçamento e gera mapa base de injeção programável para motores 4 tempos de 3 a 12 cilindros. A spec completa fica em `docs/SPEC.md`: leia as seções 0 a 11 e a fase atual da seção 12 antes de trabalhar.
+App desktop para Windows, 100% offline, só da minha oficina (um computador, sem login, gratuito). Faz a gestão do dia a dia (ordens de serviço e, na fase 5, agenda e lembretes) e a preparação: dimensiona peças, faz orçamento e gera mapa base de injeção programável para motores 4 tempos de 3 a 12 cilindros. A spec completa fica em `docs/SPEC.md`: leia as seções 0 a 11 e a fase atual da seção 12 antes de trabalhar.
 
 ## Comandos
 - Testes e build: `mvn -q verify`

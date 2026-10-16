@@ -1,8 +1,8 @@
 # SPEC — Calibra (nome provisório)
 
-App desktop offline para calibração inicial de injeção programável, feito para oficinas de preparação.
+App desktop offline da minha oficina: gestão do dia a dia (ordens de serviço, agenda e lembretes) e preparação (dimensionamento, orçamento, mapa base e acerto de injeção programável).
 
-Versão da spec: 1.0 (08/10/2026). Dono do produto: Matheus, mecânico de preparação, que valida todas as regras técnicas.
+Versão da spec: 1.1 (15/10/2026; a 1.0 é de 08/10/2026). Dono do produto: Matheus, mecânico de preparação, que valida todas as regras técnicas.
 
 ---
 
@@ -32,12 +32,31 @@ O app transforma a meta do cliente (motor, potência, uso, combustível e injeç
 3. mapa base conservador no formato de cada injeção;
 4. registro do acerto, mapa final, relatório ao cliente e biblioteca pesquisável de projetos.
 
-**Usuário:** oficinas de preparação; o primeiro usuário sou eu, na minha oficina.
+Também faz a **gestão da oficina**:
+- ordens de serviço: entrada do veículo com vistoria e fotos, orçamento, execução, entrega com garantia e registro do pagamento;
+- painel do dia e ficha do veículo com todo o histórico;
+- agenda e lembretes (fase 5).
+
+O projeto de preparação passa a ser uma parte opcional da ordem de serviço.
+
+**Usuário:** só a minha oficina, num computador, sem login; os mecânicos entram só como nomes. O app é gratuito: sem assinatura, sem cobrança pelo software e sem venda ou licença para outras oficinas.
 **Plataforma:** Windows 10 e 11, 64 bits, notebook comum (i5, 8 GB de RAM). **Sem internet.**
 
 **Dentro do escopo:** motores 4 tempos de ignição por centelha (gasolina, etanol, metanol e misturas), **de 3 a 12 cilindros**, aspirados ou sobrealimentados, em carros, motos, utilitários, barcos, lanchas e jet skis.
 
-**Fora do escopo:** gravar mapa direto na injeção (USB, CAN ou serial); engenharia reversa de arquivos ou protocolos fechados; acerto automático; nuvem, sincronização ou uso em rede por vários computadores; motores rotativos, diesel ou 2 tempos.
+**Fora do escopo:**
+- gravar mapa direto na injeção (USB, CAN ou serial);
+- engenharia reversa de arquivos ou protocolos fechados;
+- acerto automático;
+- nuvem, sincronização ou uso em rede por vários computadores;
+- motores rotativos, diesel ou 2 tempos;
+- venda ou licença para outras oficinas;
+- login e perfis de usuário;
+- controle de estoque e financeiro (caixa, contas a pagar e a receber), por enquanto;
+- emissão de nota fiscal: o app só guarda o PDF da nota emitida no site da prefeitura;
+- avisos automáticos ou acompanhamento pela internet: o app gera o texto para o WhatsApp e o PDF.
+
+Alterado em 15/10/2026 (gestão da oficina) — ver docs/decisoes.md, itens 162 a 167.
 
 ---
 
@@ -204,7 +223,31 @@ Nome, telefone, e-mail (opcional), CPF ou CNPJ (opcional), consentimento registr
 | `veTorque` | opcional: VE na rotação de torque máximo; sem ela, vale a VE da potência. Alterado em 14/10/2026 — ver docs/decisoes.md, item 116 |
 | `uso` | RUA, ARRANCADA, CIRCUITO_ENDURANCE, OFF_ROAD, NAUTICO. |
 | `injecaoEscolhida` | do catálogo; opcional até a etapa de mapa base. |
-| `status` | RASCUNHO → DIMENSIONADO → ORCADO → APROVADO → MAPA_BASE → EM_ACERTO → CONCLUIDO; ARQUIVADO a qualquer momento. |
+| `status` | RASCUNHO → DIMENSIONADO → ORCADO → APROVADO → MAPA_BASE → EM_ACERTO → CONCLUIDO; ARQUIVADO a qualquer momento. A partir da fase 3, ORCADO e APROVADO acompanham o orçamento da ordem de serviço ligada ao projeto (6.5). Alterado em 15/10/2026 — ver docs/decisoes.md, item 166 |
+
+### 6.5 Ordem de serviço (OS) — fase 3
+
+O registro de um veículo na oficina, da entrada à entrega. É o centro da gestão; o projeto de preparação (6.4) é opcional e fica ligado a uma OS. Alterado em 15/10/2026 — ver docs/decisoes.md, itens 162 a 167.
+
+| Campo | Regra |
+| --- | --- |
+| `numero` | OS-AAAA-NNNN, sequencial por ano. |
+| cliente e veículo | Obrigatórios; os cadastros de 6.1 e 6.2. |
+| `projeto` | Opcional: o projeto de preparação ligado. Um projeto pode ter várias OS ao longo do tempo (ex.: segundo estágio). |
+| entrada | Data e hora; km (ou horas de motor, nos náuticos), que atualiza o uso acumulado do veículo, com histórico; nível do tanque (reserva, 1/4, 1/2, 3/4, cheio); vistoria (itens com observação, como riscos, vidros e estepe); objetos deixados no veículo; fotos; serviço pedido, nas palavras do cliente; mecânico (cadastro simples: nome e ativo); previsão de entrega. |
+| `status` | ABERTA → AGUARDANDO_APROVACAO → APROVADA → EM_EXECUCAO ⇄ AGUARDANDO_PECAS → PRONTA → ENTREGUE. CANCELADA a qualquer momento antes de ENTREGUE, com o motivo. Cada mudança fica no histórico com data e hora. |
+| orçamento | Pertence à OS, com os itens, revisões e aprovação da fase 2. Na OS de preparação, aponta para o cálculo do projeto, como hoje; na OS comum, não aponta para cálculo. Enviar o orçamento leva a OS a AGUARDANDO_APROVACAO; aprovar, a APROVADA; a recusa deixa a OS aberta para uma revisão nova ou para cancelar. |
+| entrega | Data e hora; km de saída; garantia em dias (padrão em Configurações, com o valor que eu definir) e a data em que ela vence; pagamento: forma (dinheiro, PIX, cartão de débito, cartão de crédito, transferência ou outro), valor e situação (pago, parcial ou pendente). Não há caixa nem contas. |
+| anexos | Fotos, documentos, nota fiscal (PDF emitido no site da prefeitura) e laudos, na OS e no veículo; validade opcional, que gera aviso na fase 5. |
+
+- **OS não é apagada:** a cancelada fica no histórico. Depois de ENTREGUE, só o pagamento e os anexos mudam.
+- **Documentos e mensagens:**
+  - PDF da OS: a via do cliente, com a vistoria e espaço para assinatura;
+  - comprovante de entrega, com a garantia e o pagamento;
+  - botão de imprimir;
+  - textos para o WhatsApp: OS aberta, orçamento e carro pronto.
+- **Catálogo de serviços:** mão de obra padrão (nome, horas e preço), usado no orçamento.
+- **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos com documentos pessoais e mantém os técnicos.
 
 ---
 
@@ -361,13 +404,20 @@ Os números do mapa do compressor e a linha do torque × câmbio foram alterados
 
 ## 8. Telas (fluxo do app)
 
-1. **Início:** lista de projetos com busca por cliente, placa ou nome da embarcação, motor e status; botão "Novo projeto".
-2. **Assistente de novo projeto:** Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). O formulário do motor se adapta ao número de cilindros: ao mudar de 4 para 6, por exemplo, a ordem de ignição e os ângulos são sugeridos de novo e pedem confirmação.
+1. **Preparação** (era "Início" e, no menu, "Projetos"; a tela inicial passa a ser o Painel, item 8): lista de projetos com busca por cliente, placa ou nome da embarcação, motor e status; botão "Novo projeto".
+2. **Assistente de novo projeto:** Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). O formulário do motor se adapta ao número de cilindros: ao mudar de 4 para 6, por exemplo, a ordem de ignição e os ângulos são sugeridos de novo e pedem confirmação. A partir de uma OS, o assistente já vem com o cliente e o veículo dela.
 3. **Projeto (abas):** Resumo · Veículo (editável, com histórico) · Motor (editável, com versões e comparação entre elas) · Dimensionamento (cartões com semáforo e memória de cálculo) · Peças e orçamento · Mapa base · Sessões de acerto · Relatório.
 4. **Editor de tabela:** grade com cores por faixa; edição por célula ou seleção (somar, multiplicar em %, interpolar, suavizar); desfazer; comparação com outra versão em %; vista 3D que gira com o mouse; copiar e colar texto tabulado.
-5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, câmbios (tipo e torque máximo), motores e montagens (geometria, biela e taxa, com fonte, para preencher o motor), modelos de VE e de ignição. Câmbios e motores e montagens: alterado em 14/10/2026 — ver docs/decisoes.md, itens 86 e 91.
+5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, câmbios (tipo e torque máximo), motores e montagens (geometria, biela e taxa, com fonte, para preencher o motor), modelos de VE e de ignição, serviços (mão de obra padrão: nome, horas e preço; fase 3). Câmbios e motores e montagens: alterado em 14/10/2026 — ver docs/decisoes.md, itens 86 e 91. Serviços: alterado em 15/10/2026 — ver docs/decisoes.md, item 166.
 6. **Biblioteca:** busca por configuração (cilindros, cilindrada ±10%, aspiração, combustível, injeção, bicos, turbo, uso) e comparação entre mapa base e mapa final.
-7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), limiares do semáforo, padrões de cálculo, padrões do orçamento, pasta de backup, restaurar backup. As unidades preferidas na tela passam para a fase 3, junto do mapa base; até lá, os resultados aparecem em várias unidades ao mesmo tempo (alterado em 14/10/2026 — ver docs/decisoes.md, itens 137 e 152).
+7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), limiares do semáforo, padrões de cálculo, padrões do orçamento, mecânicos (nome e ativo) e garantia padrão (fase 3), pasta de backup, restaurar backup. As unidades preferidas na tela passam para a fase 4, junto do mapa base; até lá, os resultados aparecem em várias unidades ao mesmo tempo (alterado em 14/10/2026 — ver docs/decisoes.md, itens 137 e 152; a fase do mapa base passou de 3 para 4 em 15/10/2026, item 165).
+8. **Painel (fase 3, tela inicial):** as OS na oficina por status (abertas, aguardando aprovação, em execução, aguardando peças, prontas para retirar), as entregas previstas para hoje e o último backup. Na fase 5, ganha os avisos dos lembretes.
+9. **Oficina (fase 3):**
+   - lista de OS com busca por placa ou cliente e filtro por status;
+   - botão "Nova OS": cliente e veículo existentes ou novos, entrada e vistoria;
+   - **OS (abas):** Entrada · Orçamento · Execução · Preparação (só com projeto ligado, ou para criar um) · Entrega · Anexos · Histórico.
+10. **Ficha do veículo (fase 3):** todas as OS e projetos do veículo, com os anexos.
+11. **Agenda (fase 5):** agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega.
 
 Fonte mínima de 13 px, tudo operável pelo teclado, tema claro.
 
@@ -379,9 +429,11 @@ Fonte mínima de 13 px, tudo operável pelo teclado, tema claro.
 
 **Saída do mapa em três níveis:**
 
-- **C — Folha de transcrição (todas as injeções, fase 3):** tela e PDF com a tabela idêntica à do software do fabricante (mesmos eixos, mesma ordem, cores por faixa) e os dados de entrada do assistente de mapa base da injeção.
-- **B — Tabela para colar (fase 3 em diante, uma marca por vez):** área de transferência no formato que o software aceita (Link e MoTeC importam tabela com eixos; Haltech cola células). Antes de implementar uma marca, eu copio uma tabela real do software para um editor de texto; esse texto vira o teste do formato.
-- **A — Arquivo pronto (fase 5, opcional):** mapa .msq (XML) do TunerStudio para MegaSquirt, Speeduino e rusEFI, gerado sempre a partir do arquivo .ini do firmware do cliente, nunca sem ele.
+- **C — Folha de transcrição (todas as injeções, fase 4):** tela e PDF com a tabela idêntica à do software do fabricante (mesmos eixos, mesma ordem, cores por faixa) e os dados de entrada do assistente de mapa base da injeção.
+- **B — Tabela para colar (fase 4 em diante, uma marca por vez):** área de transferência no formato que o software aceita (Link e MoTeC importam tabela com eixos; Haltech cola células). Antes de implementar uma marca, eu copio uma tabela real do software para um editor de texto; esse texto vira o teste do formato.
+- **A — Arquivo pronto (fase 7, opcional):** mapa .msq (XML) do TunerStudio para MegaSquirt, Speeduino e rusEFI, gerado sempre a partir do arquivo .ini do firmware do cliente, nunca sem ele.
+
+Fases dos níveis C, B e A alteradas em 15/10/2026 (eram 3, 3 e 5), com o roteiro novo da seção 12 — ver docs/decisoes.md, item 165.
 
 **Importação:** colar a tabela final (texto tabulado) do software do fabricante; anexar o arquivo nativo do mapa sem decodificar; importar log em CSV e curva de dinamômetro em CSV com mapeamento de colunas salvo por marca.
 
@@ -423,26 +475,50 @@ Compila sem avisos novos; `mvn -q verify` verde; testes novos cobrindo a regra c
 - Banco, migrações e backup; cliente, veículo (editável com histórico), motor (editável e versionado, de 3 a 12 cilindros) e projeto; catálogos com cadastro, edição e arquivamento; orçamento e prazo em PDF e em texto para WhatsApp; requisitos de produção da seção 10; MSI 0.2.0.
 - Pronto quando: um projeto real vai do cadastro ao orçamento aprovado no app instalado pelo MSI, e um backup é restaurado com sucesso.
 
-**Fase 3 — Mapa base**
+Roteiro das fases 3 em diante alterado em 15/10/2026: a gestão da oficina entra, intercalada com a preparação, e a antiga fase 6 ("Produto para outras oficinas", com licença) sai, porque o app é só da minha oficina. Ver docs/decisoes.md, itens 162 a 167.
+
+**Fase 3 — Oficina (ordens de serviço)**
+- A OS da seção 6.5:
+  - entrada com vistoria e fotos;
+  - orçamento, que passa a pertencer à OS (o de preparação continua apontando para o cálculo);
+  - execução, entrega com garantia e registro do pagamento.
+- Projeto de preparação ligado à OS.
+- Telas novas: Painel, Oficina e ficha do veículo.
+- Catálogo de serviços; mecânicos e garantia padrão em Configurações.
+- PDFs (via do cliente e comprovante de entrega), impressão e textos para WhatsApp.
+- MSI 0.3.0.
+- Pronto quando: 3 carros reais passam pela OS no app instalado (entrada, orçamento aprovado, execução e entrega), um deles de preparação, ligado ao projeto.
+
+**Fase 4 — Mapa base** (era a fase 3)
 - Perfis de injeção, gerador de tabelas (seção 7.5), editor de tabela com cores e vista 3D, saída nível C para todas as injeções e nível B para uma marca, checklist de primeira partida.
+- Também: as unidades preferidas na tela (decisão 152) e o cálculo em segundo plano, com aviso de progresso na abertura (decisão 160).
 - Pronto quando: um motor pega e segura marcha lenta com o mapa base gerado.
 
-**Fase 4 — Acerto, relatório e biblioteca**
-- Sessões de acerto com anexos; colar o mapa final; importar log e curva de dinamômetro; relatório final em PDF; biblioteca com busca e comparação entre base e final.
+**Fase 5 — Agenda e lembretes**
+- Agenda: agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega; texto de confirmação para WhatsApp.
+- Lembretes, com intervalos que eu defino:
+  - revisão por km ou data;
+  - garantia vencendo;
+  - orçamento sem resposta;
+  - OS parada aguardando peças;
+  - pagamento pendente;
+  - documento vencendo.
+- Os avisos aparecem no Painel com o texto para WhatsApp. Eles são conferidos ao abrir o app e de hora em hora, nunca com o app fechado.
+- Pronto quando: uma semana real de agenda é usada e os avisos aparecem certos.
+
+**Fase 6 — Acerto, relatório e biblioteca** (era a fase 4)
+- Sessões de acerto com anexos; colar o mapa final; importar log e curva de dinamômetro; relatório final em PDF, que também vai para os anexos da OS; biblioteca com busca e comparação entre base e final.
 - Pronto quando: 3 projetos completos estão documentados e são encontrados pela busca.
 
-**Fase 5 — Aprendizado e integrações**
+**Fase 7 — Aprendizado e integrações** (era a fase 5)
 - Métricas de diferença entre base e final; reajuste dos modelos de VE e de ignição por família, como nova versão da base de conhecimento (cálculos antigos não mudam); nível A (.msq) opcional; mais marcas no nível B.
 - Pronto quando: a diferença média entre base e final fica abaixo de 10% nas células de plena carga.
-
-**Fase 6 — Produto para outras oficinas**
-- Módulo `calibra-licenca` com arquivo de licença assinado (Ed25519, do próprio JDK) e validado sem internet; instalador com assinatura de código; manual revisado; versão de teste para 3 a 5 oficinas.
-- Pronto quando: 3 oficinas usam o app por um mês sem precisar de suporte diário.
 
 ---
 
 ## 13. Glossário rápido
 
+- **OS (ordem de serviço):** o registro de um veículo na oficina, da entrada à entrega (seção 6.5).
 - **Mapa base:** primeiro mapa, conservador, só para o motor pegar e ir ao acerto.
 - **Bancada:** conjunto de bicos; "duas bancadas" = primária e secundária por cilindro.
 - **Caixa fria / caixa quente:** carcaça do compressor / da turbina do turbo; A/R é a relação de tamanho da carcaça.

@@ -1,12 +1,19 @@
 # Calibra (nome provisório)
 
-App desktop para Windows, 100% offline, para oficinas de preparação. Ele dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
+App desktop para Windows, 100% offline, só da minha oficina: gratuito, num computador e sem login. Ele faz a gestão do dia a dia (ordens de serviço e, depois, agenda e lembretes) e a preparação: dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
 
 A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
 ## Situação
 
-Fase 2 (0.2.0): banco de dados com backup e restauração; projetos com cliente, veículo (com histórico) e motor (com versões); catálogos de peças, com o digitalizador do mapa do compressor; dimensionamento com as peças do catálogo, meta pela pressão do turbo e torque × câmbio; orçamento em PDF e em texto para WhatsApp; instalador MSI. O mapa base chega na fase 3. Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
+Fase 2 (0.2.0): banco de dados com backup e restauração; projetos com cliente, veículo (com histórico) e motor (com versões); catálogos de peças, com o digitalizador do mapa do compressor; dimensionamento com as peças do catálogo, meta pela pressão do turbo e torque × câmbio; orçamento em PDF e em texto para WhatsApp; instalador MSI. Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
+
+Próximas fases (SPEC 12, roteiro de 15/10/2026):
+- **3 — Oficina:** ordens de serviço, da entrada do veículo à entrega.
+- **4 — Mapa base.**
+- **5 — Agenda e lembretes.**
+- **6 — Acerto, relatório e biblioteca.**
+- **7 — Aprendizado e integrações.**
 
 ## Módulos
 
