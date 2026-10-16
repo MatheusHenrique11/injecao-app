@@ -4,7 +4,7 @@ App desktop para Windows, 100% offline, só da minha oficina (um computador, sem
 
 ## Comandos
 - Testes e build: `mvn -q verify`
-- Rodar o app: `mvn -q install -DskipTests` e depois `mvn -q -pl calibra-app javafx:run` (o `-am` não serve aqui: tentaria rodar o JavaFX em todos os módulos)
+- Rodar o app: `mvn -q install -DskipTests` e depois `mvn -q -pl calibra-app javafx:run` (o `-am` não serve aqui: tentaria rodar o JavaFX em todos os módulos). Ele usa a pasta de dados `%LOCALAPPDATA%\Calibra-dev`; os dados de verdade ficam com o app instalado (`%LOCALAPPDATA%\Calibra`)
 - Teste de interface (tag `ui`, fora do verify padrão, precisa da área de trabalho): `mvn -q install -DskipTests` e depois `mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum`
 - Avisos de compilação: o `-q` esconde; conferir com `mvn -B clean test-compile` e procurar `[WARNING]`
 - Instalador: `powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1` (roda os testes e gera `dist\Calibra-<versão>.msi`; WiX 3.14.1 em `%USERPROFILE%\tools\wix314`; `-VersaoMsi 0.1.99` gera um MSI de teste; `-PularTestes` só reempacota)

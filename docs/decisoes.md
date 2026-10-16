@@ -456,3 +456,7 @@ Origem: a comparação com o PitStop Manager, outro projeto do dono (SaaS de ges
     - o acompanhamento por link e os avisos automáticos viram texto para o WhatsApp e PDF para imprimir;
     - a nota fiscal (NFS-e) vira um anexo: o PDF da nota emitida no site da prefeitura;
     - ficam de fora: assinatura e planos, Stripe, várias oficinas, login e perfis, metas por mecânico, app de celular, consulta de CNPJ e Detran.
+
+## 15/10/2026 — Fase 3, bloco 3.1: a OS no núcleo e no banco
+
+168. **O app de desenvolvimento usa uma pasta de dados só dele, `%LOCALAPPDATA%\Calibra-dev`** (opção `-Dcalibra.pasta` do `javafx:run` no `calibra-app/pom.xml`). Antes, ele usava a mesma pasta do app instalado: com a migração V6, rodar a versão de desenvolvimento atualizaria o banco de verdade, e o 0.2.0 instalado deixaria de abri-lo ("Instale a versão mais nova", decisão 44). Os dados de verdade ficam com o app instalado até a 0.3.0.

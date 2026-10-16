@@ -65,6 +65,9 @@
                     <options>
                         <!-- O JavaFX e o sqlite-jdbc carregam bibliotecas nativas; sem isto o Java 25 avisa. -->
                         <option>--enable-native-access=javafx.graphics,ALL-UNNAMED</option>
+                        <!-- O app de desenvolvimento usa uma pasta de dados só dele: os dados de verdade ficam com o
+                             app instalado, que não abriria um banco atualizado por uma versão mais nova (decisão 168). -->
+                        <option>-Dcalibra.pasta=${env.LOCALAPPDATA}\Calibra-dev</option>
                     </options>
                 </configuration>
             </plugin>

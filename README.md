@@ -37,7 +37,7 @@ Próximas fases (SPEC 12, roteiro de 15/10/2026):
 ```
 mvn -q verify                          # compila e roda os testes
 mvn -q install -DskipTests             # instala os módulos no repositório local
-mvn -q -pl calibra-app javafx:run      # abre o app (depois do install)
+mvn -q -pl calibra-app javafx:run      # abre o app (depois do install), com os dados em %LOCALAPPDATA%\Calibra-dev
 mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum   # teste de interface (opcional)
 powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1  # gera dist\Calibra-<versão>.msi
 powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes de interface no app instalado
