@@ -1,5 +1,6 @@
 package br.com.calibra.app.casos;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -7,7 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -20,8 +23,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.app.casos.CasosOficina.Gravado;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
+import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
+import br.com.calibra.app.casos.CasosOficina.ProjetoDoVeiculo;
 import br.com.calibra.app.casos.CasosOficina.SituacaoDoPagamento;
+import br.com.calibra.app.casos.CasosProjeto.ClienteExistente;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
 import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
@@ -37,6 +43,7 @@ import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
+import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
@@ -53,7 +60,9 @@ import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.backup.Backup;
+import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
+import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 
@@ -67,19 +76,20 @@ class CasosOficinaTest {
     Path raiz;
 
     private final RelogioAjustavel relogio = new RelogioAjustavel(LocalDateTime.of(2026, 10, 13, 9, 0));
+    private PastasDados pastas;
     private CasosProjeto casos;
     private CasosOrcamento orcamentos;
     private CasosOficina oficina;
 
     @BeforeEach
     void abrirBanco() throws IOException {
-        PastasDados pastas = new PastasDados(raiz);
+        pastas = new PastasDados(raiz.resolve("dados"));
         pastas.criar();
         BancoDados banco = new BancoDados(pastas.banco());
         Migracoes.migrar(banco, new Backup(pastas, banco, "0.3.0-teste", relogio));
         casos = new CasosProjeto(banco, relogio, "0.3.0-teste");
         orcamentos = new CasosOrcamento(banco, relogio, casos);
-        oficina = new CasosOficina(banco, relogio, casos);
+        oficina = new CasosOficina(banco, relogio, casos, pastas.anexos());
     }
 
     private LocalDateTime agora() {
@@ -301,5 +311,75 @@ class CasosOficinaTest {
                 "as tentativas que falharam não gastaram número");
         assertThrows(OperacaoRecusadaException.class, () -> orcamentos.criarNaOs(os, revisao("180,00")),
                 "OS cancelada não ganha orçamento");
+    }
+
+    /** Fotos e documentos (bloco 3.2): a cópia na pasta de anexos, uma cópia só para o mesmo arquivo, e as recusas. */
+    @Test
+    void anexosDaOs() throws Exception {
+        long os = abrirComEntrada("Gabi Nunes", "FGH6I78");
+        Path foto = raiz.resolve("IMG_0001.jpg");
+        Files.write(foto, new byte[] {(byte) 0xFF, (byte) 0xD8, 1, 2, 3});
+        Path nota = Files.writeString(raiz.resolve("nota.pdf"), "%PDF-1.7 nota fictícia");
+        List<AnexoSalvo> gravados = oficina.anexar(os, List.of(
+                new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, " Porta direita ", null, false),
+                new NovoAnexo(nota, TipoAnexo.NOTA_FISCAL, "NFS-e 123", null, false),
+                new NovoAnexo(foto, TipoAnexo.FOTO_SERVICO, "A mesma foto", null, false)));
+        assertEquals(3, gravados.size());
+        assertEquals("Porta direita", gravados.getFirst().descricao());
+        assertEquals("IMG_0001.jpg", gravados.getFirst().nomeOriginal());
+        assertEquals(64, gravados.getFirst().sha256().length());
+        assertEquals(gravados.get(0).arquivo(), gravados.get(2).arquivo(), "o mesmo arquivo é uma cópia só");
+        Path copia = oficina.arquivoDoAnexo(gravados.getFirst()).orElseThrow();
+        assertTrue(copia.startsWith(pastas.anexos()), "a cópia fica na pasta de anexos (o backup leva)");
+        assertArrayEquals(Files.readAllBytes(foto), Files.readAllBytes(copia));
+
+        OperacaoRecusadaException heic = assertThrows(OperacaoRecusadaException.class, () -> oficina.anexar(os,
+                List.of(new NovoAnexo(Files.writeString(raiz.resolve("foto.heic"), "x"), TipoAnexo.FOTO_ENTRADA, "",
+                        null, false))));
+        assertTrue(heic.getMessage().startsWith("O arquivo foto.heic não é foto (JPG ou PNG) nem PDF."),
+                heic.getMessage());
+        Path grande = raiz.resolve("grande.pdf");
+        try (RandomAccessFile arquivo = new RandomAccessFile(grande.toFile(), "rw")) {
+            arquivo.setLength(AnexosDaOficina.TAMANHO_MAXIMO_BYTES + 1);
+        }
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.anexar(os, List.of(
+                new NovoAnexo(nota, TipoAnexo.LAUDO, "", null, false),
+                new NovoAnexo(grande, TipoAnexo.LAUDO, "", null, false))), "20 MB no máximo");
+        assertEquals(3, oficina.anexosDaOs(os).size(), "com um recusado, nenhum da leva é gravado");
+
+        oficina.removerAnexo(gravados.get(2).id());
+        assertTrue(Files.exists(copia), "a outra foto ainda usa a cópia");
+        oficina.removerAnexo(gravados.get(0).id());
+        assertFalse(Files.exists(copia), "ninguém usa mais: o arquivo vai embora");
+        assertEquals(List.of(gravados.get(1).id()), oficina.anexosDaOs(os).stream().map(AnexoSalvo::id).toList());
+
+        oficina.cancelar(os, "Cliente desistiu.");
+        OperacaoRecusadaException cancelada = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.removerAnexo(gravados.get(1).id()));
+        assertEquals("A OS OS-2026-0001 está \"Cancelada\": os anexos dela não se removem.", cancelada.getMessage());
+        assertEquals(1, oficina.anexar(os, List.of(new NovoAnexo(nota, TipoAnexo.OUTRO, "Depois", null, false)))
+                .size(), "anexar ainda vale");
+    }
+
+    /** A OS ganha o projeto de preparação do mesmo veículo; o de outro veículo, não. */
+    @Test
+    void ligarProjetoDoVeiculo() {
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        long projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("Hugo Reis")),
+                new VeiculoNovo(CasosProjetoTest.carro("GHI7J89")), "AP 2.0 turbo", casoB.motor(), casoB.meta()));
+        var aberto = casos.abrir(projeto);
+        long os = oficina.abrir(new NovaOs(new ClienteExistente(aberto.cliente().id()),
+                new VeiculoExistente(aberto.veiculo().id()), "Turbo novo", null, null, "", null)).osId();
+        assertEquals(List.of(new ProjetoDoVeiculo(projeto, "AP 2.0 turbo v1", StatusProjeto.RASCUNHO)),
+                oficina.projetosDoVeiculo(aberto.veiculo().id()));
+
+        long outra = abrirComEntrada("Iara Luz", "HIJ8K90");
+        OperacaoRecusadaException deOutro = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.ligarProjeto(outra, projeto));
+        assertEquals("O projeto #" + projeto + " é de outro veículo.", deOutro.getMessage());
+        oficina.ligarProjeto(os, projeto);
+        assertEquals(projeto, oficina.buscar(os).os().projetoId());
+        assertEquals(os, oficina.osAtualDoProjeto(projeto), "a OS ligada é a atual do projeto");
+        assertEquals(List.of(os), oficina.ordensDoProjeto(projeto).stream().map(OrdemServicoSalva::id).toList());
     }
 }

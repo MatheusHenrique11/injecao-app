@@ -88,13 +88,16 @@ public final class ClienteRepositorio {
     }
 
     /**
-     * Clientes cujo nome, telefone, e-mail ou documento contêm todas as palavras do termo (sem acento). Os
-     * anonimizados ficam de fora: não recebem projeto novo.
+     * Clientes cujo nome, telefone, e-mail ou documento, ou os veículos (placa, embarcação, marca, modelo), contêm
+     * todas as palavras do termo (sem acento). Os anonimizados ficam de fora: não recebem projeto nem OS novos.
      */
     public List<ClienteSalvo> pesquisar(Connection conexao, String termo, int limite) throws SQLException {
         List<String> palavras = TextoBusca.palavras(termo);
         StringBuilder sql = new StringBuilder("SELECT " + COLUNAS + " FROM cliente WHERE anonimizado = 0");
-        sql.append(" AND busca LIKE ?".repeat(palavras.size()));
+        // Cada palavra vale no cliente ou nos veículos dele (placa, embarcação, marca, modelo): o balcão busca pela
+        // placa do carro que chegou.
+        sql.append((" AND (busca || ' ' || COALESCE((SELECT group_concat(v.busca, ' ') FROM veiculo v "
+                + "WHERE v.cliente_id = cliente.id), '')) LIKE ?").repeat(palavras.size()));
         sql.append(" ORDER BY nome COLLATE NOCASE, id LIMIT ?");
         List<ClienteSalvo> clientes = new ArrayList<>();
         try (PreparedStatement consulta = conexao.prepareStatement(sql.toString())) {

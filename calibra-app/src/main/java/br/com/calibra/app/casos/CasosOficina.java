@@ -1,14 +1,20 @@
 package br.com.calibra.app.casos;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
 import br.com.calibra.app.casos.CasosProjeto.EscolhaVeiculo;
@@ -19,14 +25,19 @@ import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
+import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.BancoDados;
+import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.cadastro.ClienteRepositorio;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoRepositorio;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.oficina.AnexoRepositorio;
+import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.DadosAbertura;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MecanicoRepositorio;
@@ -39,6 +50,9 @@ import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoRepositorio;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
+import br.com.calibra.dados.projeto.MotorRepositorio;
+import br.com.calibra.dados.projeto.ProjetoRepositorio;
+import br.com.calibra.dados.projeto.ProjetoSalvo;
 
 /**
  * Casos de uso da oficina (fase 3, SPEC 6.5): abrir a OS (com ou sem a entrada do veículo), registrar a entrada, a
@@ -86,27 +100,51 @@ public final class CasosOficina {
             SituacaoDoPagamento pagamento) {
     }
 
+    /**
+     * Um arquivo para anexar.
+     *
+     * @param validade null = sem validade
+     * @param pessoal documento com dados pessoais (sai na anonimização do cliente)
+     */
+    public record NovoAnexo(Path arquivo, TipoAnexo tipo, String descricao, LocalDate validade, boolean pessoal) {
+    }
+
+    /** Um projeto de preparação do veículo, para ligar à OS: o id, o motor ("AP 2.0 turbo v2") e o status. */
+    public record ProjetoDoVeiculo(long projetoId, String motor, StatusProjeto status) {
+    }
+
+    private static final Logger LOG = Logger.getLogger(CasosOficina.class.getName());
+
     private final BancoDados banco;
     private final Clock relogio;
     private final CasosProjeto projetos;
+    private final Path pastaAnexos;
     private final OrdemServicoRepositorio ordens;
     private final PagamentoRepositorio pagamentos;
     private final MecanicoRepositorio mecanicos;
     private final OrcamentoRepositorio orcamentos;
+    private final AnexoRepositorio anexos;
     private final ClienteRepositorio clientes;
     private final VeiculoRepositorio veiculos;
+    private final ProjetoRepositorio projetoRepositorio;
+    private final MotorRepositorio motores;
     private final OrdensDoProjeto ordensDoProjeto;
 
-    public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos) {
+    /** @param pastaAnexos a pasta de anexos dos dados, para onde vão as cópias das fotos e dos documentos */
+    public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos, Path pastaAnexos) {
         this.banco = Objects.requireNonNull(banco, "banco");
         this.relogio = Objects.requireNonNull(relogio, "relogio");
         this.projetos = Objects.requireNonNull(projetos, "projetos");
+        this.pastaAnexos = Objects.requireNonNull(pastaAnexos, "pastaAnexos");
         this.ordens = new OrdemServicoRepositorio(relogio);
         this.pagamentos = new PagamentoRepositorio(relogio);
         this.mecanicos = new MecanicoRepositorio(relogio);
         this.orcamentos = new OrcamentoRepositorio(relogio);
+        this.anexos = new AnexoRepositorio(relogio);
         this.clientes = new ClienteRepositorio(relogio);
         this.veiculos = new VeiculoRepositorio(relogio);
+        this.projetoRepositorio = new ProjetoRepositorio(relogio);
+        this.motores = new MotorRepositorio(relogio);
         this.ordensDoProjeto = new OrdensDoProjeto(relogio);
     }
 
@@ -299,6 +337,165 @@ public final class CasosOficina {
     /** A OS atual do projeto de preparação; sem nenhuma em andamento, abre uma para ele (ABERTA, sem a entrada). */
     public long osAtualDoProjeto(long projetoId) {
         return banco.transacao(c -> ordensDoProjeto.atual(c, projetoId));
+    }
+
+    /** As OS do projeto, da mais nova para a mais antiga (o cabeçalho do projeto mostra a atual). */
+    public List<OrdemServicoSalva> ordensDoProjeto(long projetoId) {
+        return banco.ler(c -> ordens.doProjeto(c, projetoId));
+    }
+
+    // ===================== Preparação =====================
+
+    /**
+     * Liga a OS a um projeto de preparação do mesmo veículo (feito antes, ou criado a partir da OS). O projeto não pode
+     * estar arquivado nem em outra OS em andamento.
+     */
+    public void ligarProjeto(long osId, long projetoId) {
+        banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            ProjetoSalvo projeto = projetoRepositorio.buscar(c, projetoId).orElseThrow(
+                    () -> new OperacaoRecusadaException("Projeto #" + projetoId + " não encontrado."));
+            if (projeto.veiculoId() != os.veiculoId()) {
+                throw new OperacaoRecusadaException("O projeto #" + projetoId + " é de outro veículo.");
+            }
+            if (projeto.status() == StatusProjeto.ARQUIVADO) {
+                throw new OperacaoRecusadaException("O projeto #" + projetoId + " está arquivado: reative-o antes.");
+            }
+            Optional<OrdemServicoSalva> outra = ordens.atualDoProjeto(c, projetoId);
+            if (outra.isPresent() && outra.get().id() != osId) {
+                throw new OperacaoRecusadaException("O projeto #" + projetoId + " já está na OS "
+                        + outra.get().numero().texto() + ", em andamento.");
+            }
+            ordens.ligarProjeto(c, osId, projetoId);
+            return null;
+        });
+    }
+
+    /** Os projetos de preparação do veículo, do mais novo para o mais antigo, sem os arquivados. */
+    public List<ProjetoDoVeiculo> projetosDoVeiculo(long veiculoId) {
+        return banco.ler(c -> {
+            List<ProjetoDoVeiculo> lista = new ArrayList<>();
+            for (ProjetoSalvo projeto : projetoRepositorio.doVeiculo(c, veiculoId)) {
+                if (projeto.status() == StatusProjeto.ARQUIVADO) {
+                    continue;
+                }
+                String motor = motores.atual(c, projeto.id()).map(v -> (v.descricao().isBlank() ? "Motor"
+                        : v.descricao()) + " v" + v.numero()).orElse("Motor");
+                lista.add(new ProjetoDoVeiculo(projeto.id(), motor, projeto.status()));
+            }
+            lista.sort(Comparator.comparingLong(ProjetoDoVeiculo::projetoId).reversed());
+            return lista;
+        });
+    }
+
+    // ===================== Anexos =====================
+
+    /**
+     * Anexa os arquivos à OS: cada um é copiado para a pasta de anexos do veículo (o mesmo arquivo duas vezes é uma
+     * cópia só). Vale em qualquer status, também depois da entrega.
+     *
+     * @throws OperacaoRecusadaException se um arquivo não for JPG, PNG ou PDF, ou passar de 20 MB (nada é gravado)
+     */
+    public List<AnexoSalvo> anexar(long osId, List<NovoAnexo> novos) {
+        if (novos == null || novos.isEmpty()) {
+            return List.of();
+        }
+        List<String> erros = new ArrayList<>();
+        for (NovoAnexo novo : novos) {
+            if (novo.arquivo() == null || !Files.isRegularFile(novo.arquivo())) {
+                erros.add("Arquivo não encontrado: " + novo.arquivo() + ".");
+            } else if (novo.tipo() == null) {
+                erros.add("Escolha o tipo do anexo " + novo.arquivo().getFileName() + ".");
+            }
+        }
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
+        List<AnexosDaOficina.Copia> copias = new ArrayList<>();
+        try {
+            for (NovoAnexo novo : novos) {
+                copias.add(AnexosDaOficina.guardar(novo.arquivo(), pastaAnexos, os.veiculoId()));
+            }
+            return banco.transacao(c -> {
+                List<AnexoSalvo> gravados = new ArrayList<>();
+                for (int i = 0; i < novos.size(); i++) {
+                    NovoAnexo novo = novos.get(i);
+                    AnexosDaOficina.Copia copia = copias.get(i);
+                    long id = anexos.inserir(c, os.veiculoId(), osId, novo.tipo(), novo.descricao(), copia.arquivo(),
+                            novo.arquivo().getFileName().toString(), copia.tamanhoBytes(), copia.sha256(),
+                            novo.validade(), novo.pessoal());
+                    gravados.add(anexos.buscar(c, id).orElseThrow());
+                }
+                return gravados;
+            });
+        } catch (IOException erro) {
+            apagarSobras(copias);
+            throw new ErroDados("Não foi possível copiar o arquivo para a pasta de anexos: " + erro.getMessage(), erro);
+        } catch (RuntimeException erro) {
+            apagarSobras(copias);
+            throw erro;
+        }
+    }
+
+    /** Muda o tipo, a descrição, a validade ou a marca de documento pessoal do anexo. */
+    public void editarAnexo(long anexoId, TipoAnexo tipo, String descricao, LocalDate validade, boolean pessoal) {
+        if (tipo == null) {
+            throw new EntradaInvalidaException("Escolha o tipo do anexo.");
+        }
+        banco.transacao(c -> {
+            exigirAnexo(c, anexoId);
+            anexos.atualizar(c, anexoId, tipo, descricao, validade, pessoal);
+            return null;
+        });
+    }
+
+    /**
+     * Remove o anexo (ex.: a foto errada). Com a OS entregue ou cancelada, não: o que ficou registrado na entrega não
+     * some. O arquivo é apagado quando nenhum outro anexo o usa.
+     */
+    public void removerAnexo(long anexoId) {
+        AnexoSalvo anexo = banco.transacao(c -> {
+            AnexoSalvo atual = exigirAnexo(c, anexoId);
+            if (atual.osId() != null) {
+                OrdemServicoSalva os = exigir(c, atual.osId());
+                if (os.status().finalizada()) {
+                    throw new OperacaoRecusadaException("A OS " + os.numero().texto() + " está \""
+                            + os.status().rotulo() + "\": os anexos dela não se removem.");
+                }
+            }
+            anexos.apagar(c, anexoId);
+            return atual;
+        });
+        apagarSobras(List.of(new AnexosDaOficina.Copia(anexo.arquivo(), anexo.tamanhoBytes(), anexo.sha256())));
+    }
+
+    /** Os anexos da OS, do mais antigo para o mais novo. */
+    public List<AnexoSalvo> anexosDaOs(long osId) {
+        return banco.ler(c -> anexos.daOs(c, osId));
+    }
+
+    /** O arquivo do anexo na pasta de anexos (para abrir e para a miniatura); vazio se sumiu da pasta. */
+    public Optional<Path> arquivoDoAnexo(AnexoSalvo anexo) {
+        return AnexosDaOficina.arquivo(anexo.arquivo(), pastaAnexos);
+    }
+
+    /** Apaga as cópias que nenhum anexo usa (depois de remover, ou de uma gravação que não deu certo). */
+    private void apagarSobras(List<AnexosDaOficina.Copia> copias) {
+        for (AnexosDaOficina.Copia copia : copias) {
+            try {
+                if (banco.ler(c -> anexos.quantosUsam(c, copia.arquivo())) == 0) {
+                    AnexosDaOficina.apagar(copia.arquivo(), pastaAnexos);
+                }
+            } catch (IOException | RuntimeException erro) {
+                LOG.log(Level.WARNING, "Não foi possível apagar a cópia sem uso " + copia.arquivo(), erro);
+            }
+        }
+    }
+
+    private AnexoSalvo exigirAnexo(Connection conexao, long anexoId) throws SQLException {
+        return anexos.buscar(conexao, anexoId).orElseThrow(
+                () -> new OperacaoRecusadaException("Anexo #" + anexoId + " não encontrado."));
     }
 
     // ===================== Mecânicos =====================

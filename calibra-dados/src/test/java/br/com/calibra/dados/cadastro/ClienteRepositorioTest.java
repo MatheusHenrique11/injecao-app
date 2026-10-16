@@ -81,6 +81,25 @@ class ClienteRepositorioTest {
         assertEquals(List.of(), nomes("joao maria"), "todas as palavras precisam aparecer");
     }
 
+    /** No balcão a busca é pela placa do carro que chegou (bloco 3.2): os veículos do cliente também contam. */
+    @Test
+    void buscaPelaPlacaOuEmbarcacaoDosVeiculos() {
+        base.banco.transacao(c -> {
+            long joao = clientes.inserir(c, Cadastros.cliente("João da Silva"));
+            repositorios.veiculos().inserir(c, joao, Cadastros.carro("ABC1D23"), null);
+            long maria = clientes.inserir(c, Cadastros.cliente("Maria Antônia"));
+            repositorios.veiculos().inserir(c, maria, Cadastros.lancha("Maré Alta"), null);
+            repositorios.veiculos().inserir(c, maria, Cadastros.carro("XYZ9K88"), null);
+            clientes.inserir(c, Cadastros.cliente("Pedro sem veículo"));
+            return null;
+        });
+        assertEquals(List.of("João da Silva"), nomes("abc-1d23"), "placa com ou sem traço");
+        assertEquals(List.of("Maria Antônia"), nomes("mare alta"), "nome da embarcação sem acento");
+        assertEquals(List.of("Maria Antônia"), nomes("xyz9k88"), "qualquer um dos veículos");
+        assertEquals(List.of("Maria Antônia"), nomes("maria xyz9k88"), "cliente e placa juntos");
+        assertEquals(List.of(), nomes("joao xyz9k88"), "o veículo tem de ser do cliente");
+    }
+
     /** SPEC 6.1 e regra 2.8: anonimizar apaga os dados pessoais, também no histórico, e mantém o resto. */
     @Test
     void anonimizarApagaDadosPessoaisDoClienteDosVeiculosEDoHistorico() {

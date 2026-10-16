@@ -62,7 +62,7 @@ class MigracaoV6Test {
         Migracoes.Resultado resultado = Migracoes.migrar(base.banco, base.backup);
 
         assertEquals("5", resultado.versaoAntes());
-        assertEquals("6", resultado.versaoDepois());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoDepois(), "a V6 e as que vêm depois");
         assertTrue(resultado.backupAntes() != null, "backup antes de migrar");
         assertEquals(orcamentosAntes, linhas(base, "SELECT " + COLUNAS_V5 + " FROM orcamento ORDER BY id"),
                 "ids, números, conteúdo, status e datas dos orçamentos iguais");
@@ -96,10 +96,10 @@ class MigracaoV6Test {
         assertEquals("5", backupV5.manifesto().versaoBanco());
 
         BaseDeTeste novo = BaseDeTeste.criada(pasta.resolve("novo"));
-        assertEquals("6", novo.banco.versaoDoEsquema());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, novo.banco.versaoDoEsquema());
         novo.restauracao().restaurar(backupV5.arquivo());
 
-        assertEquals("6", novo.banco.versaoDoEsquema());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, novo.banco.versaoDoEsquema());
         assertEquals(List.of(List.of("4")), linhas(novo, "SELECT COUNT(*) FROM ordem_servico"));
         assertEquals(List.of(List.of("5")), linhas(novo, "SELECT COUNT(*) FROM orcamento WHERE os_id IS NOT NULL"));
     }

@@ -77,7 +77,7 @@ class CasosOrcamentoTest {
         casos = new CasosProjeto(banco, relogio, "0.2.0-teste");
         catalogo = new CasosCatalogo(banco, relogio);
         orcamentos = new CasosOrcamento(banco, relogio, casos);
-        oficina = new CasosOficina(banco, relogio, casos);
+        oficina = new CasosOficina(banco, relogio, casos, pastas.anexos());
         EntradaDimensionamento entrada = CasosProjetoTest.casoB();
         projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("João da Silva")),
                 new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "AP 2.0 turbo", entrada.motor(), entrada.meta()));
