@@ -21,7 +21,7 @@ import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.dados.projeto.FiltroProjetos;
 import br.com.calibra.dados.projeto.ResumoProjeto;
 
-/** Início (SPEC 8.1): lista de projetos, busca, filtros e "Novo projeto". */
+/** Preparação (SPEC 8.1, era o Início): lista de projetos, busca, filtros e "Novo projeto". */
 public class InicioController {
 
     @FXML private TextField busca;

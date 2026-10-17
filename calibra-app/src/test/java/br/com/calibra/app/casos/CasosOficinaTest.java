@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,11 +65,13 @@ import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
+import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 
 /**
  * A OS (fase 3, bloco 3.1): da entrada à entrega de uma OS comum, o orçamento antes do veículo, a recusa e as
- * revisões movendo a OS, a OS de preparação aberta pelo projeto e as mensagens das regras. Dados fictícios.
+ * revisões movendo a OS, a OS de preparação aberta pelo projeto e as mensagens das regras. Do bloco 3.2: os anexos,
+ * ligar um projeto à OS e o Painel. Dados fictícios.
  */
 class CasosOficinaTest {
 
@@ -193,6 +196,43 @@ class CasosOficinaTest {
         OperacaoRecusadaException revisao = assertThrows(OperacaoRecusadaException.class,
                 () -> orcamentos.novaRevisao(orcamento.id()));
         assertEquals("A OS OS-2026-0001 está \"Entregue\": o orçamento dela não muda mais.", revisao.getMessage());
+    }
+
+    /**
+     * O Painel: os cartões contam as OS em andamento por status; na oficina ficam só as que têm a entrada; nas entregas,
+     * as previstas para hoje e as atrasadas, sem as de outro dia e sem as canceladas.
+     */
+    @Test
+    void painel() {
+        assertEquals(new CasosOficina.Painel(Map.of(StatusOs.ABERTA, 0, StatusOs.AGUARDANDO_APROVACAO, 0,
+                StatusOs.APROVADA, 0, StatusOs.EM_EXECUCAO, 0, StatusOs.AGUARDANDO_PECAS, 0, StatusOs.PRONTA, 0),
+                List.of(), List.of()), oficina.painel(), "sem nenhuma OS, tudo zero");
+
+        LocalDate hoje = agora().toLocalDate();
+        long ana = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Ana Costa")),
+                new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "Revisão", null, hoje, "", entrada(251_500.0)))
+                .osId();
+        long bruno = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Bruno Dias")),
+                new VeiculoNovo(CasosProjetoTest.carro("BCD2E34")), "Embreagem", null, hoje.minusDays(1), "", null))
+                .osId();
+        relogio.andar(Duration.ofHours(1));
+        long carla = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Carla Reis")),
+                new VeiculoNovo(CasosProjetoTest.carro("CDE3F45")), "Freios", null, hoje.plusDays(7), "",
+                entrada(251_500.0))).osId();
+        long dani = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Dani Lima")),
+                new VeiculoNovo(CasosProjetoTest.carro("DEF4G56")), "Suspensão", null, hoje, "", entrada(251_500.0)))
+                .osId();
+        oficina.cancelar(dani, "O cliente desistiu.");
+        enviarEAprovar(orcamentos.criarNaOs(carla, revisao("180,00")));
+
+        CasosOficina.Painel painel = oficina.painel();
+        assertEquals(2, painel.porStatus().get(StatusOs.ABERTA), "Ana e Bruno abertas");
+        assertEquals(1, painel.porStatus().get(StatusOs.APROVADA));
+        assertFalse(painel.porStatus().containsKey(StatusOs.CANCELADA), "o Painel não mostra as finalizadas");
+        assertEquals(List.of(ana, carla), painel.naOficina().stream().map(ResumoOs::osId).toList(),
+                "quem chegou primeiro em cima; Bruno ainda não chegou");
+        assertEquals(List.of(bruno, ana), painel.entregas().stream().map(ResumoOs::osId).toList(),
+                "a atrasada em cima; a de semana que vem e a cancelada ficam fora");
     }
 
     /** Orçamento por WhatsApp antes do carro chegar: só começa o serviço depois da entrada. */

@@ -24,6 +24,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.Tag;
@@ -91,6 +92,8 @@ class ProjetoUiTest {
         principal.iniciar(contexto, null, new Stage());
         cena = new Scene(raiz, 1380, 860);
         cena.getStylesheets().add(CalibraApp.folhaDeEstilo());
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navPainel").isSelected(), "o app abre no Painel");
+        TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").fire();
         assertTrue(TelaDeTeste.<TableView<?>>achar(cena, "tabela").getItems().isEmpty(), "começa na lista vazia");
         assertTrue(contemTexto(cena.getRoot(), "Nenhum projeto ainda"), "texto da lista vazia");
     }

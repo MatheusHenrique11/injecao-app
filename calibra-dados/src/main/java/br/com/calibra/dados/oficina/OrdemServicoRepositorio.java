@@ -8,7 +8,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -250,6 +252,19 @@ public final class OrdemServicoRepositorio {
             }
         }
         return resultado;
+    }
+
+    /** Quantas OS há em cada status (os cartões do Painel); um status sem nenhuma OS fica fora do mapa. */
+    public Map<StatusOs, Integer> contarPorStatus(Connection conexao) throws SQLException {
+        Map<StatusOs, Integer> contagem = new EnumMap<>(StatusOs.class);
+        try (PreparedStatement consulta = conexao.prepareStatement(
+                "SELECT status, COUNT(*) AS quantas FROM ordem_servico GROUP BY status");
+                ResultSet linha = consulta.executeQuery()) {
+            while (linha.next()) {
+                contagem.put(Sql.constante(linha, "status", StatusOs.class), linha.getInt("quantas"));
+            }
+        }
+        return contagem;
     }
 
     /** O histórico de status, do mais antigo para o mais novo. */

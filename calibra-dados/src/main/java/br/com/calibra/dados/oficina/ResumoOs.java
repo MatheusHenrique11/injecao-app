@@ -25,4 +25,13 @@ public record ResumoOs(
         LocalDateTime entradaEm,
         LocalDate previsaoEntrega,
         LocalDateTime atualizadoEm) {
+
+    /**
+     * A previsão de entrega já passou e o serviço não ficou pronto. A OS pronta não conta: ela espera o cliente
+     * buscar, não a oficina.
+     */
+    public boolean atrasada(LocalDate hoje) {
+        return previsaoEntrega != null && previsaoEntrega.isBefore(hoje) && status != StatusOs.PRONTA
+                && !status.finalizada();
+    }
 }

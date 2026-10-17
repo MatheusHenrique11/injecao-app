@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Painel (SPEC 8.8), a tela inicial: as OS em andamento por status, os veículos na oficina, as entregas e o backup. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.PainelController" styleClass="pagina">
+  <HBox spacing="12.0" alignment="BASELINE_LEFT">
+    <Label styleClass="titulo-secao" text="Painel"/>
+    <Label fx:id="hoje" styleClass="dica"/>
+  </HBox>
+  <FlowPane fx:id="cartoes" hgap="10.0" vgap="10.0" rowValignment="TOP"/>
+  <Label styleClass="dica" text="Clique num cartão para ver essas OS na Oficina."/>
+
+  <Label fx:id="tituloNaOficina" styleClass="titulo-secao" text="Na oficina agora"/>
+  <TableView fx:id="naOficina" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label styleClass="dica" text="Nenhum veículo na oficina agora."/>
+    </placeholder>
+  </TableView>
+
+  <Label fx:id="tituloEntregas" styleClass="titulo-secao" text="Entregas previstas até hoje"/>
+  <TableView fx:id="entregas" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label styleClass="dica" text="Nenhuma entrega prevista para hoje, nem atrasada."/>
+    </placeholder>
+  </TableView>
+
+  <Label fx:id="backup" styleClass="dica"/>
+</VBox>

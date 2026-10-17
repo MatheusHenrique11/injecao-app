@@ -476,3 +476,21 @@ Origem: a comparação com o PitStop Manager, outro projeto do dono (SaaS de ges
     - **Checksum:** um CRC32 do SQL da migração, sem os CR, para o Flyway acusar uma edição depois de aplicada.
 171. **A tabela de anexos fica para a V7, no bloco 3.2**, junto com a tela que a usa: migração aplicada não se edita, e cada bloco cria só o que usa e testa.
 172. **PDF e WhatsApp do orçamento da OS comum ficam para o bloco 3.3** (documentos). Até lá, o documento do orçamento continua só para o de preparação, que tem o resumo técnico do cálculo.
+
+## 16/10/2026 — Fase 3, bloco 3.2: as telas da oficina
+
+Plano aprovado em 15/10/2026. Vistoria padrão escolhida pelo dono: lataria e pintura; vidros, faróis e retrovisores; pneus, rodas e estepe; interior e painel.
+
+173. **Anexos da OS e do veículo (migração V7, só a tabela `anexo`):**
+    - o veículo é obrigatório e a OS é opcional: o documento do veículo sem OS serve para a ficha do bloco 3.3;
+    - aceita foto em JPG ou PNG e documento em PDF, até 20 MB. Foto do iPhone em HEIC é recusada com a dica de mandar pelo WhatsApp, que converte para JPG (o JavaFX não abre HEIC);
+    - a cópia vai para `anexos\veiculos\<id do veículo>\<16 primeiros caracteres do SHA-256>.<extensão>`, gravada como arquivo parcial e depois renomeada. O mesmo arquivo anexado duas vezes é uma cópia só, apagada quando nenhum anexo a usa mais. O backup já leva a pasta de anexos;
+    - não há gatilho que impeça apagar, porque a anonimização (LGPD, bloco 3.3) precisa apagar documento pessoal mesmo de OS entregue. A regra "remover só com a OS em andamento" fica no caso de uso.
+174. **A busca de cliente acha também pela placa e pelo nome da embarcação dos veículos dele**, na Nova OS e no assistente de projeto: no balcão, quem chega é o carro.
+175. **Ligar um projeto de preparação à OS:** só projeto do mesmo veículo, não arquivado e que não esteja em outra OS em andamento.
+176. **O app abre no Painel, e o menu fica Painel · Oficina · Preparação · Calculadora · Catálogos · Configurações.** "Projetos" virou "Preparação" (SPEC 8.1); a lista de projetos continua igual.
+177. **Painel (SPEC 8.8):**
+    - um cartão para cada status de OS em andamento. Entra também "Aprovadas, na fila", que a SPEC não listava: a OS aprovada que ainda não começou é serviço esperando a oficina;
+    - o cartão abre a Oficina com o filtro daquele status;
+    - "Entregas previstas até hoje" traz as de hoje e as atrasadas. "Atrasada" quer dizer que a previsão passou e o serviço não ficou pronto; a OS pronta não conta, porque espera o cliente buscar, não a oficina.
+178. **Listas de OS (Painel e Oficina):** o veículo e a placa (ou o nome da embarcação) ficam numa coluna só, e as colunas se ajustam à largura da tabela, sem rolagem para o lado na janela padrão.

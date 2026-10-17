@@ -10,7 +10,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -113,7 +115,26 @@ public final class CasosOficina {
     public record ProjetoDoVeiculo(long projetoId, String motor, StatusProjeto status) {
     }
 
+    /**
+     * O que o Painel mostra (SPEC 8.8).
+     *
+     * @param porStatus quantas OS há em cada status de quem está em andamento (zero quando não há nenhuma)
+     * @param naOficina as OS em andamento com o veículo na oficina, de quem chegou primeiro para quem chegou por último
+     * @param entregas as OS em andamento com a entrega prevista para hoje ou para antes, da previsão mais antiga
+     */
+    public record Painel(Map<StatusOs, Integer> porStatus, List<ResumoOs> naOficina, List<ResumoOs> entregas) {
+
+        public Painel {
+            porStatus = Map.copyOf(porStatus);
+            naOficina = List.copyOf(naOficina);
+            entregas = List.copyOf(entregas);
+        }
+    }
+
     private static final Logger LOG = Logger.getLogger(CasosOficina.class.getName());
+
+    /** O máximo de linhas da lista da Oficina: uma oficina só não tem tanta OS em andamento. */
+    private static final int LIMITE_DA_LISTA = 500;
 
     private final BancoDados banco;
     private final Clock relogio;
@@ -315,7 +336,31 @@ public final class CasosOficina {
     // ===================== Consultas =====================
 
     public List<ResumoOs> listar(FiltroOs filtro) {
-        return banco.ler(c -> ordens.pesquisar(c, filtro, 500));
+        return banco.ler(c -> ordens.pesquisar(c, filtro, LIMITE_DA_LISTA));
+    }
+
+    /**
+     * O Painel (SPEC 8.8): as OS em andamento por status, os veículos que estão na oficina e as entregas previstas
+     * para hoje, com as atrasadas junto (a previsão já passou e a OS não foi entregue).
+     */
+    public Painel painel() {
+        LocalDate hoje = LocalDate.now(relogio);
+        return banco.ler(c -> {
+            Map<StatusOs, Integer> contagem = ordens.contarPorStatus(c);
+            Map<StatusOs, Integer> porStatus = new EnumMap<>(StatusOs.class);
+            for (StatusOs status : StatusOs.values()) {
+                if (!status.finalizada()) {
+                    porStatus.put(status, contagem.getOrDefault(status, 0));
+                }
+            }
+            List<ResumoOs> emAndamento = ordens.pesquisar(c, FiltroOs.emAndamento(), LIMITE_DA_LISTA);
+            List<ResumoOs> naOficina = emAndamento.stream().filter(os -> os.entradaEm() != null)
+                    .sorted(Comparator.comparing(ResumoOs::entradaEm)).toList();
+            List<ResumoOs> entregas = emAndamento.stream()
+                    .filter(os -> os.previsaoEntrega() != null && !os.previsaoEntrega().isAfter(hoje))
+                    .sorted(Comparator.comparing(ResumoOs::previsaoEntrega)).toList();
+            return new Painel(porStatus, naOficina, entregas);
+        });
     }
 
     /** A OS com o cliente, o veículo, o mecânico e o pagamento. */

@@ -21,9 +21,9 @@ class CalibraAppTest {
 
     @Test
     void telasEEstiloEstaoNoApp() {
-        for (String tela : new String[] {"principal.fxml", "inicio.fxml", "assistente.fxml", "projeto.fxml",
-                "cliente.fxml", "veiculo.fxml", "motor.fxml", "calculadora.fxml", "configuracoes.fxml",
-                "catalogos.fxml", "orcamento.fxml"}) {
+        for (String tela : new String[] {"principal.fxml", "painel.fxml", "oficina.fxml", "inicio.fxml",
+                "assistente.fxml", "projeto.fxml", "cliente.fxml", "veiculo.fxml", "motor.fxml", "calculadora.fxml",
+                "configuracoes.fxml", "catalogos.fxml", "orcamento.fxml"}) {
             assertNotNull(CalibraApp.class.getResource(tela), tela);
         }
         assertNotNull(CalibraApp.folhaDeEstilo());

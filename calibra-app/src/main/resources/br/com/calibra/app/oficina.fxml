@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Oficina (SPEC 8.9): a lista de OS com busca por placa, cliente, embarcação ou número da OS e filtro por status. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.OficinaController" styleClass="pagina">
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <Label styleClass="titulo-secao" text="Oficina"/>
+  </HBox>
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <TextField fx:id="busca" promptText="Buscar por placa, cliente, embarcação ou número da OS" HBox.hgrow="ALWAYS"/>
+    <Label text="Status"/>
+    <ComboBox fx:id="filtroStatus" prefWidth="320.0"/>
+  </HBox>
+  <TableView fx:id="listaOs" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label fx:id="vazio" styleClass="dica" wrapText="true" text="Nenhuma OS em andamento."/>
+    </placeholder>
+  </TableView>
+</VBox>

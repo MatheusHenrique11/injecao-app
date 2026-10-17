@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -213,6 +214,22 @@ class OrdemServicoRepositorioTest {
         assertEquals(List.of(maria), ids(new FiltroOs("OS-2026-0002", Set.of(), true)), "pelo número");
         assertEquals(List.of(maria), ids(new FiltroOs("", Set.of(StatusOs.ENTREGUE), false)), "pelo status");
         assertEquals(List.of(), ids(new FiltroOs("maria", Set.of(), false)), "sem as finalizadas");
+    }
+
+    /** Os cartões do Painel: quantas OS em cada status, contando também as finalizadas. */
+    @Test
+    void contagemPorStatus() {
+        assertEquals(Map.of(), base.banco.ler(ordens::contarPorStatus), "banco sem OS");
+        long primeira = abrirOs(1, cliente, veiculo, null);
+        abrirOs(2, cliente, veiculo, null);
+        long terceira = abrirOs(3, cliente, veiculo, null);
+        passo(primeira, StatusOs.AGUARDANDO_APROVACAO);
+        base.banco.transacao(c -> {
+            ordens.cancelar(c, terceira, "O cliente desistiu.");
+            return null;
+        });
+        assertEquals(Map.of(StatusOs.ABERTA, 1, StatusOs.AGUARDANDO_APROVACAO, 1, StatusOs.CANCELADA, 1),
+                base.banco.ler(ordens::contarPorStatus));
     }
 
     private List<Long> ids(FiltroOs filtro) {

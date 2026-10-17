@@ -21,8 +21,12 @@
   <left>
     <VBox styleClass="navegacao" spacing="4.0">
       <Label styleClass="marca" text="Calibra"/>
-      <ToggleButton fx:id="navProjetos" text="Projetos" toggleGroup="$navegacao"
-                    maxWidth="Infinity" onAction="#mostrarProjetos"/>
+      <ToggleButton fx:id="navPainel" text="Painel" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarPainel"/>
+      <ToggleButton fx:id="navOficina" text="Oficina" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarOficina"/>
+      <ToggleButton fx:id="navPreparacao" text="Preparação" toggleGroup="$navegacao"
+                    maxWidth="Infinity" onAction="#mostrarPreparacao"/>
       <ToggleButton fx:id="navCalculadora" text="Calculadora" toggleGroup="$navegacao"
                     maxWidth="Infinity" onAction="#mostrarCalculadora"/>
       <ToggleButton fx:id="navCatalogos" text="Catálogos" toggleGroup="$navegacao"

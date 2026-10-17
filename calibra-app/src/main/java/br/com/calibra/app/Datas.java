@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 import javafx.scene.control.DatePicker;
 import javafx.util.StringConverter;
@@ -13,12 +14,19 @@ final class Datas {
 
     private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DIA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter POR_EXTENSO = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy",
+            Locale.of("pt", "BR"));
 
     private Datas() {
     }
 
     static String dia(LocalDate data) {
         return data == null ? "—" : DIA.format(data);
+    }
+
+    /** "quinta-feira, 16 de outubro de 2026" (os nomes vêm do módulo jdk.localedata, que vai no instalador). */
+    static String porExtenso(LocalDate data) {
+        return POR_EXTENSO.format(data);
     }
 
     static String diaHora(LocalDateTime dataHora) {

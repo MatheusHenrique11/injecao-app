@@ -22,24 +22,29 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.ImagensTurbo;
 import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.memoria.VersaoNucleo;
+import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.dados.backup.InfoBackup;
 import br.com.calibra.dados.config.Chave;
 
 /**
- * Janela principal: navegação entre as telas, barra de status com o backup e a versão (SPEC 10). Cada tela
- * é carregada na primeira vez que é aberta e continua com o que foi digitado quando se troca de tela.
+ * Janela principal: navegação entre as telas, barra de status com o backup e a versão (SPEC 10). O app abre no
+ * Painel. Cada tela é carregada na primeira vez que é aberta e continua com o que foi digitado quando se troca de
+ * tela.
  */
 public class PrincipalController implements Navegacao {
 
     private static final Logger LOG = Logger.getLogger(PrincipalController.class.getName());
 
     @FXML private ToggleGroup navegacao;
-    @FXML private ToggleButton navProjetos;
+    @FXML private ToggleButton navPainel;
+    @FXML private ToggleButton navOficina;
+    @FXML private ToggleButton navPreparacao;
     @FXML private ToggleButton navCalculadora;
     @FXML private ToggleButton navCatalogos;
     @FXML private ToggleButton navConfiguracoes;
@@ -60,6 +65,14 @@ public class PrincipalController implements Navegacao {
     private CasosProjeto casosProjeto;
     private CasosCatalogo casosCatalogo;
     private CasosOrcamento casosOrcamento;
+    private CasosOficina casosOficina;
+    private Parent telaPainel;
+    private PainelController painel;
+    private Parent telaListaOficina;
+    private OficinaController oficina;
+    /** O que está aberto na área da Oficina. */
+    private Parent telaOficina;
+    private String tituloOficina;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -87,6 +100,9 @@ public class PrincipalController implements Navegacao {
             if (depois.intValue() == 0 && configuracoes != null) {
                 configuracoes.atualizarBackup();
             }
+            if (depois.intValue() == 0 && painel != null) {
+                painel.atualizarBackup();
+            }
         });
     }
 
@@ -98,8 +114,10 @@ public class PrincipalController implements Navegacao {
         this.casosProjeto = new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp());
         this.casosCatalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
         this.casosOrcamento = new CasosOrcamento(contexto.banco(), contexto.relogio(), casosProjeto);
+        this.casosOficina = new CasosOficina(contexto.banco(), contexto.relogio(), casosProjeto,
+                contexto.pastas().anexos());
         atualizarStatus();
-        voltarParaProjetos();
+        mostrarPainel();
     }
 
     /** Backup automático (SPEC 10: diário): confere agora, ao abrir, e depois de hora em hora. */
@@ -110,9 +128,59 @@ public class PrincipalController implements Navegacao {
 
     // ===================== Navegação =====================
 
-    /** Mostra o que estava aberto na área de projetos (a lista, o assistente ou um projeto). */
+    /** O Painel, lido de novo a cada vez que aparece. */
     @FXML
-    private void mostrarProjetos() {
+    private void mostrarPainel() {
+        if (telaPainel == null) {
+            FXMLLoader carregador = carregador("painel.fxml");
+            telaPainel = carregar(carregador);
+            painel = carregador.getController();
+            painel.iniciar(casosOficina, this, contexto.relogio(), this::textoDoBackup);
+        } else {
+            painel.atualizar();
+        }
+        mostrar(telaPainel, navPainel, "Painel");
+    }
+
+    /** Mostra o que estava aberto na área da Oficina; a lista volta atualizada. */
+    @FXML
+    private void mostrarOficina() {
+        if (telaOficina == null || telaOficina == telaListaOficina) {
+            voltarParaOficina();
+            return;
+        }
+        mostrar(telaOficina, navOficina, tituloOficina);
+    }
+
+    @Override
+    public void voltarParaOficina() {
+        if (telaListaOficina == null) {
+            FXMLLoader carregador = carregador("oficina.fxml");
+            telaListaOficina = carregar(carregador);
+            oficina = carregador.getController();
+            oficina.iniciar(casosOficina, contexto.relogio());
+        } else {
+            oficina.atualizar();
+        }
+        abrirNaAreaDaOficina(telaListaOficina, "Oficina");
+        oficina.focarBusca();
+    }
+
+    @Override
+    public void abrirOficina(StatusOs status) {
+        voltarParaOficina();
+        oficina.filtrar(status);
+    }
+
+    private void abrirNaAreaDaOficina(Parent tela, String titulo) {
+        telaOficina = tela;
+        tituloOficina = titulo;
+        mostrar(tela, navOficina, titulo);
+    }
+
+    /** Mostra o que estava aberto na área de preparação (a lista, o assistente ou um projeto). */
+    @FXML
+    private void mostrarPreparacao() {
         if (telaProjetos == null) {
             voltarParaProjetos();
             return;
@@ -120,7 +188,7 @@ public class PrincipalController implements Navegacao {
         if (projetoAberto != null) {
             projetoAberto.atualizarCatalogo();
         }
-        mostrar(telaProjetos, navProjetos, tituloProjetos);
+        mostrar(telaProjetos, navPreparacao, tituloProjetos);
     }
 
     @Override
@@ -134,7 +202,7 @@ public class PrincipalController implements Navegacao {
             inicio.atualizar();
         }
         projetoAberto = null;
-        abrirNaAreaDeProjetos(telaInicio, "Projetos");
+        abrirNaAreaDeProjetos(telaInicio, "Preparação");
         inicio.focarBusca();
     }
 
@@ -171,7 +239,7 @@ public class PrincipalController implements Navegacao {
     private void abrirNaAreaDeProjetos(Parent tela, String titulo) {
         telaProjetos = tela;
         tituloProjetos = titulo;
-        mostrar(tela, navProjetos, titulo);
+        mostrar(tela, navPreparacao, titulo);
     }
 
     @FXML
@@ -231,6 +299,11 @@ public class PrincipalController implements Navegacao {
 
     /** Os dados mudaram todos: as telas são montadas de novo a partir do banco restaurado. */
     private void aposRestaurar() {
+        telaPainel = null;
+        painel = null;
+        telaListaOficina = null;
+        oficina = null;
+        telaOficina = null;
         telaInicio = null;
         inicio = null;
         telaProjetos = null;
@@ -281,13 +354,18 @@ public class PrincipalController implements Navegacao {
             rotuloStatus.getStyleClass().add("erro");
             return;
         }
-        Optional<InfoBackup> ultimo = servicoBackup.ultimo();
-        String texto = "Último backup: " + ultimo.map(ServicoBackup::descrever).orElse("nenhum ainda");
+        String texto = textoDoBackup();
         if (servicoBackup.avisoDaPasta().isPresent()) {
             texto += " · a pasta de backup escolhida não está ligada: usando a pasta padrão";
             rotuloStatus.getStyleClass().add("aviso-amarelo");
         }
         rotuloStatus.setText(texto);
+    }
+
+    /** "Último backup: 12/10/2026 14:50 · automático (diário) · 1,2 MB" (na barra de status e no Painel). */
+    private String textoDoBackup() {
+        Optional<InfoBackup> ultimo = servicoBackup.ultimo();
+        return "Último backup: " + ultimo.map(ServicoBackup::descrever).orElse("nenhum ainda");
     }
 
     // ===================== Fechar =====================

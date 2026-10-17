@@ -147,7 +147,8 @@ class FluxoCompletoUiTest {
         resumo.add("Java: " + System.getProperty("java.home") + " · " + Runtime.version());
         resumo.add("Calibra " + Versao.atual() + " lido de " + CalibraApp.class.getProtectionDomain().getCodeSource()
                 .getLocation());
-        assertTrue(contemTexto(cena.getRoot(), "Nenhum projeto ainda"), "começa sem projetos");
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navPainel").isSelected(), "abre no Painel");
+        assertTrue(contemTexto(cena.getRoot(), "Nenhum veículo na oficina agora."), "começa sem OS");
     }
 
     /** Primeiro uso: os dados da oficina e o valor da hora do orçamento, em Configurações. */
@@ -187,7 +188,7 @@ class FluxoCompletoUiTest {
 
     /** O assistente: cliente com consentimento, veículo, motor (caso golden B) e meta. */
     private void criarProjeto() throws Exception {
-        TelaDeTeste.<ToggleButton>achar(cena, "navProjetos").fire();
+        TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").fire();
         TelaDeTeste.<Button>achar(cena, "botaoNovo").fire();
         TelaDeTeste.<TextField>achar(cena, "nome").setText("Cliente Ensaio (fictício)");
         TelaDeTeste.<TextField>achar(cena, "telefone").setText("(11) 98765-4321");
@@ -337,7 +338,7 @@ class FluxoCompletoUiTest {
         resumo.add("Backup feito pela tela: " + backupFeito.getFileName());
         salvar(cena, "ensaio-5-backup-feito.png");
 
-        TelaDeTeste.<ToggleButton>achar(cena, "navProjetos").fire();
+        TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").fire();
         TabPane abas = achar(cena, "abas");
         abas.getSelectionModel().select(aba(abas, "abaOrcamento"));
         this.<Button>daAba("botaoNovaRevisao").fire();
@@ -397,7 +398,7 @@ class FluxoCompletoUiTest {
         assertEquals("", Objects.toString(casos.abrir(projeto).veiculo().veiculo().cor(), ""),
                 "a cor gravada depois do backup sumiu");
 
-        TelaDeTeste.<ToggleButton>achar(cena, "navProjetos").fire();
+        TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").fire();
         assertEquals(1, TelaDeTeste.<TableView<?>>achar(cena, "tabela").getItems().size());
         principal.abrirProjeto(projeto);
         assertEquals("Aprovado", TelaDeTeste.<Label>achar(cena, "status").getText());

@@ -11,11 +11,11 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Início (SPEC 8.1): lista de projetos com busca por cliente, placa ou embarcação, motor e status. -->
+<!-- Preparação (SPEC 8.1): lista de projetos com busca por cliente, placa ou embarcação, motor e status. -->
 <VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="br.com.calibra.app.InicioController" styleClass="pagina">
   <HBox spacing="10.0" alignment="CENTER_LEFT">
-    <Label styleClass="titulo-secao" text="Projetos"/>
+    <Label styleClass="titulo-secao" text="Projetos de preparação"/>
     <Region HBox.hgrow="ALWAYS"/>
     <Button fx:id="botaoNovo" text="_Novo projeto…" defaultButton="true" onAction="#novoProjeto"/>
   </HBox>
