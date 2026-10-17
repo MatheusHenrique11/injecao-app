@@ -98,7 +98,11 @@
             <Label styleClass="dica" wrapText="true"
                    text="O projeto de preparação é opcional. Ligado à OS, o orçamento traz as peças do cálculo dele, e o PDF do orçamento leva o resumo técnico."/>
             <HBox spacing="10.0" alignment="CENTER_LEFT">
-              <Label text="Projeto deste veículo"/>
+              <Button fx:id="botaoCriarProjeto" text="Criar projeto de preparação…" onAction="#criarProjeto"/>
+              <Label styleClass="dica" text="O assistente começa no motor, com o cliente e o veículo desta OS."/>
+            </HBox>
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+              <Label text="Ou ligue um projeto deste veículo"/>
               <ComboBox fx:id="projetosDoVeiculo" prefWidth="380.0"/>
               <Button fx:id="botaoLigarProjeto" text="Ligar a esta OS" onAction="#ligarProjeto"/>
             </HBox>

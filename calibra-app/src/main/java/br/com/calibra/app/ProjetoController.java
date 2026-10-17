@@ -40,6 +40,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.ProjetoAberto;
 import br.com.calibra.app.casos.CasosProjeto.SituacaoCalculo;
@@ -66,6 +67,7 @@ import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
+import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.projeto.CalculoSalvo;
 import br.com.calibra.dados.projeto.MudancaStatus;
 import br.com.calibra.dados.projeto.ResumoCalculo;
@@ -84,6 +86,7 @@ public class ProjetoController {
     @FXML private Label subtitulo;
     @FXML private Label status;
     @FXML private Button botaoArquivar;
+    @FXML private Button botaoAbrirOs;
     @FXML private TabPane abas;
     @FXML private Tab abaDimensionamento;
 
@@ -141,6 +144,11 @@ public class ProjetoController {
 
     // ---------- Peças e orçamento ----------
     private OrcamentoController orcamento;
+
+    // ---------- OS do projeto ----------
+    private CasosOficina oficina;
+    /** A OS mais nova do projeto; null sem nenhuma. */
+    private Long osDoProjeto;
 
     private CasosProjeto casos;
     private CasosCatalogo catalogo;
@@ -270,6 +278,34 @@ public class ProjetoController {
         atualizarCalculos();
         if (orcamento != null) {
             orcamento.atualizar();
+        }
+        mostrarOs();
+    }
+
+    /** A OS do projeto no cabeçalho (bloco 3.2): a mais nova, com o status, num botão que a abre. */
+    void usarOficina(CasosOficina oficina) {
+        this.oficina = oficina;
+        mostrarOs();
+    }
+
+    private void mostrarOs() {
+        if (oficina == null) {
+            return;
+        }
+        List<OrdemServicoSalva> ordens = oficina.ordensDoProjeto(projetoId);
+        osDoProjeto = ordens.isEmpty() ? null : ordens.getFirst().id();
+        botaoAbrirOs.setVisible(osDoProjeto != null);
+        botaoAbrirOs.setManaged(osDoProjeto != null);
+        if (osDoProjeto != null) {
+            botaoAbrirOs.setText("Abrir a " + ordens.getFirst().numero().texto() + " · "
+                    + ordens.getFirst().status().rotulo());
+        }
+    }
+
+    @FXML
+    private void abrirOs() {
+        if (osDoProjeto != null) {
+            navegacao.abrirOs(osDoProjeto);
         }
     }
 

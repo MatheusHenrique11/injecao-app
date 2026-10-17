@@ -18,9 +18,12 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import br.com.calibra.app.casos.CasosProjeto.ClienteExistente;
 import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
 import br.com.calibra.app.casos.CasosProjeto.EscolhaVeiculo;
+import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
 import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.NumeroOs;
@@ -29,6 +32,7 @@ import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.BancoDados;
@@ -438,6 +442,30 @@ public final class CasosOficina {
             }
             ordens.ligarProjeto(c, osId, projetoId);
             return null;
+        });
+    }
+
+    /**
+     * Cria o projeto de preparação para a OS (o assistente aberto pela aba Preparação), com o cliente e o veículo
+     * dela, e já o liga à OS: tudo ou nada.
+     *
+     * @param injecaoItemId null = nenhuma por enquanto
+     * @throws EntradaInvalidaException se o motor ou a meta não passarem
+     * @throws OperacaoRecusadaException se a OS já tem projeto ou não está em andamento
+     */
+    public long criarProjetoNaOs(long osId, String descricaoMotor, ConfiguracaoMotor motor, Meta meta,
+            Long injecaoItemId) {
+        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
+        CasosProjeto.NovoProjeto novo = new CasosProjeto.NovoProjeto(new ClienteExistente(os.clienteId()),
+                new VeiculoExistente(os.veiculoId()), descricaoMotor, motor, meta, injecaoItemId);
+        List<String> erros = projetos.errosDoProjeto(novo);
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            long projetoId = projetos.inserirProjeto(c, novo);
+            ordens.ligarProjeto(c, osId, projetoId);
+            return projetoId;
         });
     }
 

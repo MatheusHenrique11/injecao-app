@@ -18,7 +18,7 @@
             fx:controller="br.com.calibra.app.AssistenteController">
   <top>
     <VBox styleClass="pagina">
-      <Label styleClass="titulo-secao" text="Novo projeto"/>
+      <Label fx:id="tituloAssistente" styleClass="titulo-secao" text="Novo projeto"/>
       <HBox spacing="10.0" alignment="CENTER_LEFT">
         <Label fx:id="etapa1" text="1. Cliente"/>
         <Label styleClass="dica" text="›"/>
@@ -110,7 +110,7 @@
     <VBox>
       <VBox fx:id="mensagens" styleClass="pagina" spacing="4.0"/>
       <HBox styleClass="rodape" spacing="10.0">
-        <Button text="Cancelar" cancelButton="true" onAction="#cancelar"/>
+        <Button fx:id="botaoCancelar" text="Cancelar" cancelButton="true" onAction="#cancelar"/>
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="botaoVoltar" text="← _Voltar" onAction="#voltar"/>
         <Button fx:id="botaoProximo" text="_Próximo →" defaultButton="true" onAction="#proximo"/>

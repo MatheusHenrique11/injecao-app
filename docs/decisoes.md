@@ -516,3 +516,8 @@ Plano aprovado em 15/10/2026. Vistoria padrão escolhida pelo dono: lataria e pi
 187. **Avisos que não impedem** (km menor que o do cadastro, km de saída menor que o da entrada) aparecem em amarelo embaixo da tela da OS, junto com a confirmação da ação. Na Nova OS continuam numa janela, porque a tela da Nova OS fecha ao abrir a OS.
 188. **A garantia da entrega ainda não tem valor padrão:** a janela de entrega pede os dias (0 = sem garantia), com o exemplo "90". O padrão entra em Configurações no bloco 3.3.
 189. **O mecânico da OS aparece mesmo que tenha ficado inativo**, marcado "(inativo)": salvar a abertura não o tira da OS.
+190. **Projeto de preparação criado pela OS** ("Criar projeto de preparação…", na aba Preparação):
+    - o assistente começa no motor, com o cliente e o veículo da OS, e não volta para as etapas de cliente e veículo; cancelar volta para a OS;
+    - o projeto nasce ligado à OS numa gravação só: se a OS já tiver projeto (ou não estiver em andamento), nada é gravado, e não sobra projeto solto;
+    - criado, o projeto abre na Preparação, para o dimensionamento; o orçamento da OS passa a ser o de preparação, com as peças do cálculo.
+191. **O cabeçalho do projeto mostra a OS dele** (a mais nova), num botão que a abre: "Abrir a OS-2026-0003 · Aprovada".

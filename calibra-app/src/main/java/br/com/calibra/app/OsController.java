@@ -470,6 +470,11 @@ public class OsController {
         }
     }
 
+    @FXML
+    void criarProjeto() {
+        recursos.navegacao().novoProjetoDaOs(osId);
+    }
+
     // ===================== Entrega e pagamento =====================
 
     private void mostrarEntregaEPagamento() {

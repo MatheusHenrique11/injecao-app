@@ -455,4 +455,25 @@ class CasosOficinaTest {
         assertEquals(os, oficina.osAtualDoProjeto(projeto), "a OS ligada é a atual do projeto");
         assertEquals(List.of(os), oficina.ordensDoProjeto(projeto).stream().map(OrdemServicoSalva::id).toList());
     }
+
+    /**
+     * O projeto criado pela aba Preparação da OS nasce ligado a ela, com o cliente e o veículo dela. Com a OS já ligada,
+     * nada é gravado: não sobra projeto solto.
+     */
+    @Test
+    void projetoCriadoPelaOs() {
+        long os = abrirComEntrada("Júlia Prado", "IJK9L01");
+        long veiculo = oficina.buscar(os).veiculo().id();
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        long projeto = oficina.criarProjetoNaOs(os, "AP 2.0 turbo", casoB.motor(), casoB.meta(), null);
+        assertEquals(projeto, oficina.buscar(os).os().projetoId());
+        assertEquals(veiculo, casos.abrir(projeto).veiculo().id(), "o veículo da OS, sem cadastro novo");
+        assertEquals(oficina.buscar(os).cliente().id(), casos.abrir(projeto).cliente().id());
+
+        OperacaoRecusadaException jaTem = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.criarProjetoNaOs(os, "Outro", casoB.motor(), casoB.meta(), null));
+        assertEquals("A OS OS-2026-0001 já está ligada ao projeto #" + projeto + ".", jaTem.getMessage());
+        assertEquals(List.of(projeto), oficina.projetosDoVeiculo(veiculo).stream().map(ProjetoDoVeiculo::projetoId)
+                .toList(), "a recusa não deixou projeto solto");
+    }
 }

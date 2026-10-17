@@ -238,24 +238,33 @@ public final class CasosProjeto {
      * @throws EntradaInvalidaException com todas as mensagens, se algo não passar nas regras (nada é gravado)
      */
     public long criarProjeto(NovoProjeto novo) {
+        List<String> erros = errosDoProjeto(novo);
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> inserirProjeto(c, novo));
+    }
+
+    /** As regras do projeto novo: o cliente, o veículo, o motor e a meta. Vazio = pode gravar. */
+    List<String> errosDoProjeto(NovoProjeto novo) {
         if (novo.cliente() == null || novo.veiculo() == null) {
-            throw new EntradaInvalidaException("Escolha o cliente e o veículo do projeto.");
+            return List.of("Escolha o cliente e o veículo do projeto.");
         }
         List<String> erros = new ArrayList<>(errosDaEscolha(novo.cliente(), novo.veiculo()));
         erros.addAll(errosDoMotor(novo.motor()));
         if (novo.motor() != null) {
             erros.addAll(CalculoDimensionamento.validarMeta(novo.meta(), novo.motor()));
         }
-        if (!erros.isEmpty()) {
-            throw new EntradaInvalidaException(erros);
-        }
-        return banco.transacao(c -> {
-            ClienteEVeiculo escolhidos = gravarEscolha(c, novo.cliente(), novo.veiculo(), "projeto novo");
-            conferirInjecao(c, novo.injecaoItemId());
-            long projetoId = projetos.inserir(c, escolhidos.veiculoId(), novo.meta(), "", novo.injecaoItemId());
-            motores.salvarVersao(c, projetoId, novo.descricaoMotor(), novo.motor());
-            return projetoId;
-        });
+        return erros;
+    }
+
+    /** Grava o projeto novo com a primeira versão do motor, na transação de quem chama (a OS liga o projeto junto). */
+    long inserirProjeto(Connection conexao, NovoProjeto novo) throws SQLException {
+        ClienteEVeiculo escolhidos = gravarEscolha(conexao, novo.cliente(), novo.veiculo(), "projeto novo");
+        conferirInjecao(conexao, novo.injecaoItemId());
+        long projetoId = projetos.inserir(conexao, escolhidos.veiculoId(), novo.meta(), "", novo.injecaoItemId());
+        motores.salvarVersao(conexao, projetoId, novo.descricaoMotor(), novo.motor());
+        return projetoId;
     }
 
     /** O cliente e o veículo gravados (novos) ou conferidos (existentes). */

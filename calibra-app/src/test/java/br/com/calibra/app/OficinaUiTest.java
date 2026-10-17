@@ -33,6 +33,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -66,6 +67,9 @@ import br.com.calibra.core.cadastro.TipoCambio;
 import br.com.calibra.core.cadastro.TipoVeiculo;
 import br.com.calibra.core.cadastro.Tracao;
 import br.com.calibra.core.cadastro.Veiculo;
+import br.com.calibra.core.combustivel.CombustiveisPadrao;
+import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.FormaPagamento;
@@ -82,6 +86,7 @@ import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.TipoItem;
+import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
@@ -238,6 +243,100 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * O projeto de preparação criado pela aba Preparação da OS: o assistente começa no motor, com o cliente e o veículo
+     * da OS; o projeto nasce ligado a ela, o cabeçalho dele mostra a OS, e o orçamento da OS passa a ser o de
+     * preparação (com as peças do cálculo).
+     */
+    @Test
+    void projetoDePreparacaoPelaOs() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23",
+                    "Preparação: turbo no AP", null, LocalDateTime.now().minusHours(1).withNano(0))).osId());
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+
+            // Cancelar o assistente aberto pela OS volta para a OS, e a Preparação volta para a lista.
+            TelaDeTeste.naTelaDoJavaFx(this::assistentePelaOs);
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoCancelar").fire(), falha);
+            Stage confirmacao = TelaDeTeste.esperarJanela("Cancelar o novo projeto", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> ((Button) TelaDeTeste.painel(confirmacao).lookupButton(ButtonType.YES))
+                    .fire());
+            TelaDeTeste.esperar(() -> TelaDeTeste.<ToggleButton>achar(cena, "navOficina").isSelected(),
+                    "voltar para a OS");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertEquals("OS-2026-0001", principal.osAberta().numero());
+                TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").fire();
+                assertTrue(TelaDeTeste.<TableView<?>>achar(cena, "tabela").getItems().isEmpty(),
+                        "a Preparação voltou para a lista de projetos, sem o assistente cancelado");
+            });
+
+            TelaDeTeste.naTelaDoJavaFx(this::projetoPeloAssistente);
+            TelaDeTeste.naTelaDoJavaFx(this::osComOProjeto);
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /** "Criar projeto de preparação…", na aba Preparação da OS da Ana. */
+    private void assistentePelaOs() throws Exception {
+        principal.abrirOs(ana);
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaPreparacao"));
+        TelaDeTeste.<Button>achar(cena, "botaoCriarProjeto").fire();
+    }
+
+    private void projetoPeloAssistente() throws Exception {
+        assistentePelaOs();
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").isSelected(), "o assistente é da preparação");
+        assertEquals("Novo projeto de preparação da OS-2026-0001 · Ana Costa (fictícia) · VW Gol GTi · ABC1D23",
+                texto("tituloAssistente"));
+        assertTrue(TelaDeTeste.<VBox>achar(cena, "painelMotor").isVisible(), "começa no motor");
+        assertTrue(TelaDeTeste.<Button>achar(cena, "botaoVoltar").isDisabled(), "o cliente e o veículo são os da OS");
+        // Motor e meta do caso golden B.
+        TelaDeTeste.<TextField>achar(cena, "descricaoMotor").setText("AP 2.0 turbo");
+        TelaDeTeste.<TextField>achar(cena, "diametro").setText("82,83");
+        TelaDeTeste.<TextField>achar(cena, "curso").setText("92,8");
+        TelaDeTeste.<TextField>achar(cena, "taxa").setText("9,5");
+        TelaDeTeste.<ComboBox<Integer>>achar(cena, "valvulas").setValue(4);
+        TelaDeTeste.<ComboBox<Aspiracao>>achar(cena, "aspiracao").setValue(Aspiracao.TURBO);
+        TelaDeTeste.<TextField>achar(cena, "rotacaoMaxima").setText("7.500");
+        TelaDeTeste.<TextField>achar(cena, "marchaLentaRpm").setText("900");
+        TelaDeTeste.<TextField>achar(cena, "dentesTotais").setText("60");
+        TelaDeTeste.<CheckBox>achar(cena, "sensorFase").setSelected(true);
+        TelaDeTeste.<ComboBox<Combustivel>>achar(cena, "combustivel").setValue(CombustiveisPadrao.EHC);
+        TelaDeTeste.<TextField>achar(cena, "altitude").setText("600");
+        salvar(cena, "oficina-15-projeto-pela-os.png");
+        proximo();
+        TelaDeTeste.<TextField>achar(cena, "potencia").setText("400");
+        TelaDeTeste.<TextField>achar(cena, "rpmPotencia").setText("7.000");
+        TelaDeTeste.<ComboBox<Uso>>achar(cena, "uso").setValue(Uso.RUA);
+        proximo();
+        TelaDeTeste.<Button>achar(cena, "botaoCriar").fire();
+
+        assertNotNull(principal.projetoAberto(), "criou e abriu o projeto");
+        Button daOs = achar(cena, "botaoAbrirOs");
+        assertTrue(daOs.isVisible());
+        assertEquals("Abrir a OS-2026-0001 · Aberta", daOs.getText(), "o cabeçalho do projeto mostra a OS");
+        salvar(cena, "oficina-16-projeto-com-a-os.png");
+        daOs.fire();
+    }
+
+    private void osComOProjeto() throws Exception {
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navOficina").isSelected(), "o botão leva à OS");
+        assertNotNull(oficina.buscar(ana).os().projetoId(), "o projeto nasceu ligado à OS");
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaPreparacao"));
+        assertTrue(texto("resumoPreparacao").startsWith("Projeto de preparação #"), texto("resumoPreparacao"));
+        abas.getSelectionModel().select(aba(abas, "abaOrcamento"));
+        assertTrue(this.<Button>daAba("botaoPecasDoCalculo").isVisible(), "com projeto, o orçamento usa o cálculo");
+        salvar(cena, "oficina-17-os-com-o-projeto.png");
     }
 
     /** A OS da Ana pronta para entregar: orçamento de 2 h a R$ 180 aprovado, serviço começado e pronto. */

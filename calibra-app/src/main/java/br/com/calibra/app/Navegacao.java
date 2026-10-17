@@ -9,6 +9,9 @@ interface Navegacao {
 
     void novoProjeto();
 
+    /** O assistente de projeto para a OS: começa no motor, e o projeto nasce ligado a ela. */
+    void novoProjetoDaOs(long osId);
+
     /** Volta para a lista de projetos, atualizada. */
     void voltarParaProjetos();
 

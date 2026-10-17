@@ -262,6 +262,17 @@ public class PrincipalController implements Navegacao {
     }
 
     @Override
+    public void novoProjetoDaOs(long osId) {
+        FXMLLoader carregador = carregador("assistente.fxml");
+        Parent tela = carregar(carregador);
+        AssistenteController assistente = carregador.getController();
+        assistente.iniciarParaOs(casosProjeto, casosCatalogo, contexto.configuracao().ler(Chave.CALCULO), this,
+                contexto.relogio(), casosOficina, osId);
+        projetoAberto = null;
+        abrirNaAreaDeProjetos(tela, "Novo projeto");
+    }
+
+    @Override
     public void abrirProjeto(long projetoId) {
         FXMLLoader carregador = carregador("projeto.fxml");
         Parent tela = carregar(carregador);
@@ -269,6 +280,7 @@ public class PrincipalController implements Navegacao {
         projeto.iniciar(casosProjeto, casosCatalogo, this, servicos, contexto.configuracao().ler(Chave.CALCULO),
                 projetoId);
         projeto.usarOrcamento(recursosDoOrcamento());
+        projeto.usarOficina(casosOficina);
         projetoAberto = projeto;
         abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
     }

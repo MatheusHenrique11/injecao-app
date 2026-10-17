@@ -20,6 +20,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosOficina;
+import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
 import br.com.calibra.app.casos.SugestaoPecas;
@@ -41,7 +43,8 @@ import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Assistente de novo projeto (SPEC 8.2): Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). Cada etapa
- * é conferida antes de seguir; no fim, o caso de uso confere tudo de novo e grava tudo ou nada.
+ * é conferida antes de seguir; no fim, o caso de uso confere tudo de novo e grava tudo ou nada. Aberto pela aba
+ * Preparação da OS, ele começa no motor, com o cliente e o veículo da OS, e o projeto nasce ligado a ela.
  */
 public class AssistenteController {
 
@@ -51,6 +54,7 @@ public class AssistenteController {
     private static final int META = 3;
     private static final int INJECAO = 4;
 
+    @FXML private Label tituloAssistente;
     @FXML private Label etapa1;
     @FXML private Label etapa2;
     @FXML private Label etapa3;
@@ -90,6 +94,9 @@ public class AssistenteController {
     private Navegacao navegacao;
     private Clock relogio;
     private int etapa;
+    private CasosOficina oficina;
+    /** A OS para a qual o projeto é criado; null no projeto novo comum. */
+    private OsAberta daOs;
 
     @FXML
     private void initialize() {
@@ -139,6 +146,27 @@ public class AssistenteController {
         mostrarEtapa(CLIENTE);
     }
 
+    /**
+     * O assistente aberto pela aba Preparação da OS: o cliente e o veículo são os da OS, e ele começa no motor. No
+     * fim, o projeto é criado já ligado à OS.
+     */
+    void iniciarParaOs(CasosProjeto casos, CasosCatalogo catalogo, Parametros padroes, Navegacao navegacao,
+            Clock relogio, CasosOficina oficina, long osId) {
+        iniciar(casos, catalogo, padroes, navegacao, relogio);
+        this.oficina = oficina;
+        daOs = oficina.buscar(osId);
+        Veiculo veiculo = daOs.veiculo().veiculo();
+        tituloAssistente.setText("Novo projeto de preparação da " + daOs.os().numero().texto() + " · "
+                + daOs.cliente().cliente().nome() + " · " + veiculo.descricao()
+                + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao()));
+        mostrarEtapa(MOTOR);
+    }
+
+    /** A primeira etapa: o cliente; a partir da OS, o motor (o cliente e o veículo já são os dela). */
+    private int primeiraEtapa() {
+        return daOs == null ? CLIENTE : MOTOR;
+    }
+
     // ===================== Botões =====================
 
     @FXML
@@ -162,7 +190,7 @@ public class AssistenteController {
 
     @FXML
     private void voltar() {
-        if (etapa > CLIENTE) {
+        if (etapa > primeiraEtapa()) {
             mostrarEtapa(etapa - 1);
         }
     }
@@ -176,10 +204,13 @@ public class AssistenteController {
         }
         try {
             ItemCatalogo<Injecao> escolhida = caixaInjecao.escolhido();
-            long projeto = casos.criarProjeto(new NovoProjeto(escolhaClienteController.escolha(),
-                    escolhaVeiculoController.escolha(), descricaoMotor.getText(), formMotorController.ler().motor(),
-                    lerMeta().meta(),
-                    escolhida == null ? null : escolhida.id()));
+            Long injecaoId = escolhida == null ? null : escolhida.id();
+            long projeto = daOs == null
+                    ? casos.criarProjeto(new NovoProjeto(escolhaClienteController.escolha(),
+                            escolhaVeiculoController.escolha(), descricaoMotor.getText(),
+                            formMotorController.ler().motor(), lerMeta().meta(), injecaoId))
+                    : oficina.criarProjetoNaOs(daOs.os().id(), descricaoMotor.getText(), formMotorController.ler()
+                            .motor(), lerMeta().meta(), injecaoId);
             navegacao.abrirProjeto(projeto);
         } catch (EntradaInvalidaException erro) {
             mostrarErros(erro.erros());
@@ -195,7 +226,12 @@ public class AssistenteController {
         alerta.setTitle("Cancelar o novo projeto");
         alerta.setHeaderText("Cancelar o novo projeto?");
         if (alerta.showAndWait().filter(ButtonType.YES::equals).isPresent()) {
+            // A Preparação volta para a lista (o assistente cancelado não fica guardado nela); aberto pela OS, a tela
+            // termina de volta na OS.
             navegacao.voltarParaProjetos();
+            if (daOs != null) {
+                navegacao.abrirOs(daOs.os().id());
+            }
         }
     }
 
@@ -213,7 +249,7 @@ public class AssistenteController {
             rotulos.get(i).getStyleClass().removeAll("etapa-atual", "etapa");
             rotulos.get(i).getStyleClass().add(i == etapa ? "etapa-atual" : "etapa");
         }
-        botaoVoltar.setDisable(etapa == CLIENTE);
+        botaoVoltar.setDisable(etapa == primeiraEtapa());
         botaoProximo.setVisible(etapa < INJECAO);
         botaoProximo.setManaged(etapa < INJECAO);
         botaoProximo.setDefaultButton(etapa < INJECAO);
@@ -293,7 +329,7 @@ public class AssistenteController {
         if (motor.sensorEtanol()) {
             exigidos.add(Recurso.SENSOR_ETANOL);
         }
-        Veiculo veiculo = escolhaVeiculoController.veiculo();
+        Veiculo veiculo = daOs != null ? daOs.veiculo().veiculo() : escolhaVeiculoController.veiculo();
         if (veiculo != null && veiculo.cambioControladoPelaInjecao()) {
             exigidos.add(Recurso.CAMBIO);
         }
