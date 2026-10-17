@@ -81,8 +81,9 @@ final class JanelasOs {
      * A entrega: o dia e a hora, o km (ou as horas de motor) na saída e a garantia em dias.
      *
      * @param rotuloUso "Km" ou "Horas de motor"
+     * @param garantiaPadrao a garantia de Configurações › OS, que já vem preenchida
      */
-    static Optional<Entrega> entrega(Window dono, LocalDateTime agora, String rotuloUso) {
+    static Optional<Entrega> entrega(Window dono, LocalDateTime agora, String rotuloUso, int garantiaPadrao) {
         Dialog<Entrega> dialogo = dialogo(dono, "Entregar o veículo", "Entrega ao cliente: quando, com quanto no painel "
                 + "e com quantos dias de garantia?");
         DatePicker data = new DatePicker(agora.toLocalDate());
@@ -92,9 +93,9 @@ final class JanelasOs {
         TextField uso = new TextField();
         uso.setId("entregaUso");
         uso.setPromptText("opcional");
-        TextField garantia = new TextField();
+        TextField garantia = new TextField(Integer.toString(garantiaPadrao));
         garantia.setId("entregaGarantia");
-        garantia.setPromptText("ex.: 90 (0 = sem garantia)");
+        garantia.setPromptText("0 = sem garantia");
         Label erro = erro();
         GridPane grade = grade();
         grade.addRow(0, new Label("Data"), data);

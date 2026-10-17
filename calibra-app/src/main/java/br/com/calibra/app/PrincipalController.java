@@ -189,7 +189,8 @@ public class PrincipalController implements Navegacao {
         FXMLLoader carregador = carregador("nova-os.fxml");
         Parent tela = carregar(carregador);
         novaOsAberta = carregador.getController();
-        novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio());
+        novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio(),
+                contexto.configuracao().ler(Chave.OS));
         osAberta = null;
         abrirNaAreaDaOficina(tela, "Nova OS");
     }
@@ -205,7 +206,7 @@ public class PrincipalController implements Navegacao {
         Parent tela = carregar(carregador);
         OsController os = carregador.getController();
         os.iniciar(new OsController.Recursos(casosOficina, casosProjeto, recursosDoOrcamento(), servicos, this,
-                contexto.relogio()), osId);
+                contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS)), osId);
         novaOsAberta = null;
         osAberta = os;
         abrirNaAreaDaOficina(tela, os.numero());
@@ -345,6 +346,7 @@ public class PrincipalController implements Navegacao {
                 }
             });
             configuracoes.usarBackup(servicoBackup, tarefas, servicos, this::aposRestaurar);
+            configuracoes.usarOficina(casosOficina);
         }
         mostrar(telaConfiguracoes, navConfiguracoes, "Configurações");
     }

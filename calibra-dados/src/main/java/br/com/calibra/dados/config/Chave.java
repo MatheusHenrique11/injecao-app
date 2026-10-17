@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
 
 /**
@@ -23,6 +24,9 @@ public record Chave<T>(String nome, Class<T> tipo, Supplier<T> padrao) {
     /** O que um orçamento novo traz preenchido (desconto, prazo, validade, condições e valor da hora). */
     public static final Chave<PadroesOrcamento> ORCAMENTO =
             new Chave<>("orcamento", PadroesOrcamento.class, PadroesOrcamento::padrao);
+
+    /** Padrões das OS (bloco 3.3): garantia da entrega, itens da vistoria e texto da via do cliente. */
+    public static final Chave<PadroesOs> OS = new Chave<>("os", PadroesOs.class, PadroesOs::padrao);
 
     /** Pasta de backup escolhida pelo usuário. */
     public static final Chave<ConfiguracaoBackup> BACKUP =

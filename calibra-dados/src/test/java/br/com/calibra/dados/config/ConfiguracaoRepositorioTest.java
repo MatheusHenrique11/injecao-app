@@ -8,12 +8,14 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
@@ -42,6 +44,16 @@ class ConfiguracaoRepositorioTest {
                 "a partir da chegada das peças", 10, "50% na aprovação e 50% na entrega", Dinheiro.ler("180,00"));
         base.configuracao.gravar(Chave.ORCAMENTO, editados);
         assertEquals(editados, base.configuracao.ler(Chave.ORCAMENTO));
+    }
+
+    /** Bloco 3.3: padrões das OS (garantia, itens da vistoria e texto da via do cliente). */
+    @Test
+    void padroesDaOs() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta);
+        assertEquals(PadroesOs.padrao(), base.configuracao.ler(Chave.OS));
+        PadroesOs editados = new PadroesOs(30, List.of("Lataria e pintura", "Motor e cofre"), "");
+        base.configuracao.gravar(Chave.OS, editados);
+        assertEquals(editados, base.configuracao.ler(Chave.OS));
     }
 
     @Test

@@ -624,6 +624,19 @@ public final class CasosOficina {
         return banco.transacao(c -> mecanicos.inserir(c, nome));
     }
 
+    /** Corrige o nome do mecânico (também nas OS antigas, que guardam o mecânico, não o nome). */
+    public void renomearMecanico(long mecanicoId, String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new EntradaInvalidaException("Informe o nome do mecânico.");
+        }
+        banco.transacao(c -> {
+            mecanicos.buscar(c, mecanicoId).orElseThrow(
+                    () -> new OperacaoRecusadaException("Mecânico #" + mecanicoId + " não encontrado."));
+            mecanicos.renomear(c, mecanicoId, nome);
+            return null;
+        });
+    }
+
     /** Quem saiu da oficina fica inativo: some da escolha nas OS novas, e as antigas continuam com ele. */
     public void ativarMecanico(long mecanicoId, boolean ativo) {
         banco.transacao(c -> {

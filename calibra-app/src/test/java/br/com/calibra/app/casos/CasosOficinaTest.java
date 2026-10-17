@@ -331,6 +331,10 @@ class CasosOficinaTest {
                         new VeiculoNovo(CasosProjetoTest.carro("EFG5H67")), "Revisão", fabio, null, "", null)));
         assertEquals("O mecânico Fábio está inativo.", inativo.getMessage());
         assertEquals(List.of(), oficina.mecanicos(false));
+        oficina.renomearMecanico(fabio, " Fábio Souza ");
+        assertEquals("Fábio Souza", oficina.mecanicos(true).getFirst().nome(), "renomear vale também para o inativo");
+        assertThrows(EntradaInvalidaException.class, () -> oficina.renomearMecanico(fabio, " "));
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.renomearMecanico(999, "Ninguém"));
 
         long os = abrirComEntrada("Eva Lima", "EFG5H67");
         OperacaoRecusadaException doOrcamento = assertThrows(OperacaoRecusadaException.class,

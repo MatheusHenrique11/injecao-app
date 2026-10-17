@@ -521,3 +521,21 @@ Plano aprovado em 15/10/2026. Vistoria padrão escolhida pelo dono: lataria e pi
     - o projeto nasce ligado à OS numa gravação só: se a OS já tiver projeto (ou não estiver em andamento), nada é gravado, e não sobra projeto solto;
     - criado, o projeto abre na Preparação, para o dimensionamento; o orçamento da OS passa a ser o de preparação, com as peças do cálculo.
 191. **O cabeçalho do projeto mostra a OS dele** (a mais nova), num botão que a abre: "Abrir a OS-2026-0003 · Aprovada".
+
+## 17/10/2026 — Fase 3, bloco 3.3: documentos da OS e cadastros da oficina
+
+Plano aprovado em 17/10/2026. Respostas do dono:
+- garantia padrão de 90 dias;
+- serviço do catálogo com preço próprio entra pelo preço, e sem preço entra horas × valor da hora;
+- a via do cliente leva um texto padrão editável acima das assinaturas;
+- a oficina imprime em A4 comum.
+
+192. **Padrões das OS em Configurações (aba OS):**
+    - a garantia padrão (90 dias), que vem preenchida na entrega;
+    - os itens da vistoria, editáveis (vêm os 4 escolhidos em 15/10/2026);
+    - o texto acima das assinaturas na via do cliente: um modelo aprovado pelo dono, editável; em branco, ficam só as assinaturas.
+    
+    Os três são gravados juntos ("Salvar padrões da OS") numa linha nova da tabela de configurações, sem migração. A entrada já registrada guarda os itens de quando foi feita; a lista nova vale para as entradas seguintes.
+193. **Mecânicos em Configurações:**
+    - novo, renomear, desativar e reativar, valendo na hora, sem "Salvar";
+    - renomear corrige o nome também nas OS antigas, porque elas guardam o mecânico, não o nome.

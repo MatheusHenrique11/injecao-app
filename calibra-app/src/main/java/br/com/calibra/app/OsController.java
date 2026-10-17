@@ -56,6 +56,7 @@ import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -75,9 +76,13 @@ import br.com.calibra.dados.projeto.VersaoMotor;
  */
 public class OsController {
 
-    /** O que a tela usa do resto do app. */
+    /**
+     * O que a tela usa do resto do app.
+     *
+     * @param padroes os padrões de Configurações › OS, lidos na hora (itens da vistoria e garantia da entrega)
+     */
     record Recursos(CasosOficina oficina, CasosProjeto projetos, OrcamentoController.Recursos orcamento,
-            HostServices servicos, Navegacao navegacao, Clock relogio) {
+            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes) {
     }
 
     private static final double LARGURA_MINIATURA = 120;
@@ -343,8 +348,8 @@ public class OsController {
 
     @FXML
     private void entregar() {
-        JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km")
-                .ifPresent(this::entregar);
+        JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
+                recursos.padroes().get().garantiaDias()).ifPresent(this::entregar);
     }
 
     void entregar(Entrega entrega) {
@@ -378,9 +383,10 @@ public class OsController {
         previsao.setValue(os.previsaoEntrega());
         observacoes.setText(os.observacoes());
         if (os.entrada() == null) {
-            formEntradaController.limpar(LocalDateTime.now(recursos.relogio()));
+            formEntradaController.limpar(LocalDateTime.now(recursos.relogio()), recursos.padroes().get()
+                    .itensVistoria());
         } else {
-            formEntradaController.preencher(os.entrada());
+            formEntradaController.preencher(os.entrada(), recursos.padroes().get().itensVistoria());
         }
     }
 

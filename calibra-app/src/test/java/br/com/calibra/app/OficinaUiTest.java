@@ -76,6 +76,7 @@ import br.com.calibra.core.oficina.FormaPagamento;
 import br.com.calibra.core.oficina.Garantia;
 import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
+import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -90,6 +91,7 @@ import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MecanicoSalvo;
@@ -191,6 +193,8 @@ class OficinaUiTest {
             Stage entrega = TelaDeTeste.esperarJanela("Entregar o veículo", falha);
             TelaDeTeste.naTelaDoJavaFx(() -> {
                 DialogPane painel = TelaDeTeste.painel(entrega);
+                assertEquals("90", ((TextField) painel.lookup("#entregaGarantia")).getText(),
+                        "a garantia padrão de Configurações › OS já vem preenchida");
                 ((TextField) painel.lookup("#entregaGarantia")).setText("noventa");
                 apertarOk(painel);
                 assertTrue(entrega.isShowing(), "com erro de digitação, a janela fica aberta");
@@ -337,6 +341,73 @@ class OficinaUiTest {
         abas.getSelectionModel().select(aba(abas, "abaOrcamento"));
         assertTrue(this.<Button>daAba("botaoPecasDoCalculo").isVisible(), "com projeto, o orçamento usa o cálculo");
         salvar(cena, "oficina-17-os-com-o-projeto.png");
+    }
+
+    /**
+     * Configurações › OS (bloco 3.3): a garantia, os itens da vistoria e o texto da via são gravados juntos; o mecânico
+     * novo e o desativado valem na hora. A Nova OS mostra a vistoria nova e não oferece o mecânico inativo.
+     */
+    @Test
+    void padroesDaOsEMecanicos() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TelaDeTeste.<ToggleButton>achar(cena, "navConfiguracoes").fire();
+                TabPane abas = achar(cena, "abasConfiguracoes");
+                abas.getSelectionModel().select(aba(abas, "abaOs"));
+                assertEquals("90", TelaDeTeste.<TextField>achar(cena, "garantiaDias").getText(), "o padrão de fábrica");
+                ListView<String> itens = achar(cena, "itensVistoria");
+                assertEquals(Vistoria.ITENS_PADRAO, itens.getItems());
+
+                TelaDeTeste.<TextField>achar(cena, "garantiaDias").setText("trinta");
+                TelaDeTeste.<Button>achar(cena, "botaoSalvarOs").fire();
+                assertTrue(contemTexto(cena.getRoot(), "Garantia padrão: informe os dias, em número inteiro"));
+
+                TelaDeTeste.<TextField>achar(cena, "garantiaDias").setText("30");
+                itens.getItems().add("Motor e cofre");
+                itens.getSelectionModel().select(4);
+                TelaDeTeste.<Button>achar(cena, "botaoSubirItem").fire();
+                TelaDeTeste.<TextArea>achar(cena, "textoVia").setText("Texto de teste da via (fictício).");
+                TelaDeTeste.<Button>achar(cena, "botaoSalvarOs").fire();
+                assertEquals(new PadroesOs(30, List.of("Lataria e pintura", "Vidros, faróis e retrovisores",
+                        "Pneus, rodas e estepe", "Motor e cofre", "Interior e painel"),
+                        "Texto de teste da via (fictício)."), contexto.configuracao().ler(Chave.OS));
+            });
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoNovoMecanico").fire(), falha);
+            Stage nome = TelaDeTeste.esperarJanela("Novo mecânico", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(nome);
+                ((TextField) painel.lookup(".text-field")).setText("Carlos (fictício)");
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> TelaDeTeste.<TableView<MecanicoSalvo>>achar(cena, "mecanicos").getItems()
+                    .size() == 1, "o mecânico aparecer na lista");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TableView<MecanicoSalvo> mecanicos = achar(cena, "mecanicos");
+                mecanicos.getSelectionModel().selectFirst();
+                Button ativar = achar(cena, "botaoAtivarMecanico");
+                assertEquals("Desativar", ativar.getText());
+                ativar.fire();
+                assertFalse(mecanicos.getItems().getFirst().ativo());
+                assertEquals("Reativar", ativar.getText());
+                salvar(cena, "oficina-18-configuracoes-os.png");
+
+                TelaDeTeste.<ToggleButton>achar(cena, "navPainel").fire();
+                TelaDeTeste.<Button>achar(cena, "botaoNovaOs").fire();
+                assertTrue(contemTexto(achar(cena, "gradeVistoria"), "Motor e cofre"), "a Nova OS usa a vistoria nova");
+                assertNotNull(TelaDeTeste.<TextField>achar(cena, "vistoria4"), "cinco itens");
+                assertEquals(1, TelaDeTeste.<ComboBox<?>>achar(cena, "mecanico").getItems().size(),
+                        "só o \"(nenhum)\": o mecânico inativo não entra em OS nova");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
     }
 
     /** A OS da Ana pronta para entregar: orçamento de 2 h a R$ 180 aprovado, serviço começado e pronto. */

@@ -14,8 +14,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo, padrões do orçamento
-     e backup. -->
+<!-- Configurações (SPEC 8.7): dados da oficina, padrões das OS e mecânicos, padrões de cálculo, limiares do
+     semáforo, padrões do orçamento e backup. -->
 <TabPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
          fx:id="abasConfiguracoes" fx:controller="br.com.calibra.app.ConfiguracoesController"
          tabClosingPolicy="UNAVAILABLE">
@@ -205,6 +205,11 @@
   </Tab>
 
   <!-- ===================== Orçamento ===================== -->
+  <!-- ===================== OS (bloco 3.3) ===================== -->
+  <Tab fx:id="abaOs" text="OS">
+    <fx:include fx:id="configuracoesOs" source="configuracoes-os.fxml"/>
+  </Tab>
+
   <Tab fx:id="abaOrcamento" text="Orçamento">
     <ScrollPane fitToWidth="true">
       <VBox styleClass="pagina">

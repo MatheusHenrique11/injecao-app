@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Configurações › OS (bloco 3.3): garantia padrão, texto da via do cliente, itens da vistoria e mecânicos. -->
+<ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.ConfiguracoesOsController" fitToWidth="true">
+  <VBox styleClass="pagina">
+    <Label styleClass="titulo-secao" text="Garantia e via do cliente"/>
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="230.0"/>
+        <ColumnConstraints hgrow="ALWAYS"/>
+      </columnConstraints>
+      <Label text="Garantia padrão (dias)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
+        <TextField fx:id="garantiaDias" prefWidth="100.0"/>
+        <Label styleClass="dica" text="Vem preenchida na entrega e dá para mudar em cada OS. 0 = sem garantia."/>
+      </HBox>
+      <Label text="Texto da via do cliente" GridPane.rowIndex="1" GridPane.columnIndex="0" GridPane.valignment="TOP"/>
+      <VBox spacing="4.0" GridPane.rowIndex="1" GridPane.columnIndex="1">
+        <TextArea fx:id="textoVia" prefRowCount="3" wrapText="true"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Vai acima das assinaturas, na via que o cliente assina na entrada do veículo. Em branco: só as assinaturas."/>
+      </VBox>
+    </GridPane>
+
+    <Label styleClass="titulo-secao" text="Itens da vistoria"/>
+    <Label styleClass="dica" wrapText="true"
+           text="Os itens que a vistoria mostra na Nova OS e na entrada do veículo. A entrada já registrada guarda os itens de quando foi feita."/>
+    <HBox spacing="10.0">
+      <ListView fx:id="itensVistoria" prefHeight="190.0" prefWidth="420.0"/>
+      <VBox spacing="6.0">
+        <Button fx:id="botaoAdicionarItem" text="Adicionar…" maxWidth="Infinity" onAction="#adicionarItem"/>
+        <Button fx:id="botaoRenomearItem" text="Renomear…" maxWidth="Infinity" onAction="#renomearItem"/>
+        <Button fx:id="botaoRemoverItem" text="Remover" maxWidth="Infinity" onAction="#removerItem"/>
+        <Button fx:id="botaoSubirItem" text="Subir" maxWidth="Infinity" onAction="#subirItem"/>
+        <Button fx:id="botaoDescerItem" text="Descer" maxWidth="Infinity" onAction="#descerItem"/>
+      </VBox>
+    </HBox>
+    <HBox spacing="10.0">
+      <Button fx:id="botaoSalvarOs" text="Salvar padrões da OS" onAction="#salvar"/>
+      <Button text="Descartar alterações" onAction="#descartar"/>
+      <Button fx:id="botaoPadroesDeFabrica" text="Voltar aos padrões de fábrica" onAction="#padroesDeFabrica"/>
+    </HBox>
+    <VBox fx:id="mensagensOs" spacing="4.0"/>
+
+    <Label styleClass="titulo-secao" text="Mecânicos"/>
+    <Label styleClass="dica" wrapText="true"
+           text="Quem sai da oficina fica inativo: some da escolha nas OS novas, e as OS antigas continuam com ele. Estas mudanças valem na hora."/>
+    <HBox spacing="10.0">
+      <TableView fx:id="mecanicos" prefHeight="190.0" prefWidth="420.0">
+        <placeholder>
+          <Label styleClass="dica" text="Nenhum mecânico cadastrado."/>
+        </placeholder>
+        <columns>
+          <TableColumn fx:id="colunaMecanico" text="Nome" prefWidth="270.0"/>
+          <TableColumn fx:id="colunaSituacao" text="Situação" prefWidth="130.0"/>
+        </columns>
+      </TableView>
+      <VBox spacing="6.0">
+        <Button fx:id="botaoNovoMecanico" text="Novo…" maxWidth="Infinity" onAction="#novoMecanico"/>
+        <Button fx:id="botaoRenomearMecanico" text="Renomear…" maxWidth="Infinity" onAction="#renomearMecanico"/>
+        <Button fx:id="botaoAtivarMecanico" text="Desativar" maxWidth="Infinity" onAction="#ativarOuDesativar"/>
+      </VBox>
+    </HBox>
+    <VBox fx:id="mensagensMecanicos" spacing="4.0"/>
+  </VBox>
+</ScrollPane>

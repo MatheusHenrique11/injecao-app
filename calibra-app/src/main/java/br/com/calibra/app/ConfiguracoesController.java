@@ -38,6 +38,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CampoPadrao;
+import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.FormularioOrcamento;
 import br.com.calibra.app.casos.FormularioPadroes;
 import br.com.calibra.app.casos.LogoOficina;
@@ -121,6 +122,7 @@ public class ConfiguracoesController {
     // ---------- Backup ----------
     @FXML private TabPane abasConfiguracoes;
     @FXML private Tab abaBackup;
+    @FXML private ConfiguracoesOsController configuracoesOsController;
     @FXML private Label backupPasta;
     @FXML private Label backupAvisoPasta;
     @FXML private Label backupUltimo;
@@ -218,6 +220,11 @@ public class ConfiguracoesController {
         botaoRestaurar.disableProperty().bind(ocupado);
         botaoEscolherPasta.disableProperty().bind(ocupado);
         atualizarBackup();
+    }
+
+    /** Liga a aba OS (bloco 3.3): os padrões das OS e os mecânicos. Chamar depois de {@link #iniciar}. */
+    void usarOficina(CasosOficina oficina) {
+        configuracoesOsController.iniciar(configuracao, oficina);
     }
 
     /** Abre na aba Backup (depois de restaurar). */

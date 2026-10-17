@@ -55,24 +55,32 @@ public class EntradaFormController {
         montarVistoria(Vistoria.ITENS_PADRAO);
     }
 
-    /** Entrada nova: a chegada agora, a vistoria padrão em branco. */
-    void limpar(LocalDateTime agora) {
+    /**
+     * Entrada nova: a chegada agora, a vistoria em branco.
+     *
+     * @param itens os itens da vistoria de Configurações › OS
+     */
+    void limpar(LocalDateTime agora, List<String> itens) {
         entradaData.setValue(agora.toLocalDate());
         entradaHora.setText(HORA.format(agora));
         usoEntrada.clear();
         combustivel.setValue(null);
-        montarVistoria(Vistoria.ITENS_PADRAO);
+        montarVistoria(itens);
         objetos.clear();
     }
 
-    /** A entrada gravada, para corrigir; a vistoria mostra os itens dela (sem nenhum, os padrão). */
-    void preencher(EntradaVeiculo entrada) {
+    /**
+     * A entrada gravada, para corrigir. A vistoria mostra os itens dela, que podem não ser mais os de Configurações.
+     *
+     * @param itensSemVistoria os itens de Configurações, para a entrada gravada sem nenhum item
+     */
+    void preencher(EntradaVeiculo entrada, List<String> itensSemVistoria) {
         entradaData.setValue(entrada.quando().toLocalDate());
         entradaHora.setText(HORA.format(entrada.quando()));
         usoEntrada.setText(entrada.uso() == null ? "" : NumeroBr.formatar(entrada.uso(), 0, 1));
         combustivel.setValue(entrada.combustivel());
         List<ItemVistoria> gravados = entrada.vistoria().itens();
-        montarVistoria(gravados.isEmpty() ? Vistoria.ITENS_PADRAO : gravados.stream().map(ItemVistoria::item).toList());
+        montarVistoria(gravados.isEmpty() ? itensSemVistoria : gravados.stream().map(ItemVistoria::item).toList());
         for (int i = 0; i < gravados.size(); i++) {
             observacoes.get(i).setText(gravados.get(i).observacao());
         }

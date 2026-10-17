@@ -37,6 +37,7 @@ import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
@@ -110,8 +111,9 @@ public class NovaOsController {
         });
     }
 
+    /** @param padroes os padrões de Configurações › OS (os itens da vistoria) */
     void iniciar(CasosOficina casos, CasosProjeto projetos, CasosCatalogo catalogo, Navegacao navegacao,
-            Clock relogio) {
+            Clock relogio, PadroesOs padroes) {
         this.casos = casos;
         this.navegacao = navegacao;
         this.relogio = relogio;
@@ -119,7 +121,7 @@ public class NovaOsController {
         escolhaClienteController.iniciar(projetos, agora.toLocalDate());
         escolhaVeiculoController.iniciar(projetos, catalogo);
         caixaMecanico = new CaixaMecanico(mecanico, casos);
-        formEntradaController.limpar(agora);
+        formEntradaController.limpar(agora, padroes.itensVistoria());
         mostrarEtapa(CLIENTE);
     }
 
