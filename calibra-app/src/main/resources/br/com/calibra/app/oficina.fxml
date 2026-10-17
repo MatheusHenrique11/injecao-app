@@ -28,4 +28,5 @@
              text="Nenhuma OS em andamento. Clique em &quot;Nova OS&quot; quando um veículo chegar ou um cliente pedir orçamento."/>
     </placeholder>
   </TableView>
+  <Label styleClass="dica" text="Duplo clique ou Enter abre a OS."/>
 </VBox>

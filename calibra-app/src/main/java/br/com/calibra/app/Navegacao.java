@@ -20,4 +20,7 @@ interface Navegacao {
 
     /** A Nova OS, na área da Oficina. */
     void novaOs();
+
+    /** A tela da OS, na área da Oficina. */
+    void abrirOs(long osId);
 }

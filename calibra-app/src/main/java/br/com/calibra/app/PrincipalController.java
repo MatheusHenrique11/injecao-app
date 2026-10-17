@@ -70,10 +70,11 @@ public class PrincipalController implements Navegacao {
     private PainelController painel;
     private Parent telaListaOficina;
     private OficinaController oficina;
-    /** O que está aberto na área da Oficina: a lista ou a Nova OS. */
+    /** O que está aberto na área da Oficina: a lista, a Nova OS ou uma OS. */
     private Parent telaOficina;
     private String tituloOficina;
     private NovaOsController novaOsAberta;
+    private OsController osAberta;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -143,12 +144,15 @@ public class PrincipalController implements Navegacao {
         mostrar(telaPainel, navPainel, "Painel");
     }
 
-    /** Mostra o que estava aberto na área da Oficina; a lista volta atualizada. */
+    /** Mostra o que estava aberto na área da Oficina; a lista e a OS voltam atualizadas. */
     @FXML
     private void mostrarOficina() {
         if (telaOficina == null || telaOficina == telaListaOficina) {
             voltarParaOficina();
             return;
+        }
+        if (osAberta != null) {
+            osAberta.atualizar();
         }
         mostrar(telaOficina, navOficina, tituloOficina);
     }
@@ -164,6 +168,7 @@ public class PrincipalController implements Navegacao {
             oficina.atualizar();
         }
         novaOsAberta = null;
+        osAberta = null;
         abrirNaAreaDaOficina(telaListaOficina, "Oficina");
         oficina.focarBusca();
     }
@@ -185,12 +190,30 @@ public class PrincipalController implements Navegacao {
         Parent tela = carregar(carregador);
         novaOsAberta = carregador.getController();
         novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio());
+        osAberta = null;
         abrirNaAreaDaOficina(tela, "Nova OS");
     }
 
     /** A Nova OS sendo preenchida; null se não há nenhuma (para os testes de interface). */
     NovaOsController novaOsAberta() {
         return novaOsAberta;
+    }
+
+    @Override
+    public void abrirOs(long osId) {
+        FXMLLoader carregador = carregador("os.fxml");
+        Parent tela = carregar(carregador);
+        OsController os = carregador.getController();
+        os.iniciar(new OsController.Recursos(casosOficina, casosProjeto, recursosDoOrcamento(), servicos, this,
+                contexto.relogio()), osId);
+        novaOsAberta = null;
+        osAberta = os;
+        abrirNaAreaDaOficina(tela, os.numero());
+    }
+
+    /** A OS aberta na área da Oficina; null na lista ou na Nova OS (para os testes de interface). */
+    OsController osAberta() {
+        return osAberta;
     }
 
     private void abrirNaAreaDaOficina(Parent tela, String titulo) {
@@ -245,11 +268,15 @@ public class PrincipalController implements Navegacao {
         ProjetoController projeto = carregador.getController();
         projeto.iniciar(casosProjeto, casosCatalogo, this, servicos, contexto.configuracao().ler(Chave.CALCULO),
                 projetoId);
-        projeto.usarOrcamento(new OrcamentoController.Recursos(casosOrcamento,
-                () -> contexto.configuracao().ler(Chave.ORCAMENTO), () -> contexto.configuracao().ler(Chave.OFICINA),
-                contexto.pastas().anexos(), contexto.versaoApp()));
+        projeto.usarOrcamento(recursosDoOrcamento());
         projetoAberto = projeto;
         abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
+    }
+
+    /** O que o editor de orçamento usa, no projeto e na OS: os padrões e a oficina são lidos na hora. */
+    private OrcamentoController.Recursos recursosDoOrcamento() {
+        return new OrcamentoController.Recursos(casosOrcamento, () -> contexto.configuracao().ler(Chave.ORCAMENTO),
+                () -> contexto.configuracao().ler(Chave.OFICINA), contexto.pastas().anexos(), contexto.versaoApp());
     }
 
     /** O projeto aberto na área de projetos; null na lista ou no assistente (para os testes de interface). */
@@ -326,6 +353,7 @@ public class PrincipalController implements Navegacao {
         oficina = null;
         telaOficina = null;
         novaOsAberta = null;
+        osAberta = null;
         telaInicio = null;
         inicio = null;
         telaProjetos = null;

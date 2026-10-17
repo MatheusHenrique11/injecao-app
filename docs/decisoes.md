@@ -502,3 +502,17 @@ Plano aprovado em 15/10/2026. Vistoria padrão escolhida pelo dono: lataria e pi
     - "Abrir a OS" não é o botão do Enter: um Enter no meio dos campos não abre a OS pela metade.
 182. **Cadastro rápido do mecânico na Nova OS** ("Novo mecânico…", só o nome), para o campo não ficar sem uso até o bloco 3.3, quando Configurações ganha a lista completa (renomear, ativar e desativar).
 183. **A Nova OS sendo preenchida fica guardada:** sair para outra tela e voltar, ou clicar de novo em "Nova OS…", mostra o que já foi digitado. Ela some quando a OS é aberta ou cancelada.
+184. **Tela da OS: os passos do serviço ficam no cabeçalho**, não numa aba "Execução" (SPEC 8.9 previa a aba):
+    - os botões aparecem conforme o status: Começar o serviço (só com o orçamento aprovado), Aguardando peças… (com quais peças), Retomar o serviço, Serviço pronto, Entregar… e Cancelar OS… (com o motivo);
+    - uma linha diz o próximo passo e o que falta (o orçamento aprovado, a entrada do veículo, as peças que a OS espera);
+    - as abas são Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e Histórico.
+185. **O editor de orçamento é o mesmo no projeto e na OS** (a "fonte do orçamento" diz de onde ele vem):
+    - na OS comum, os itens são digitados e não há "Trazer as peças do cálculo";
+    - o PDF e o texto de WhatsApp do orçamento sem cálculo ficam desligados, com o aviso, até o bloco 3.3 (decisão 172);
+    - um orçamento gravado sem cálculo continua assim mesmo se um projeto for ligado à OS depois.
+186. **Anexos na tela da OS:**
+    - foto anexada antes de o serviço começar vira "foto da entrada", e depois, "foto do serviço"; PDF vira "documento", marcado como pessoal (o padrão do tipo). O tipo, a descrição, a validade e a marca de pessoal mudam em "Editar…";
+    - as miniaturas carregam em segundo plano pelo próprio JavaFX, já no tamanho da miniatura, em vez da fila de tarefas do app (o plano dizia `TarefasFundo`): a fila faz uma tarefa por vez e é a do backup.
+187. **Avisos que não impedem** (km menor que o do cadastro, km de saída menor que o da entrada) aparecem em amarelo embaixo da tela da OS, junto com a confirmação da ação. Na Nova OS continuam numa janela, porque a tela da Nova OS fecha ao abrir a OS.
+188. **A garantia da entrega ainda não tem valor padrão:** a janela de entrega pede os dias (0 = sem garantia), com o exemplo "90". O padrão entra em Configurações no bloco 3.3.
+189. **O mecânico da OS aparece mesmo que tenha ficado inativo**, marcado "(inativo)": salvar a abertura não o tira da OS.

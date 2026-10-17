@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Tela da OS (SPEC 8.9): o cabeçalho com os passos do serviço e as abas Entrada, Orçamento, Preparação,
+     Entrega e pagamento, Anexos e Histórico. -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.OsController">
+  <top>
+    <VBox styleClass="cabecalho-projeto" spacing="6.0">
+      <HBox spacing="12.0" alignment="CENTER_LEFT">
+        <Button fx:id="botaoVoltar" text="← Oficina" onAction="#voltar"/>
+        <Label fx:id="titulo" styleClass="titulo-projeto"/>
+        <Label fx:id="status" styleClass="etiqueta-status"/>
+      </HBox>
+      <Label fx:id="subtitulo" styleClass="dica" wrapText="true"/>
+      <HBox spacing="10.0" alignment="CENTER_LEFT">
+        <Label fx:id="proximoPasso" styleClass="negrito" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <!-- minWidth -Infinity = a largura do texto: o "próximo passo" quebra a linha, e o botão não encolhe. -->
+        <Button fx:id="botaoComecar" text="Começar o serviço" onAction="#comecar" minWidth="-Infinity"/>
+        <Button fx:id="botaoAguardarPecas" text="Aguardando peças…" onAction="#aguardarPecas" minWidth="-Infinity"/>
+        <Button fx:id="botaoRetomar" text="Retomar o serviço" onAction="#retomar" minWidth="-Infinity"/>
+        <Button fx:id="botaoPronta" text="Serviço pronto" onAction="#pronta" minWidth="-Infinity"/>
+        <Button fx:id="botaoEntregar" text="Entregar…" onAction="#entregar" minWidth="-Infinity"/>
+        <Button fx:id="botaoCancelarOs" text="Cancelar OS…" onAction="#cancelarOs" minWidth="-Infinity"/>
+      </HBox>
+    </VBox>
+  </top>
+
+  <center>
+    <TabPane fx:id="abas" tabClosingPolicy="UNAVAILABLE">
+      <!-- ===================== Entrada ===================== -->
+      <Tab fx:id="abaEntrada" text="Entrada">
+        <ScrollPane fitToWidth="true">
+          <VBox styleClass="pagina">
+            <Label styleClass="titulo-secao" text="Abertura"/>
+            <GridPane styleClass="grade">
+              <columnConstraints>
+                <ColumnConstraints minWidth="230.0"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+              </columnConstraints>
+              <Label text="Serviço pedido pelo cliente" GridPane.rowIndex="0" GridPane.columnIndex="0"
+                     GridPane.valignment="TOP"/>
+              <TextArea fx:id="servicoPedido" prefRowCount="3" wrapText="true" GridPane.rowIndex="0"
+                        GridPane.columnIndex="1"/>
+              <Label text="Mecânico (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+              <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                <ComboBox fx:id="mecanico" prefWidth="260.0"/>
+                <Button fx:id="botaoNovoMecanico" text="Novo mecânico…" onAction="#novoMecanico"/>
+              </HBox>
+              <Label text="Previsão de entrega (opcional)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+              <DatePicker fx:id="previsao" prefWidth="160.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+              <Label text="Observações (opcional)" GridPane.rowIndex="3" GridPane.columnIndex="0"
+                     GridPane.valignment="TOP"/>
+              <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="3"
+                        GridPane.columnIndex="1"/>
+            </GridPane>
+            <HBox>
+              <Button fx:id="botaoSalvarAbertura" text="Salvar a abertura" onAction="#salvarAbertura"/>
+            </HBox>
+
+            <Label styleClass="titulo-secao" text="Entrada do veículo"/>
+            <Label fx:id="situacaoEntrada" styleClass="dica" wrapText="true"/>
+            <fx:include fx:id="formEntrada" source="entrada.fxml"/>
+            <HBox>
+              <Button fx:id="botaoSalvarEntrada" text="Registrar a entrada" onAction="#salvarEntrada"/>
+            </HBox>
+          </VBox>
+        </ScrollPane>
+      </Tab>
+
+      <!-- A aba Orçamento entra aqui pelo código (orcamento.fxml, o mesmo editor do projeto). -->
+
+      <!-- ===================== Preparação ===================== -->
+      <Tab fx:id="abaPreparacao" text="Preparação">
+        <VBox styleClass="pagina">
+          <Label fx:id="resumoPreparacao" wrapText="true"/>
+          <HBox fx:id="caixaComProjeto" spacing="10.0">
+            <Button fx:id="botaoAbrirProjeto" text="Abrir o projeto" onAction="#abrirProjeto"/>
+          </HBox>
+          <VBox fx:id="caixaSemProjeto" spacing="8.0">
+            <Label styleClass="dica" wrapText="true"
+                   text="O projeto de preparação é opcional. Ligado à OS, o orçamento traz as peças do cálculo dele, e o PDF do orçamento leva o resumo técnico."/>
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+              <Label text="Projeto deste veículo"/>
+              <ComboBox fx:id="projetosDoVeiculo" prefWidth="380.0"/>
+              <Button fx:id="botaoLigarProjeto" text="Ligar a esta OS" onAction="#ligarProjeto"/>
+            </HBox>
+          </VBox>
+        </VBox>
+      </Tab>
+
+      <!-- ===================== Entrega e pagamento ===================== -->
+      <Tab fx:id="abaEntrega" text="Entrega e pagamento">
+        <ScrollPane fitToWidth="true">
+          <VBox styleClass="pagina">
+            <Label styleClass="titulo-secao" text="Entrega"/>
+            <Label fx:id="situacaoEntrega" wrapText="true"/>
+            <HBox>
+              <Button fx:id="botaoEntregarAba" text="Entregar…" onAction="#entregar"/>
+            </HBox>
+
+            <Label styleClass="titulo-secao" text="Pagamento"/>
+            <GridPane styleClass="grade">
+              <columnConstraints>
+                <ColumnConstraints minWidth="170.0"/>
+                <ColumnConstraints minWidth="160.0"/>
+              </columnConstraints>
+              <Label text="Valor da OS" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+              <Label fx:id="valorOs" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+              <Label text="Recebido" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+              <Label fx:id="recebido" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+              <Label styleClass="negrito" text="Falta receber" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+              <Label fx:id="falta" styleClass="negrito" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            </GridPane>
+            <Label styleClass="dica" wrapText="true"
+                   text="O valor da OS é o total da última revisão aprovada do orçamento. Recebimento lançado errado não se apaga: cancele com o motivo, e ele deixa de contar."/>
+            <TableView fx:id="recebimentos" prefHeight="200.0">
+              <placeholder>
+                <Label styleClass="dica" text="Nenhum recebimento ainda."/>
+              </placeholder>
+              <columns>
+                <TableColumn fx:id="colunaRecebidoEm" text="Recebido em" prefWidth="140.0"/>
+                <TableColumn fx:id="colunaForma" text="Forma" prefWidth="150.0"/>
+                <TableColumn fx:id="colunaValor" text="Valor" prefWidth="120.0"/>
+                <TableColumn fx:id="colunaObservacao" text="Observação" prefWidth="320.0"/>
+                <TableColumn fx:id="colunaSituacao" text="Situação" prefWidth="320.0"/>
+              </columns>
+            </TableView>
+            <HBox spacing="10.0">
+              <Button fx:id="botaoRegistrarRecebimento" text="Registrar recebimento…"
+                      onAction="#registrarRecebimento"/>
+              <Button fx:id="botaoCancelarRecebimento" text="Cancelar recebimento…" onAction="#cancelarRecebimento"/>
+            </HBox>
+          </VBox>
+        </ScrollPane>
+      </Tab>
+
+      <!-- ===================== Anexos ===================== -->
+      <Tab fx:id="abaAnexos" text="Anexos">
+        <VBox fx:id="caixaAnexos" styleClass="pagina">
+          <HBox spacing="10.0" alignment="CENTER_LEFT">
+            <Button fx:id="botaoAdicionarAnexos" text="Adicionar arquivos…" onAction="#adicionarAnexos"/>
+            <Button fx:id="botaoAbrirAnexo" text="Abrir" onAction="#abrirAnexo"/>
+            <Button fx:id="botaoEditarAnexo" text="Editar…" onAction="#editarAnexo"/>
+            <Button fx:id="botaoRemoverAnexo" text="Remover…" onAction="#removerAnexo"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label styleClass="dica" text="Fotos (JPG ou PNG) e PDF, até 20 MB. Dá para arrastar do Windows Explorer."/>
+          </HBox>
+          <ListView fx:id="listaAnexos" VBox.vgrow="ALWAYS">
+            <placeholder>
+              <Label styleClass="dica" text="Nenhum anexo. Adicione as fotos do serviço, a nota fiscal ou os laudos."/>
+            </placeholder>
+          </ListView>
+        </VBox>
+      </Tab>
+
+      <!-- ===================== Histórico ===================== -->
+      <Tab fx:id="abaHistorico" text="Histórico">
+        <VBox styleClass="pagina">
+          <TableView fx:id="historico" VBox.vgrow="ALWAYS">
+            <columns>
+              <TableColumn fx:id="colunaDataHora" text="Data e hora" prefWidth="150.0"/>
+              <TableColumn fx:id="colunaStatus" text="Status" prefWidth="190.0"/>
+              <TableColumn fx:id="colunaHistoricoObservacao" text="Observação" prefWidth="700.0"/>
+            </columns>
+          </TableView>
+        </VBox>
+      </Tab>
+    </TabPane>
+  </center>
+
+  <bottom>
+    <VBox fx:id="mensagens" styleClass="pagina" spacing="4.0"/>
+  </bottom>
+</BorderPane>

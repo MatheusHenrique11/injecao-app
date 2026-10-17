@@ -7,11 +7,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javafx.fxml.FXML;
@@ -26,10 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -44,10 +37,7 @@ import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
-import br.com.calibra.core.oficina.ItemVistoria;
-import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.TipoAnexo;
-import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
@@ -63,9 +53,6 @@ public class NovaOsController {
     private static final int CLIENTE = 0;
     private static final int VEICULO = 1;
     private static final int SERVICO = 2;
-    /** A hora aparece como 09:30 e é lida também como 9:30. */
-    private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter HORA_DIGITADA = DateTimeFormatter.ofPattern("H:mm");
 
     @FXML private Label etapa1;
     @FXML private Label etapa2;
@@ -84,13 +71,7 @@ public class NovaOsController {
     @FXML private CheckBox veiculoChegou;
     @FXML private Label dicaSemEntrada;
     @FXML private VBox caixaEntrada;
-    @FXML private DatePicker entradaData;
-    @FXML private TextField entradaHora;
-    @FXML private Label rotuloUso;
-    @FXML private TextField usoEntrada;
-    @FXML private Label dicaUso;
-    @FXML private ComboBox<NivelCombustivel> combustivel;
-    @FXML private GridPane gradeVistoria;
+    @FXML private EntradaFormController formEntradaController;
     @FXML private Button botaoTirarFoto;
     @FXML private ListView<Path> listaFotos;
     @FXML private VBox mensagens;
@@ -98,10 +79,8 @@ public class NovaOsController {
     @FXML private Button botaoProximo;
     @FXML private Button botaoAbrir;
 
-    /** Uma observação para cada item da vistoria padrão, na ordem de {@link Vistoria#ITENS_PADRAO}. */
-    private final List<TextField> vistoria = new ArrayList<>();
-    private final TextField objetos = new TextField();
     private CasosOficina casos;
+    private CaixaMecanico caixaMecanico;
     private Navegacao navegacao;
     private Clock relogio;
     private int etapa;
@@ -109,24 +88,10 @@ public class NovaOsController {
     @FXML
     private void initialize() {
         Datas.emPortugues(previsao);
-        Datas.emPortugues(entradaData);
-        CamposTela.configurarOpcional(combustivel, Arrays.asList(NivelCombustivel.values()), NivelCombustivel::rotulo);
         caixaEntrada.visibleProperty().bind(veiculoChegou.selectedProperty());
         caixaEntrada.managedProperty().bind(veiculoChegou.selectedProperty());
         dicaSemEntrada.visibleProperty().bind(veiculoChegou.selectedProperty().not());
         dicaSemEntrada.managedProperty().bind(veiculoChegou.selectedProperty().not());
-
-        for (String item : Vistoria.ITENS_PADRAO) {
-            TextField observacao = new TextField();
-            observacao.setId("vistoria" + vistoria.size());
-            observacao.setPromptText("Nada a anotar");
-            gradeVistoria.addRow(vistoria.size(), new Label(item), observacao);
-            vistoria.add(observacao);
-        }
-        objetos.setId("objetos");
-        objetos.setPromptText("ex.: estepe, macaco, óculos no porta-luvas");
-        gradeVistoria.addRow(vistoria.size(), new Label("Objetos deixados no veículo"), objetos);
-
         listaFotos.setCellFactory(lista -> CamposTela.celula(NovaOsController::descreverFoto));
         botaoTirarFoto.disableProperty().bind(listaFotos.getSelectionModel().selectedItemProperty().isNull());
         caixaEntrada.setOnDragOver(evento -> {
@@ -153,9 +118,8 @@ public class NovaOsController {
         LocalDateTime agora = LocalDateTime.now(relogio);
         escolhaClienteController.iniciar(projetos, agora.toLocalDate());
         escolhaVeiculoController.iniciar(projetos, catalogo);
-        carregarMecanicos(null);
-        entradaData.setValue(agora.toLocalDate());
-        entradaHora.setText(HORA.format(agora));
+        caixaMecanico = new CaixaMecanico(mecanico, casos);
+        formEntradaController.limpar(agora);
         mostrarEtapa(CLIENTE);
     }
 
@@ -198,16 +162,15 @@ public class NovaOsController {
             return;
         }
         try {
-            EntradaVeiculo entrada = veiculoChegou.isSelected() ? lerEntrada(new ArrayList<>()) : null;
-            MecanicoSalvo escolhido = mecanico.getValue();
+            EntradaVeiculo entrada = veiculoChegou.isSelected() ? formEntradaController.ler(new ArrayList<>()) : null;
             NovaOs nova = new NovaOs(escolhaClienteController.escolha(), escolhaVeiculoController.escolha(),
-                    servicoPedido.getText(), escolhido == null ? null : escolhido.id(), previsao.getValue(),
-                    observacoes.getText(), entrada);
+                    servicoPedido.getText(), caixaMecanico.escolhido(), previsao.getValue(), observacoes.getText(),
+                    entrada);
             List<NovoAnexo> fotos = entrada == null ? List.of() : listaFotos.getItems().stream()
                     .map(foto -> new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false)).toList();
             Gravado gravado = casos.abrir(nova, fotos);
             mostrarAvisos(gravado.avisos());
-            navegacao.voltarParaOficina();
+            navegacao.abrirOs(gravado.osId());
         } catch (EntradaInvalidaException erro) {
             mostrarErros(erro.erros());
         } catch (ErroDados erro) {
@@ -227,23 +190,9 @@ public class NovaOsController {
         }
     }
 
-    /** Cadastro rápido do mecânico (nome); ativar e desativar fica em Configurações, no bloco 3.3. */
     @FXML
     private void novoMecanico() {
-        TextInputDialog pergunta = new TextInputDialog();
-        pergunta.initOwner(janela());
-        pergunta.setTitle("Novo mecânico");
-        pergunta.setHeaderText("Cadastrar mecânico");
-        pergunta.setContentText("Nome:");
-        pergunta.showAndWait().map(String::strip).filter(nome -> !nome.isEmpty()).ifPresent(nome -> {
-            try {
-                carregarMecanicos(casos.novoMecanico(nome));
-            } catch (EntradaInvalidaException erro) {
-                mostrarErros(erro.erros());
-            } catch (ErroDados erro) {
-                mostrarErros(List.of(erro.getMessage()));
-            }
-        });
+        caixaMecanico.novo(janela(), this::mostrarErros);
     }
 
     @FXML
@@ -322,7 +271,7 @@ public class NovaOsController {
                     erros.add("Descreva o serviço pedido pelo cliente.");
                 }
                 if (veiculoChegou.isSelected()) {
-                    EntradaVeiculo entrada = lerEntrada(erros);
+                    EntradaVeiculo entrada = formEntradaController.ler(erros);
                     if (entrada != null) {
                         erros.addAll(entrada.validar(LocalDateTime.now(relogio)));
                     }
@@ -333,61 +282,17 @@ public class NovaOsController {
         };
     }
 
-    /** Ao entrar na etapa Serviço e entrada: quem e o quê, e o km (ou as horas, no náutico) do cadastro. */
+    /** Ao entrar na etapa Serviço e entrada: de quem e qual veículo, e o km (ou as horas, no náutico) do cadastro. */
     private void prepararServico() {
         ClienteSalvo cliente = escolhaClienteController.existente();
         Veiculo veiculo = escolhaVeiculoController.veiculo();
         String nomeCliente = cliente == null ? "cliente novo" : cliente.cliente().nome();
         resumoEscolha.setText(veiculo == null ? nomeCliente : veiculo.descricao()
                 + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao()) + " — " + nomeCliente);
-        boolean nautico = veiculo != null && veiculo.tipo() != null && veiculo.tipo().nautico();
-        rotuloUso.setText(nautico ? "Horas de motor" : "Km no painel");
-        Double noCadastro = veiculo == null ? null : veiculo.usoAcumulado();
-        dicaUso.setText(noCadastro == null ? "" : "no cadastro: " + NumeroBr.formatar(noCadastro, 0)
-                + (nautico ? " h" : " km"));
-    }
-
-    /** A entrada como está na tela; null se o dia ou a hora não deram para ler (o erro vai para a lista). */
-    private EntradaVeiculo lerEntrada(List<String> erros) {
-        LocalDate dia = entradaData.getValue();
-        if (dia == null) {
-            erros.add("Informe o dia da chegada do veículo.");
-        }
-        LocalTime hora = null;
-        try {
-            hora = LocalTime.parse(entradaHora.getText().strip(), HORA_DIGITADA);
-        } catch (DateTimeParseException erro) {
-            erros.add("Hora da chegada: use horas e minutos, como 09:30.");
-        }
-        Double uso = null;
-        String digitado = usoEntrada.getText();
-        if (digitado != null && !digitado.isBlank()) {
-            try {
-                uso = NumeroBr.ler(digitado);
-            } catch (NumberFormatException erro) {
-                erros.add(rotuloUso.getText() + ": " + erro.getMessage());
-            }
-        }
-        List<ItemVistoria> itens = new ArrayList<>();
-        for (int i = 0; i < vistoria.size(); i++) {
-            itens.add(new ItemVistoria(Vistoria.ITENS_PADRAO.get(i), vistoria.get(i).getText()));
-        }
-        if (dia == null || hora == null) {
-            return null;
-        }
-        return new EntradaVeiculo(LocalDateTime.of(dia, hora), uso, combustivel.getValue(),
-                new Vistoria(itens, objetos.getText()));
+        formEntradaController.usarVeiculo(veiculo);
     }
 
     // ===================== Utilidades =====================
-
-    /** Os mecânicos ativos; {@code escolher} já vem escolhido (o que acabou de ser cadastrado). */
-    private void carregarMecanicos(Long escolher) {
-        List<MecanicoSalvo> ativos = casos.mecanicos(false);
-        CamposTela.configurarOpcional(mecanico, ativos, MecanicoSalvo::nome, "(nenhum)");
-        mecanico.setValue(ativos.stream().filter(m -> escolher != null && m.id() == escolher).findFirst()
-                .orElse(null));
-    }
 
     /** Avisos que não impediram (ex.: km menor que o do cadastro): a OS já foi aberta. */
     private void mostrarAvisos(List<String> avisos) {

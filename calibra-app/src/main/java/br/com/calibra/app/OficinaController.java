@@ -63,6 +63,7 @@ public class OficinaController {
         this.navegacao = navegacao;
         ListaOs.montar(listaOs, relogio, Coluna.NUMERO, Coluna.CLIENTE, Coluna.VEICULO, Coluna.SERVICO,
                 Coluna.STATUS, Coluna.CHEGADA, Coluna.PREVISAO);
+        ListaOs.aoAbrir(listaOs, navegacao::abrirOs);
         atualizar();
     }
 

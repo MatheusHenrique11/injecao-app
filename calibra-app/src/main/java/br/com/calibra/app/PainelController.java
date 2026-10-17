@@ -73,6 +73,8 @@ public class PainelController {
                 Coluna.STATUS, Coluna.CHEGADA, Coluna.PREVISAO);
         ListaOs.montar(entregas, relogio, Coluna.NUMERO, Coluna.CLIENTE, Coluna.VEICULO, Coluna.SERVICO,
                 Coluna.STATUS, Coluna.PREVISAO);
+        ListaOs.aoAbrir(naOficina, navegacao::abrirOs);
+        ListaOs.aoAbrir(entregas, navegacao::abrirOs);
         atualizar();
     }
 

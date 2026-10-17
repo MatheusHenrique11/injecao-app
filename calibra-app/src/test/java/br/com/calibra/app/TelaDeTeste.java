@@ -1,5 +1,6 @@
 package br.com.calibra.app;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,9 +20,15 @@ import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Labeled;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 
 /** Ajuda dos testes de interface (tag "ui"): roda na thread do JavaFX e salva imagens da cena em target/. */
 final class TelaDeTeste {
@@ -77,6 +84,64 @@ final class TelaDeTeste {
             Thread.sleep(100);
         }
         throw new AssertionError("esperei 30 s e não aconteceu: " + oQue);
+    }
+
+    /**
+     * Roda na thread do JavaFX uma ação que abre janela e espera a resposta (showAndWait), sem esperar por ela: o
+     * teste segue, acha a janela e aperta o botão, como a pessoa faria. Um erro da ação vai para {@code falha}.
+     */
+    static void semEsperar(Runnable acao, AtomicReference<Throwable> falha) {
+        Platform.runLater(() -> {
+            try {
+                acao.run();
+            } catch (Throwable erro) {
+                falha.compareAndSet(null, erro);
+            }
+        });
+    }
+
+    /** Espera (até 30 s) a janela com o título abrir; se não abrir, o erro da ação aberta sem esperar vai junto. */
+    static Stage esperarJanela(String titulo, AtomicReference<Throwable> falha) throws Throwable {
+        try {
+            esperar(() -> janelaAberta(titulo) != null, "a janela \"" + titulo + "\" abrir");
+        } catch (AssertionError erro) {
+            if (falha.get() != null) {
+                erro.addSuppressed(falha.get());
+            }
+            throw erro;
+        }
+        AtomicReference<Stage> janela = new AtomicReference<>();
+        naTelaDoJavaFx(() -> janela.set(janelaAberta(titulo)));
+        return janela.get();
+    }
+
+    static Stage janelaAberta(String titulo) {
+        return Window.getWindows().stream().filter(Stage.class::isInstance).map(Stage.class::cast)
+                .filter(janela -> janela.isShowing() && titulo.equals(janela.getTitle())).findFirst().orElse(null);
+    }
+
+    static DialogPane painel(Stage janela) {
+        return (DialogPane) janela.getScene().getRoot().lookup(".dialog-pane");
+    }
+
+    /** Nenhum texto da janela cortado com "..." (o JavaFX cortava as mensagens longas; ver Alertas). */
+    static void textoInteiro(DialogPane painel) {
+        painel.lookupAll(".label").stream().filter(Labeled.class::isInstance).map(Labeled.class::cast)
+                .forEach(texto -> assertFalse(texto.isTextTruncated(), () -> "texto cortado: " + texto.getText()));
+    }
+
+    static void apertar(DialogPane painel, String texto) {
+        apertar(painel, painel.getButtonTypes().stream().filter(tipo -> tipo.getText().equals(texto)).findFirst()
+                .orElseThrow(() -> new AssertionError("a janela não tem o botão " + texto)));
+    }
+
+    static void apertarOk(DialogPane painel) {
+        apertar(painel, painel.getButtonTypes().stream().filter(tipo -> tipo.getButtonData() == ButtonData.OK_DONE)
+                .findFirst().orElseThrow());
+    }
+
+    private static void apertar(DialogPane painel, ButtonType tipo) {
+        ((Button) painel.lookupButton(tipo)).fire();
     }
 
     /** Procura um nó pelo fx:id depois de aplicar o CSS (que cria o conteúdo das abas). */

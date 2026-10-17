@@ -56,9 +56,9 @@ import br.com.calibra.relatorios.TextoOrcamento;
 import br.com.calibra.relatorios.TextoWhatsApp;
 
 /**
- * Aba "Peças e orçamento" do projeto (bloco 2.5): o orçamento mais novo do projeto no editor (itens do cálculo,
- * serviços, desconto, prazo, validade), o PDF, o texto para WhatsApp, o envio, a resposta do cliente e as revisões.
- * Só o rascunho se edita.
+ * O editor do orçamento (bloco 2.5), na aba "Peças e orçamento" do projeto e na aba "Orçamento" da OS (bloco 3.2): a
+ * revisão mais nova (itens, serviços, desconto, prazo, validade), o PDF, o texto para WhatsApp, o envio, a resposta do
+ * cliente e as revisões. Só o rascunho se edita. De onde vem o orçamento, diz a {@link FonteOrcamento}.
  */
 public class OrcamentoController {
 
@@ -73,6 +73,7 @@ public class OrcamentoController {
     @FXML private HBox faixaDesatualizado;
     @FXML private Label motivos;
     @FXML private Button botaoUsarCalculoMaisNovo;
+    @FXML private Label dicaItens;
     @FXML private GridPane gradeItens;
     @FXML private Button botaoAdicionarPeca;
     @FXML private Button botaoAdicionarServico;
@@ -94,6 +95,7 @@ public class OrcamentoController {
     @FXML private VBox mensagens;
     @FXML private Button botaoPdf;
     @FXML private Button botaoWhatsApp;
+    @FXML private Label avisoDocumento;
     @FXML private Button botaoEnviado;
     @FXML private Button botaoAprovado;
     @FXML private Button botaoRecusado;
@@ -109,9 +111,9 @@ public class OrcamentoController {
     private final List<LinhaTela> linhas = new ArrayList<>();
     private Recursos recursos;
     private HostServices servicos;
-    private long projetoId;
-    private Runnable aoMudarProjeto = () -> { };
-    /** A revisão mais nova do projeto; null enquanto não há orçamento gravado. */
+    private FonteOrcamento fonte;
+    private Runnable aoMudar = () -> { };
+    /** A revisão mais nova; null enquanto não há orçamento gravado. */
     private SituacaoOrcamento atual;
     /** Sem orçamento gravado e sem cálculo em dia: não dá para começar um. */
     private String semCalculo;
@@ -200,13 +202,13 @@ public class OrcamentoController {
     }
 
     /**
-     * @param aoMudarProjeto chamado quando o status do projeto pode ter mudado (enviado, aprovado)
+     * @param aoMudar chamado quando o status do projeto ou da OS pode ter mudado (enviado, aprovado, recusado)
      */
-    void iniciar(Recursos recursos, HostServices servicos, long projetoId, Runnable aoMudarProjeto) {
+    void iniciar(Recursos recursos, HostServices servicos, FonteOrcamento fonte, Runnable aoMudar) {
         this.recursos = recursos;
         this.servicos = servicos;
-        this.projetoId = projetoId;
-        this.aoMudarProjeto = aoMudarProjeto;
+        this.fonte = fonte;
+        this.aoMudar = aoMudar;
         atualizar();
     }
 
@@ -215,7 +217,7 @@ public class OrcamentoController {
      * sendo editado e não foi gravado fica.
      */
     void atualizar() {
-        List<SituacaoOrcamento> lista = recursos.casos().orcamentos(projetoId);
+        List<SituacaoOrcamento> lista = fonte.revisoes();
         revisoes.getItems().setAll(lista);
         SituacaoOrcamento anterior = atual;
         atual = lista.isEmpty() ? null : lista.getFirst();
@@ -227,7 +229,7 @@ public class OrcamentoController {
         atualizarEstado();
     }
 
-    /** O editor com a revisão mais nova; sem orçamento, a sugestão a partir do último cálculo. */
+    /** O editor com a revisão mais nova; sem orçamento, a sugestão (no de preparação, a do último cálculo). */
     private void preencherEditor() {
         semCalculo = null;
         if (atual != null) {
@@ -235,7 +237,7 @@ public class OrcamentoController {
             return;
         }
         try {
-            preencher(recursos.casos().sugestao(projetoId, recursos.padroes().get()));
+            preencher(fonte.sugestao(recursos.padroes().get()));
         } catch (EntradaInvalidaException erro) {
             semCalculo = erro.getMessage();
             preencher(recursos.padroes().get().orcamento(List.of()));
@@ -330,11 +332,25 @@ public class OrcamentoController {
         return atual == null ? semCalculo == null : atual.orcamento().status().editavel();
     }
 
+    /** Usa o cálculo do projeto: o orçamento gravado diz por si; o novo, pela fonte (a OS com projeto ligado). */
+    private boolean comCalculo() {
+        return atual != null ? atual.orcamento().dePreparacao() : fonte.comCalculo();
+    }
+
     private void atualizarEstado() {
         OrcamentoSalvo o = atual == null ? null : atual.orcamento();
         numero.setText(o == null ? "Orçamento novo" : "Orçamento " + o.numero().comRevisao());
         situacao.setText(o == null ? "não gravado" : o.status().rotulo());
         explicacao.setText(explicacao(o));
+        boolean comCalculo = comCalculo();
+        dicaItens.setText(comCalculo ? "As peças vêm do último cálculo salvo, com o preço de referência do catálogo "
+                + "(peça sem preço vem com o valor em branco). Some os serviços, como a mão de obra em horas. Valores "
+                + "em reais com vírgula (ex.: 1.234,56)." : "Monte os itens: as peças e os serviços, como a mão de "
+                + "obra em horas. Valores em reais com vírgula (ex.: 1.234,56).");
+        botaoPecasDoCalculo.setVisible(comCalculo);
+        botaoPecasDoCalculo.setManaged(comCalculo);
+        avisoDocumento.setVisible(!comCalculo);
+        avisoDocumento.setManaged(!comCalculo);
         boolean desatualizado = atual != null && atual.desatualizado() && o.status() != StatusOrcamento.SUBSTITUIDO;
         faixaDesatualizado.setVisible(desatualizado);
         faixaDesatualizado.setManaged(desatualizado);
@@ -376,9 +392,9 @@ public class OrcamentoController {
         botaoAdicionarPeca.setDisable(!editavel);
         botaoAdicionarServico.setDisable(!editavel);
         botaoPecasDoCalculo.setDisable(!editavel);
-        boolean gravado = atual != null;
-        botaoPdf.setDisable(!gravado);
-        botaoWhatsApp.setDisable(!gravado);
+        boolean documento = atual != null && comCalculo();
+        botaoPdf.setDisable(!documento);
+        botaoWhatsApp.setDisable(!documento);
         botaoEnviado.setDisable(status != StatusOrcamento.RASCUNHO);
         botaoAprovado.setDisable(status != StatusOrcamento.ENVIADO);
         botaoRecusado.setDisable(status != StatusOrcamento.ENVIADO);
@@ -412,7 +428,7 @@ public class OrcamentoController {
     @FXML
     private void trazerPecasDoCalculo() {
         try {
-            List<ItemOrcamento> doCalculo = recursos.casos().sugestao(projetoId, recursos.padroes().get()).itens();
+            List<ItemOrcamento> doCalculo = fonte.sugestao(recursos.padroes().get()).itens();
             linhas.removeIf(linha -> linha.tipo.getValue() == TipoItem.PECA);
             List<LinhaTela> pecas = new ArrayList<>();
             FormularioOrcamento.escrever(new Orcamento(doCalculo, null, 0, "", 1, "", "")).linhas()
@@ -444,7 +460,7 @@ public class OrcamentoController {
         }
         try {
             if (atual == null) {
-                recursos.casos().criar(projetoId, leitura.orcamento());
+                fonte.criar(leitura.orcamento());
             } else {
                 recursos.casos().salvar(atual.orcamento().id(), leitura.orcamento());
             }
@@ -526,7 +542,7 @@ public class OrcamentoController {
             return;
         }
         executar(() -> recursos.casos().marcarEnviado(atual.orcamento().id()),
-                "Marcado como enviado. O projeto passou para Orçado.");
+                "Marcado como enviado." + fonte.aoEnviar());
     }
 
     @FXML
@@ -537,7 +553,7 @@ public class OrcamentoController {
 
     void aprovar(LocalDateTime quando, MeioAprovacao meio, String observacao) {
         executar(() -> recursos.casos().aprovar(atual.orcamento().id(), quando, meio, observacao),
-                "Aprovação registrada. O projeto passou para Aprovado.");
+                "Aprovação registrada." + fonte.aoAprovar());
     }
 
     @FXML
@@ -570,7 +586,7 @@ public class OrcamentoController {
         }
         alterado = false;
         atualizar();
-        aoMudarProjeto.run();
+        aoMudar.run();
         mostrarOk(sucesso);
     }
 

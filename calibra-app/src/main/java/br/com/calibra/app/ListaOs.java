@@ -2,10 +2,14 @@ package br.com.calibra.app;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.function.LongConsumer;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
 
 import br.com.calibra.dados.oficina.ResumoOs;
 
@@ -47,6 +51,24 @@ final class ListaOs {
                     texto(coluna, celula.getValue(), LocalDate.now(relogio))));
             tabela.getColumns().add(nova);
         }
+    }
+
+    /** O duplo clique ou o Enter numa linha abrem a OS. */
+    static void aoAbrir(TableView<ResumoOs> tabela, LongConsumer abrir) {
+        tabela.setRowFactory(lista -> {
+            TableRow<ResumoOs> linha = new TableRow<>();
+            linha.setOnMouseClicked(evento -> {
+                if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2 && !linha.isEmpty()) {
+                    abrir.accept(linha.getItem().osId());
+                }
+            });
+            return linha;
+        });
+        tabela.setOnKeyPressed(evento -> {
+            if (evento.getCode() == KeyCode.ENTER && tabela.getSelectionModel().getSelectedItem() != null) {
+                abrir.accept(tabela.getSelectionModel().getSelectedItem().osId());
+            }
+        });
     }
 
     /** O texto da coluna para a OS: o veículo com a placa (ou o nome da embarcação) e a previsão com "atrasada". */

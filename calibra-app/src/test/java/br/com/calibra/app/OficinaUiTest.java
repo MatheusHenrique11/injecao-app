@@ -1,10 +1,13 @@
 package br.com.calibra.app;
 
 import static br.com.calibra.app.TelaDeTeste.achar;
+import static br.com.calibra.app.TelaDeTeste.apertarOk;
 import static br.com.calibra.app.TelaDeTeste.contemTexto;
 import static br.com.calibra.app.TelaDeTeste.salvar;
+import static br.com.calibra.app.TelaDeTeste.textoInteiro;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,23 +23,30 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.imageio.ImageIO;
 
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.Tag;
@@ -57,9 +67,14 @@ import br.com.calibra.core.cadastro.TipoVeiculo;
 import br.com.calibra.core.cadastro.Tracao;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.FormaPagamento;
+import br.com.calibra.core.oficina.Garantia;
 import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
+import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
+import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
@@ -71,7 +86,10 @@ import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MecanicoSalvo;
+import br.com.calibra.dados.oficina.MudancaStatusOs;
+import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 
@@ -126,6 +144,116 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * A tela da OS: o orçamento comum enviado e aprovado, os passos do serviço (começar, aguardando peças, retomar,
+     * pronto), os anexos com miniatura, os recebimentos em partes (um cancelado) e a entrega com garantia.
+     */
+    @Test
+    void osDoOrcamentoAEntrega() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23",
+                    "Barulho na suspensão dianteira", LocalDate.now().plusDays(2),
+                    LocalDateTime.now().minusHours(1).withNano(0))).osId());
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(this::orcamentoDaOs);
+            TelaDeTeste.naTelaDoJavaFx(this::passosEAnexos);
+            TelaDeTeste.esperar(this::miniaturasCarregadas, "as miniaturas dos anexos carregarem");
+            TelaDeTeste.naTelaDoJavaFx(this::recebimentosEEntrega);
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * As janelas da tela da OS, como a pessoa usa: a entrega (com um erro de digitação na garantia), o recebimento (o
+     * valor já vem com o que falta) e o motivo do cancelamento do recebimento (obrigatório).
+     */
+    @Test
+    void janelasDaEntregaEDoRecebimento() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::prontaParaEntregar);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> principal.abrirOs(ana));
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoEntregar").fire(), falha);
+            Stage entrega = TelaDeTeste.esperarJanela("Entregar o veículo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(entrega);
+                ((TextField) painel.lookup("#entregaGarantia")).setText("noventa");
+                apertarOk(painel);
+                assertTrue(entrega.isShowing(), "com erro de digitação, a janela fica aberta");
+                assertTrue(contemTexto(painel, "Garantia: informe os dias, em número inteiro (0 = sem garantia)."));
+                ((TextField) painel.lookup("#entregaGarantia")).setText("90");
+                ((TextField) painel.lookup("#entregaUso")).setText("120.300");
+                salvar(entrega.getScene(), "oficina-12-janela-entrega.png");
+                textoInteiro(painel);
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Entregar o veículo") == null
+                    && "Entregue".equals(texto("status")), "a entrega gravar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaEntrega"));
+            });
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoRegistrarRecebimento").fire(), falha);
+            Stage recebimento = TelaDeTeste.esperarJanela("Registrar recebimento", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(recebimento);
+                assertEquals("360,00", ((TextField) painel.lookup("#recebimentoValor")).getText(), "já vem o que falta");
+                @SuppressWarnings("unchecked")
+                ComboBox<FormaPagamento> forma = (ComboBox<FormaPagamento>) painel.lookup("#recebimentoForma");
+                forma.setValue(FormaPagamento.PIX);
+                salvar(recebimento.getScene(), "oficina-13-janela-recebimento.png");
+                textoInteiro(painel);
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> texto("falta").endsWith("(Pago)"), "o recebimento gravar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> TelaDeTeste.<TableView<PagamentoSalvo>>achar(cena, "recebimentos")
+                    .getSelectionModel().selectFirst());
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoCancelarRecebimento").fire(), falha);
+            Stage motivo = TelaDeTeste.esperarJanela("Cancelar recebimento", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(motivo);
+                apertarOk(painel);
+                assertTrue(motivo.isShowing(), "sem o motivo, não cancela");
+                assertTrue(contemTexto(painel, "Escreva o motivo."));
+                ((TextArea) painel.lookup("#motivo")).setText("Lançado na OS errada.");
+                salvar(motivo.getScene(), "oficina-14-janela-motivo.png");
+                textoInteiro(painel);
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> texto("falta").endsWith("(Pendente)"), "o cancelamento gravar");
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /** A OS da Ana pronta para entregar: orçamento de 2 h a R$ 180 aprovado, serviço começado e pronto. */
+    private void prontaParaEntregar() {
+        LocalDateTime agora = LocalDateTime.now().withNano(0);
+        ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23", "Revisão da suspensão", null,
+                agora.minusHours(3))).osId();
+        CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()));
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(ana, new Orcamento(List.of(
+                ItemOrcamento.digitado(TipoItem.SERVICO, "Revisão da suspensão dianteira", BigDecimal.valueOf(2), "h",
+                        Dinheiro.ler("180,00"))), Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(orcamento.id());
+        orcamentos.aprovar(orcamento.id(), agora.minusHours(2), MeioAprovacao.WHATSAPP, "Pode fazer.");
+        oficina.mudarStatus(ana, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(ana, StatusOs.PRONTA, "");
     }
 
     private void abrirBanco() throws Exception {
@@ -259,10 +387,12 @@ class OficinaUiTest {
         salvar(cena, "oficina-4-nova-os.png");
         TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
 
-        assertNull(principal.novaOsAberta(), "abriu a OS e voltou para a lista");
-        List<Long> criadas = ids("listaOs");
+        assertNull(principal.novaOsAberta(), "a Nova OS fechou");
+        assertNotNull(principal.osAberta(), "e a tela da OS abriu");
+        List<ResumoOs> criadas = oficina.listar(FiltroOs.todas());
         assertEquals(1, criadas.size());
-        OsAberta aberta = oficina.buscar(criadas.getFirst());
+        assertEquals(criadas.getFirst().numero().texto(), principal.osAberta().numero());
+        OsAberta aberta = oficina.buscar(criadas.getFirst().osId());
         assertEquals("Diego Alves (fictício)", aberta.cliente().cliente().nome());
         assertEquals("Carlos (fictício)", aberta.mecanico().nome());
         assertEquals(LocalDate.now().plusDays(2), aberta.os().previsaoEntrega());
@@ -275,6 +405,8 @@ class OficinaUiTest {
         assertEquals(List.of("porta.png", "painel.jpg"), oficina.anexosDaOs(aberta.os().id()).stream()
                 .map(AnexoSalvo::nomeOriginal).toList());
         assertEquals(120_500.0, aberta.veiculo().veiculo().usoAcumulado(), "o km da entrada vai para o veículo");
+        TelaDeTeste.<Button>achar(cena, "botaoVoltar").fire();
+        assertEquals(List.of(aberta.os().id()), ids("listaOs"), "← Oficina volta para a lista");
     }
 
     /** O cliente achado pela placa já traz o veículo dele escolhido; o orçamento vem antes do veículo. */
@@ -296,6 +428,19 @@ class OficinaUiTest {
         TelaDeTeste.<CheckBox>achar(cena, "veiculoChegou").setSelected(false);
         salvar(cena, "oficina-5-nova-os-sem-o-veiculo.png");
         TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+        assertEquals("Registrar a entrada", TelaDeTeste.<Button>achar(cena, "botaoSalvarEntrada").getText(),
+                "o veículo ainda não chegou");
+        for (String botao : List.of("botaoComecar", "botaoCancelarOs")) {
+            assertFalse(TelaDeTeste.<Button>achar(cena, botao).isTextTruncated(), botao + ": o texto longo do próximo "
+                    + "passo não pode espremer os botões");
+        }
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaPreparacao"));
+        assertTrue(texto("resumoPreparacao").startsWith("Esta OS não tem projeto de preparação"));
+        salvar(cena, "oficina-6a-os-sem-o-veiculo-preparacao.png");
+        abas.getSelectionModel().select(aba(abas, "abaEntrada"));
+        salvar(cena, "oficina-6b-os-sem-o-veiculo-entrada.png");
+        TelaDeTeste.<Button>achar(cena, "botaoVoltar").fire();
 
         List<Long> lista = ids("listaOs");
         assertEquals(2, lista.size());
@@ -303,6 +448,127 @@ class OficinaUiTest {
         assertFalse(segunda.os().veiculoChegou(), "a entrada fica para quando o carro chegar");
         assertEquals(oficina.buscar(primeira).veiculo().id(), segunda.veiculo().id(), "o mesmo carro, sem cadastro novo");
         salvar(cena, "oficina-6-lista-com-as-novas.png");
+    }
+
+    /** O orçamento da OS comum: itens digitados, enviado e aprovado; o cabeçalho da OS acompanha. */
+    private void orcamentoDaOs() throws Exception {
+        principal.abrirOs(ana);
+        OsController os = principal.osAberta();
+        assertEquals("Aberta", texto("status"));
+        assertTrue(TelaDeTeste.<Button>achar(cena, "botaoComecar").isDisabled(), "sem orçamento aprovado, não começa");
+        assertTrue(texto("proximoPasso").startsWith("Próximo passo: monte o orçamento"), texto("proximoPasso"));
+        salvar(cena, "oficina-7-os-entrada.png");
+
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaOrcamento"));
+        OrcamentoController orcamento = os.orcamento();
+        assertEquals(List.of(), orcamento.linhas(), "na OS comum, os itens são digitados");
+        assertFalse(this.<Button>daAba("botaoPecasDoCalculo").isVisible(), "sem projeto, sem as peças do cálculo");
+        this.<Button>daAba("botaoAdicionarServico").fire();
+        orcamento.preencherLinha(0, "Troca dos amortecedores dianteiros", "2", "h", "180,00");
+        this.<Button>daAba("botaoAdicionarPeca").fire();
+        orcamento.preencherLinha(1, "Amortecedor dianteiro (par)", "1", "par", "640,00");
+        this.<Button>daAba("botaoSalvar").fire();
+        assertTrue(this.<Button>daAba("botaoPdf").isDisabled(), "o PDF do orçamento da OS comum chega no bloco 3.3");
+        assertTrue(this.<Label>daAba("avisoDocumento").isVisible());
+        this.<Button>daAba("botaoEnviado").fire();
+        assertEquals("Aguardando aprovação", texto("status"), "o cabeçalho acompanha o orçamento");
+        orcamento.aprovar(LocalDateTime.now().minusMinutes(5).withNano(0), MeioAprovacao.WHATSAPP, "Pode fazer.");
+        assertEquals("Aprovada", texto("status"));
+        assertEquals(Dinheiro.ler("1.000,00"), oficina.buscar(ana).pagamento().valor(), "2 h a R$ 180 + R$ 640");
+        assertFalse(TelaDeTeste.<Button>achar(cena, "botaoComecar").isDisabled(), "aprovado e com a entrada: começa");
+        salvar(cena, "oficina-8-os-orcamento.png");
+    }
+
+    /** Começar, aguardar peças (com o motivo), retomar, anexar uma foto e a nota e ficar pronta. */
+    private void passosEAnexos() throws Exception {
+        OsController os = principal.osAberta();
+        TelaDeTeste.<Button>achar(cena, "botaoComecar").fire();
+        assertEquals("Em execução", texto("status"));
+        os.aguardarPecas("Amortecedor dianteiro, chega na quinta");
+        assertEquals("Aguardando peças", texto("status"));
+        assertEquals("Aguardando peças: Amortecedor dianteiro, chega na quinta. Quando chegarem, retome o serviço.",
+                texto("proximoPasso"));
+        TelaDeTeste.<Button>achar(cena, "botaoRetomar").fire();
+        assertEquals("Em execução", texto("status"));
+
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaAnexos"));
+        Path nota = Files.writeString(pasta.resolve("nota-fiscal.pdf"), "%PDF-1.7 nota fictícia");
+        os.adicionarAnexos(List.of(foto("amortecedor-velho.jpg"), nota));
+        ListView<AnexoSalvo> anexos = achar(cena, "listaAnexos");
+        assertEquals(List.of(TipoAnexo.FOTO_SERVICO, TipoAnexo.DOCUMENTO), anexos.getItems().stream()
+                .map(AnexoSalvo::tipo).toList(), "foto durante o serviço é foto do serviço; PDF é documento");
+        anexos.getSelectionModel().selectFirst();
+        assertFalse(TelaDeTeste.<Button>achar(cena, "botaoRemoverAnexo").isDisabled(), "em andamento, remove");
+        TelaDeTeste.<Button>achar(cena, "botaoPronta").fire();
+        assertEquals("Pronta", texto("status"));
+    }
+
+    /** Recebimentos em duas partes (um lançado errado e cancelado), a entrega com garantia e o histórico. */
+    private void recebimentosEEntrega() throws Exception {
+        salvar(cena, "oficina-9-os-anexos.png");
+        OsController os = principal.osAberta();
+        TabPane abas = achar(cena, "abas");
+        abas.getSelectionModel().select(aba(abas, "abaEntrega"));
+        LocalDateTime agora = LocalDateTime.now().withNano(0);
+        os.registrarRecebimento(new Pagamento(agora.minusMinutes(3), FormaPagamento.PIX, Dinheiro.ler("500,00"),
+                "Sinal"));
+        assertTrue(texto("falta").endsWith("(Parcial)"), texto("falta"));
+        os.registrarRecebimento(new Pagamento(agora.minusMinutes(2), FormaPagamento.CARTAO_DEBITO,
+                Dinheiro.ler("50,00"), ""));
+        TableView<PagamentoSalvo> recebimentos = achar(cena, "recebimentos");
+        os.cancelarRecebimento(recebimentos.getItems().getLast().id(), "Lançado errado.");
+        os.registrarRecebimento(new Pagamento(agora.minusMinutes(1), FormaPagamento.DINHEIRO, Dinheiro.ler("500,00"),
+                "Resto na entrega"));
+        assertTrue(texto("falta").endsWith("(Pago)"), texto("falta"));
+        assertEquals(3, recebimentos.getItems().size(), "o cancelado fica na lista");
+
+        os.entregar(new Entrega(agora, 120_150.0, new Garantia(90)));
+        assertEquals("Entregue", texto("status"));
+        assertFalse(TelaDeTeste.<Button>achar(cena, "botaoCancelarOs").isVisible(), "entregue não se cancela");
+        assertTrue(texto("situacaoEntrega").endsWith("com garantia de 90 dias, até "
+                + Datas.dia(agora.toLocalDate().plusDays(90)) + "."), texto("situacaoEntrega"));
+        salvar(cena, "oficina-10-os-entrega.png");
+
+        abas.getSelectionModel().select(aba(abas, "abaAnexos"));
+        TelaDeTeste.<ListView<AnexoSalvo>>achar(cena, "listaAnexos").getSelectionModel().selectFirst();
+        assertTrue(TelaDeTeste.<Button>achar(cena, "botaoRemoverAnexo").isDisabled(), "entregue: o anexo fica");
+
+        abas.getSelectionModel().select(aba(abas, "abaHistorico"));
+        assertEquals(List.of(StatusOs.ENTREGUE, StatusOs.PRONTA, StatusOs.EM_EXECUCAO, StatusOs.AGUARDANDO_PECAS,
+                StatusOs.EM_EXECUCAO, StatusOs.APROVADA, StatusOs.AGUARDANDO_APROVACAO, StatusOs.ABERTA),
+                TelaDeTeste.<TableView<MudancaStatusOs>>achar(cena, "historico").getItems().stream()
+                        .map(MudancaStatusOs::status).toList());
+        salvar(cena, "oficina-11-os-historico.png");
+
+        TelaDeTeste.<ToggleButton>achar(cena, "navPainel").fire();
+        assertEquals(List.of(), ids("naOficina"), "entregue sai do Painel");
+    }
+
+    private boolean miniaturasCarregadas() {
+        Set<Node> imagens = TelaDeTeste.<ListView<?>>achar(cena, "listaAnexos").lookupAll(".image-view");
+        return !imagens.isEmpty() && imagens.stream().map(no -> ((ImageView) no).getImage())
+                .allMatch(imagem -> imagem != null && imagem.getProgress() >= 1.0);
+    }
+
+    private String texto(String id) {
+        return TelaDeTeste.<Label>achar(cena, id).getText();
+    }
+
+    /** Um nó da aba escolhida (o conteúdo da aba Orçamento entra pelo código). */
+    @SuppressWarnings("unchecked")
+    private <T extends Node> T daAba(String id) {
+        TabPane abas = achar(cena, "abas");
+        Node conteudo = abas.getSelectionModel().getSelectedItem().getContent();
+        conteudo.applyCss();
+        Node no = conteudo.lookup("#" + id);
+        assertNotNull(no, "não achei #" + id + " na aba");
+        return (T) no;
+    }
+
+    private static Tab aba(TabPane abas, String id) {
+        return abas.getTabs().stream().filter(a -> id.equals(a.getId())).findFirst().orElseThrow();
     }
 
     private void proximo() {

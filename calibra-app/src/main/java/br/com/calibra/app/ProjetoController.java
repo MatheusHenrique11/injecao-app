@@ -289,7 +289,7 @@ public class ProjetoController {
         aba.setId("abaOrcamento");
         abas.getTabs().add(abas.getTabs().indexOf(abaDimensionamento) + 1, aba);
         orcamento = carregador.getController();
-        orcamento.iniciar(recursos, servicos, projetoId, this::recarregar);
+        orcamento.iniciar(recursos, servicos, FonteOrcamento.doProjeto(recursos.casos(), projetoId), this::recarregar);
         aba.setOnSelectionChanged(evento -> {
             if (aba.isSelected()) {
                 orcamento.atualizar();

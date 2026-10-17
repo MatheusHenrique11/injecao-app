@@ -8,7 +8,6 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -77,34 +76,7 @@
                  text="Sem o veículo (orçamento por WhatsApp ou telefone), a entrada fica para quando ele chegar, na tela da OS. O serviço só começa depois da entrada."/>
           <VBox fx:id="caixaEntrada" spacing="8.0">
             <Label styleClass="titulo-secao" text="Entrada do veículo"/>
-            <GridPane styleClass="grade">
-              <columnConstraints>
-                <ColumnConstraints minWidth="230.0"/>
-                <ColumnConstraints hgrow="ALWAYS"/>
-              </columnConstraints>
-              <Label text="Chegada (dia e hora)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-              <HBox spacing="6.0" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
-                <DatePicker fx:id="entradaData" prefWidth="160.0"/>
-                <TextField fx:id="entradaHora" prefWidth="80.0" promptText="hh:mm"/>
-              </HBox>
-              <Label fx:id="rotuloUso" text="Km no painel" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-              <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
-                <TextField fx:id="usoEntrada" prefWidth="160.0"/>
-                <Label fx:id="dicaUso" styleClass="dica"/>
-              </HBox>
-              <Label text="Tanque" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-              <ComboBox fx:id="combustivel" prefWidth="160.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
-            </GridPane>
-
-            <Label styleClass="titulo-secao" text="Vistoria"/>
-            <Label styleClass="dica" wrapText="true"
-                   text="Anote o que já estava assim na chegada (riscos, amassados, trincas, pneu gasto). Em branco: nada a anotar."/>
-            <GridPane fx:id="gradeVistoria" styleClass="grade">
-              <columnConstraints>
-                <ColumnConstraints minWidth="230.0"/>
-                <ColumnConstraints hgrow="ALWAYS"/>
-              </columnConstraints>
-            </GridPane>
+            <fx:include fx:id="formEntrada" source="entrada.fxml"/>
 
             <Label styleClass="titulo-secao" text="Fotos da entrada"/>
             <HBox spacing="10.0" alignment="CENTER_LEFT">

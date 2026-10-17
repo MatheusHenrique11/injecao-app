@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Peças e orçamento do projeto (bloco 2.5): itens do cálculo, serviços, desconto, prazo, validade, PDF, texto
+<!-- O orçamento do projeto (bloco 2.5) e da OS (bloco 3.2): itens, serviços, desconto, prazo, validade, PDF, texto
      para WhatsApp, envio, resposta do cliente e revisões. -->
 <ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.OrcamentoController" fitToWidth="true">
@@ -29,8 +29,7 @@
     </HBox>
 
     <Label styleClass="titulo-secao" text="Peças e serviços"/>
-    <Label styleClass="dica" wrapText="true"
-           text="As peças vêm do último cálculo salvo, com o preço de referência do catálogo (peça sem preço vem com o valor em branco). Some os serviços, como a mão de obra em horas. Valores em reais com vírgula (ex.: 1.234,56)."/>
+    <Label fx:id="dicaItens" styleClass="dica" wrapText="true"/>
     <GridPane fx:id="gradeItens" styleClass="grade"/>
     <HBox spacing="10.0">
       <Button fx:id="botaoAdicionarPeca" text="+ Peça" onAction="#adicionarPeca"/>
@@ -100,6 +99,8 @@
       <Button fx:id="botaoRecusado" text="Recusado…" onAction="#recusado"/>
       <Button fx:id="botaoNovaRevisao" text="Nova revisão" onAction="#novaRevisao"/>
     </HBox>
+    <Label fx:id="avisoDocumento" styleClass="dica" wrapText="true" visible="false" managed="false"
+           text="O PDF e o texto de WhatsApp deste orçamento (sem projeto de preparação) chegam no bloco 3.3. Até lá, mande os itens e o total pelo WhatsApp e marque como enviado."/>
 
     <Label styleClass="titulo-secao" text="Revisões"/>
     <TableView fx:id="revisoes" prefHeight="170.0">

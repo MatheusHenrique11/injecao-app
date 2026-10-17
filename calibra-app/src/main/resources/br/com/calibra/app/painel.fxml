@@ -18,7 +18,7 @@
     <Button fx:id="botaoNovaOs" text="_Nova OS…" onAction="#novaOs"/>
   </HBox>
   <FlowPane fx:id="cartoes" hgap="10.0" vgap="10.0" rowValignment="TOP"/>
-  <Label styleClass="dica" text="Clique num cartão para ver essas OS na Oficina."/>
+  <Label styleClass="dica" text="Clique num cartão para ver essas OS na Oficina. Duplo clique numa linha abre a OS."/>
 
   <Label fx:id="tituloNaOficina" styleClass="titulo-secao" text="Na oficina agora"/>
   <TableView fx:id="naOficina" VBox.vgrow="ALWAYS">

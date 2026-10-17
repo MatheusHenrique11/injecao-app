@@ -1,8 +1,13 @@
 package br.com.calibra.app;
 
 import static br.com.calibra.app.TelaDeTeste.achar;
+import static br.com.calibra.app.TelaDeTeste.apertar;
+import static br.com.calibra.app.TelaDeTeste.apertarOk;
 import static br.com.calibra.app.TelaDeTeste.contemTexto;
+import static br.com.calibra.app.TelaDeTeste.janelaAberta;
+import static br.com.calibra.app.TelaDeTeste.painel;
 import static br.com.calibra.app.TelaDeTeste.salvar;
+import static br.com.calibra.app.TelaDeTeste.textoInteiro;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,13 +31,10 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.Labeled;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -43,7 +45,6 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.input.Clipboard;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -447,56 +448,11 @@ class FluxoCompletoUiTest {
      * o teste segue, acha a janela e aperta o botão, como a pessoa faria.
      */
     private void semEsperar(Runnable acao) {
-        Platform.runLater(() -> {
-            try {
-                acao.run();
-            } catch (Throwable erro) {
-                falhaSemEsperar.compareAndSet(null, erro);
-            }
-        });
+        TelaDeTeste.semEsperar(acao, falhaSemEsperar);
     }
 
     private Stage esperarJanela(String titulo) throws Throwable {
-        try {
-            TelaDeTeste.esperar(() -> janelaAberta(titulo) != null, "a janela \"" + titulo + "\" abrir");
-        } catch (AssertionError erro) {
-            if (falhaSemEsperar.get() != null) {
-                erro.addSuppressed(falhaSemEsperar.get());
-            }
-            throw erro;
-        }
-        AtomicReference<Stage> janela = new AtomicReference<>();
-        TelaDeTeste.naTelaDoJavaFx(() -> janela.set(janelaAberta(titulo)));
-        return janela.get();
-    }
-
-    private static Stage janelaAberta(String titulo) {
-        return Window.getWindows().stream().filter(Stage.class::isInstance).map(Stage.class::cast)
-                .filter(janela -> janela.isShowing() && titulo.equals(janela.getTitle())).findFirst().orElse(null);
-    }
-
-    private static DialogPane painel(Stage janela) {
-        return (DialogPane) janela.getScene().getRoot().lookup(".dialog-pane");
-    }
-
-    /** Nenhum texto da janela cortado com "..." (o JavaFX cortava as mensagens longas; ver Alertas). */
-    private static void textoInteiro(DialogPane painel) {
-        painel.lookupAll(".label").stream().filter(Labeled.class::isInstance).map(Labeled.class::cast)
-                .forEach(texto -> assertFalse(texto.isTextTruncated(), () -> "texto cortado: " + texto.getText()));
-    }
-
-    private static void apertar(DialogPane painel, String texto) {
-        apertar(painel, painel.getButtonTypes().stream().filter(tipo -> tipo.getText().equals(texto)).findFirst()
-                .orElseThrow(() -> new AssertionError("a janela não tem o botão " + texto)));
-    }
-
-    private static void apertarOk(DialogPane painel) {
-        apertar(painel, painel.getButtonTypes().stream().filter(tipo -> tipo.getButtonData() == ButtonData.OK_DONE)
-                .findFirst().orElseThrow());
-    }
-
-    private static void apertar(DialogPane painel, ButtonType tipo) {
-        ((Button) painel.lookupButton(tipo)).fire();
+        return TelaDeTeste.esperarJanela(titulo, falhaSemEsperar);
     }
 
     private static Path alvo() throws IOException {
