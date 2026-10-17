@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.Cambio;
@@ -38,9 +39,12 @@ public final class TipoCatalogo<T> {
             new TipoCatalogo<>("CAMBIO", "Câmbios", "câmbio", Cambio.class, null);
     /** Turbos com o mapa do compressor (bloco 2.4). */
     public static final TipoCatalogo<Turbo> TURBO = new TipoCatalogo<>("TURBO", "Turbos", "turbo", Turbo.class, null);
+    /** Serviços da oficina, com o tempo padrão (bloco 3.3). */
+    public static final TipoCatalogo<ServicoPadrao> SERVICO =
+            new TipoCatalogo<>("SERVICO", "Serviços", "serviço", ServicoPadrao.class, null);
 
     private static final List<TipoCatalogo<?>> TODOS =
-            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO);
+            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO, SERVICO);
 
     private final String codigo;
     private final String plural;

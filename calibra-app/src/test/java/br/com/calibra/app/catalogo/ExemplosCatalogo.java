@@ -10,6 +10,7 @@ import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.CalibracaoImagem;
@@ -134,9 +135,21 @@ public final class ExemplosCatalogo {
                 calibracao, FONTE, DATA), info("Turbo teste 60"));
     }
 
+    /** Serviço sem preço próprio: entra no orçamento pelas horas × o valor da hora. */
+    public static Exemplo<ServicoPadrao> servicoPorHora() {
+        return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Limpeza de bicos teste", 1.5, FONTE, DATA),
+                new InfoCatalogo("Limpeza de bicos teste", FONTE, DATA, false, null, "Dados fictícios."));
+    }
+
+    /** Serviço com preço próprio (e sem horas): entra no orçamento como 1 serviço pelo preço. */
+    public static Exemplo<ServicoPadrao> servicoComPreco() {
+        return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Diagnóstico teste", null, FONTE, DATA),
+                new InfoCatalogo("Diagnóstico teste", FONTE, DATA, false, new Dinheiro(25_000), "Dados fictícios."));
+    }
+
     /** Um exemplo de cada tipo, na ordem das abas. */
     public static List<Exemplo<?>> umDeCada() {
         return List.of(bicoComTabela(), bomba(), injecao(), turbo(), combustivel(), intercooler(), sensor(), cambio(),
-                motor());
+                motor(), servicoPorHora());
     }
 }

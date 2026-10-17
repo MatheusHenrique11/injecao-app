@@ -19,6 +19,7 @@ import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Sensor;
@@ -217,6 +218,29 @@ class FormulariosCatalogoTest {
     @Test
     void bicoNovoComecaComOFluidoDeTestePadrao() {
         assertEquals("0,7", FormasCatalogo.de(TipoCatalogo.BICO).novo().texto(FormaBico.DENSIDADE));
+    }
+
+    /** Serviço (bloco 3.3): sem preço, as horas são obrigatórias; o novo já vem com a fonte da oficina. */
+    @Test
+    void servicoPrecisaDasHorasOuDoPreco() {
+        FormularioCatalogo<ServicoPadrao> servicos = FormasCatalogo.de(TipoCatalogo.SERVICO);
+        assertEquals("Tabela da oficina", servicos.novo().texto(FormularioCatalogo.FONTE));
+        ValoresForm semNada = servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste");
+        assertEquals(List.of("Informe as horas ou o preço de referência do serviço."), servicos.ler(semNada).erros());
+
+        Leitura<ServicoPadrao> soPreco = servicos.ler(servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste")
+                .texto(FormularioCatalogo.PRECO, "120,00"));
+        assertEquals(List.of(), soPreco.erros());
+        assertNull(soPreco.dados().horas());
+        assertEquals(12_000, soPreco.info().precoReferencia().centavos());
+
+        assertEquals(List.of("As horas do serviço devem ser maiores que zero."), servicos.ler(servicos.novo()
+                .texto(FormularioCatalogo.NOME, "Alinhamento teste").texto(FormaServico.HORAS, "0")).erros());
+        assertEquals(1, servicos.ler(servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste")
+                .texto(FormaServico.HORAS, "1.5")).erros().size(), "erro de digitação: só a mensagem do campo");
+
+        assertEquals(List.of("1,5 h"), servicos.resumo(ExemplosCatalogo.servicoPorHora().dados()));
+        assertEquals(List.of("—"), servicos.resumo(ExemplosCatalogo.servicoComPreco().dados()));
     }
 
     @Test

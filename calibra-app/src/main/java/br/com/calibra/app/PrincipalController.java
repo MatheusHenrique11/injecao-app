@@ -288,7 +288,8 @@ public class PrincipalController implements Navegacao {
 
     /** O que o editor de orçamento usa, no projeto e na OS: os padrões e a oficina são lidos na hora. */
     private OrcamentoController.Recursos recursosDoOrcamento() {
-        return new OrcamentoController.Recursos(casosOrcamento, () -> contexto.configuracao().ler(Chave.ORCAMENTO),
+        return new OrcamentoController.Recursos(casosOrcamento, casosCatalogo,
+                () -> contexto.configuracao().ler(Chave.ORCAMENTO),
                 () -> contexto.configuracao().ler(Chave.OFICINA), contexto.pastas().anexos(), contexto.versaoApp());
     }
 

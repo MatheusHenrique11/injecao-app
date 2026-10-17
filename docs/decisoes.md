@@ -539,3 +539,7 @@ Plano aprovado em 17/10/2026. Respostas do dono:
 193. **Mecânicos em Configurações:**
     - novo, renomear, desativar e reativar, valendo na hora, sem "Salvar";
     - renomear corrige o nome também nas OS antigas, porque elas guardam o mecânico, não o nome.
+194. **Catálogo de serviços (Catálogos › Serviços):**
+    - cada serviço tem nome, horas (o tempo padrão), preço de referência (opcional), fonte (vem "Tabela da oficina") e observações, com versões como as outras abas; sem preço, as horas são obrigatórias. O tipo é texto no banco, então a aba nova não precisou de migração;
+    - no orçamento (do projeto e da OS), "+ Serviço do catálogo…" acrescenta a linha: com preço, "1 serviço" pelo preço; sem preço, as horas × o valor da hora de Configurações (sem valor da hora configurado, o valor fica em branco para preencher). A linha guarda o item e a versão do catálogo, e os valores continuam editáveis;
+    - a janela de escolha do catálogo passou a mostrar o preço de referência; vale também na escolha do motor e da injeção.

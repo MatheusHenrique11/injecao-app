@@ -40,7 +40,7 @@ public final class FormularioOrcamento {
     /**
      * Uma linha da tela.
      *
-     * @param catalogoItemId de onde a peça veio no catálogo; null se digitada
+     * @param catalogoItemId de onde a peça ou o serviço veio no catálogo; null se digitada
      */
     public record Linha(TipoItem tipo, String descricao, String quantidade, String unidade, String valor,
             Long catalogoItemId, Integer catalogoVersao) {
@@ -57,7 +57,8 @@ public final class FormularioOrcamento {
             return new Linha(tipo, descricao, quantidade, unidade, valor, null, null);
         }
 
-        static Linha de(ItemOrcamento item) {
+        /** A linha de um item já montado (ex.: o serviço do catálogo, bloco 3.3). */
+        public static Linha de(ItemOrcamento item) {
             return new Linha(item.tipo(), item.descricao(),
                     item.quantidade() == null ? "" : NumeroBr.formatar(item.quantidade().doubleValue(), 0, 3),
                     item.unidade(), item.valorUnitario() == null ? "" : item.valorUnitario().formatarSemSimbolo(),

@@ -33,6 +33,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosOrcamento.SituacaoOrcamento;
 import br.com.calibra.app.casos.FormularioOrcamento;
@@ -46,9 +47,12 @@ import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.StatusOrcamento;
 import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.dados.ErroDados;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 import br.com.calibra.relatorios.DadosOrcamento;
 import br.com.calibra.relatorios.RelatorioOrcamento;
@@ -62,9 +66,9 @@ import br.com.calibra.relatorios.TextoWhatsApp;
  */
 public class OrcamentoController {
 
-    /** O que a aba usa do resto do app. */
-    record Recursos(CasosOrcamento casos, Supplier<PadroesOrcamento> padroes, Supplier<DadosOficina> oficina,
-            Path anexos, String versaoApp) {
+    /** O que a aba usa do resto do app (o catálogo, para o serviço do catálogo). */
+    record Recursos(CasosOrcamento casos, CasosCatalogo catalogo, Supplier<PadroesOrcamento> padroes,
+            Supplier<DadosOficina> oficina, Path anexos, String versaoApp) {
     }
 
     @FXML private Label numero;
@@ -77,6 +81,7 @@ public class OrcamentoController {
     @FXML private GridPane gradeItens;
     @FXML private Button botaoAdicionarPeca;
     @FXML private Button botaoAdicionarServico;
+    @FXML private Button botaoServicoDoCatalogo;
     @FXML private Button botaoPecasDoCalculo;
     @FXML private ComboBox<TipoDesconto> tipoDesconto;
     @FXML private TextField desconto;
@@ -147,8 +152,9 @@ public class OrcamentoController {
             valor.setPrefColumnCount(8);
             totalLinha.setMinWidth(110);
             if (catalogoItemId != null) {
-                descricao.setTooltip(new Tooltip("Peça do catálogo (versão " + catalogoVersao + "). O preço vem do "
-                        + "preço de referência dela."));
+                descricao.setTooltip(new Tooltip(linha.tipo() == TipoItem.SERVICO
+                        ? "Serviço do catálogo (versão " + catalogoVersao + ")."
+                        : "Peça do catálogo (versão " + catalogoVersao + "). O preço vem do preço de referência dela."));
             }
             tipo.valueProperty().addListener((obs, antes, depois) -> aoMudarCampo());
             for (TextField campo : List.of(descricao, quantidade, unidade, valor)) {
@@ -391,6 +397,7 @@ public class OrcamentoController {
         botaoDescartar.setDisable(!editavel || !alterado);
         botaoAdicionarPeca.setDisable(!editavel);
         botaoAdicionarServico.setDisable(!editavel);
+        botaoServicoDoCatalogo.setDisable(!editavel);
         botaoPecasDoCalculo.setDisable(!editavel);
         boolean documento = atual != null && comCalculo();
         botaoPdf.setDisable(!documento);
@@ -414,6 +421,21 @@ public class OrcamentoController {
         Dinheiro hora = recursos.padroes().get().valorHora();
         adicionar(Linha.digitada(TipoItem.SERVICO, "Mão de obra", "1", "h",
                 hora == null ? "" : hora.formatarSemSimbolo())).quantidade.requestFocus();
+    }
+
+    /** Um serviço do catálogo (bloco 3.3), escolhido na lista. */
+    @FXML
+    private void adicionarServicoDoCatalogo() {
+        new JanelaEscolhaCatalogo<>(janela(), recursos.catalogo(), TipoCatalogo.SERVICO, "Serviço do catálogo",
+                "Com preço de referência, o serviço entra uma vez pelo preço; sem preço, entram as horas × o valor da "
+                        + "hora de Configurações. Os valores continuam editáveis aqui no orçamento.",
+                item -> true, null).escolher().ifPresent(this::adicionarServicoEscolhido);
+    }
+
+    /** Com preço próprio, 1 serviço pelo preço; sem preço, as horas × o valor da hora (em branco, se não houver). */
+    void adicionarServicoEscolhido(ItemCatalogo<ServicoPadrao> item) {
+        adicionar(Linha.de(ItemOrcamento.doServico(item.info().nome(), item.dados().horas(),
+                item.info().precoReferencia(), recursos.padroes().get().valorHora(), item.id(), item.versao())));
     }
 
     private LinhaTela adicionar(Linha linha) {

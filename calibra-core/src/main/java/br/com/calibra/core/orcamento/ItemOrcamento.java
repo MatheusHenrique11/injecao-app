@@ -10,7 +10,8 @@ import java.util.Objects;
  *
  * @param quantidade exata (ex.: 2,5 horas); maior que zero
  * @param unidade texto livre (ex.: "un", "h", "jogo"); pode ficar vazio
- * @param catalogoItemId de onde a peça veio no catálogo (o preço é o de referência dele); null se digitada
+ * @param catalogoItemId de onde a peça ou o serviço veio no catálogo (o preço é o de referência dele); null se
+ *        digitado
  * @param catalogoVersao a versão do item do catálogo; null se digitada
  */
 public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantidade, String unidade,
@@ -30,6 +31,27 @@ public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantida
     public static ItemOrcamento digitado(TipoItem tipo, String descricao, BigDecimal quantidade, String unidade,
             Dinheiro valorUnitario) {
         return new ItemOrcamento(tipo, descricao, quantidade, unidade, valorUnitario, null, null);
+    }
+
+    /**
+     * A linha de um serviço do catálogo de serviços (bloco 3.3, regra escolhida pelo dono): com preço próprio, entra
+     * "1 serviço" pelo preço; sem preço, entram as horas × o valor da hora de Configurações. Sem o valor da hora, o
+     * valor fica em branco, para a pessoa preencher (como a peça sem preço de referência).
+     *
+     * @param horas o tempo padrão do serviço; null = não informado
+     * @param preco o preço de referência do item do catálogo; null = sem preço
+     * @param valorHora o valor da hora de mão de obra de Configurações; null = não configurado
+     */
+    public static ItemOrcamento doServico(String nome, Double horas, Dinheiro preco, Dinheiro valorHora, long itemId,
+            int versao) {
+        if (preco != null) {
+            return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.ONE, "serviço", preco, itemId, versao);
+        }
+        if (horas == null) {
+            // O catálogo não grava serviço sem preço e sem horas; se vier assim, a pessoa preenche o valor.
+            return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.ONE, "serviço", null, itemId, versao);
+        }
+        return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.valueOf(horas), "h", valorHora, itemId, versao);
     }
 
     /** Quantidade × valor unitário, arredondado no centavo. */

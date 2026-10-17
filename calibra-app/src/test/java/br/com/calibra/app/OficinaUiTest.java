@@ -42,6 +42,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -54,6 +55,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
@@ -61,6 +63,9 @@ import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
+import br.com.calibra.app.casos.FormularioOrcamento.Linha;
+import br.com.calibra.app.catalogo.ExemplosCatalogo;
+import br.com.calibra.app.catalogo.ExemplosCatalogo.Exemplo;
 import br.com.calibra.core.cadastro.Cliente;
 import br.com.calibra.core.cadastro.Consentimento;
 import br.com.calibra.core.cadastro.TipoCambio;
@@ -86,11 +91,15 @@ import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
+import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.FiltroOs;
@@ -401,6 +410,80 @@ class OficinaUiTest {
                 assertNotNull(TelaDeTeste.<TextField>achar(cena, "vistoria4"), "cinco itens");
                 assertEquals(1, TelaDeTeste.<ComboBox<?>>achar(cena, "mecanico").getItems().size(),
                         "só o \"(nenhum)\": o mecânico inativo não entra em OS nova");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * O catálogo de serviços (bloco 3.3): a aba Serviços em Catálogos e o "+ Serviço do catálogo…" no orçamento da OS.
+     * Sem preço, entram as horas × o valor da hora; com preço, 1 serviço pelo preço. A linha guarda o item e a versão.
+     */
+    @Test
+    void servicoDoCatalogoNoOrcamento() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        AtomicReference<ItemCatalogo<ServicoPadrao>> porHora = new AtomicReference<>();
+        AtomicReference<ItemCatalogo<ServicoPadrao>> comPreco = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+                Exemplo<ServicoPadrao> hora = ExemplosCatalogo.servicoPorHora();
+                porHora.set(catalogo.criar(TipoCatalogo.SERVICO, hora.dados(), hora.info()));
+                Exemplo<ServicoPadrao> preco = ExemplosCatalogo.servicoComPreco();
+                comPreco.set(catalogo.criar(TipoCatalogo.SERVICO, preco.dados(), preco.info()));
+                contexto.configuracao().gravar(Chave.ORCAMENTO, new PadroesOrcamento(Desconto.NENHUM, 10, "", 15, "",
+                        Dinheiro.ler("180,00")));
+                ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23", "Limpeza de bicos e diagnóstico", null,
+                        LocalDateTime.now().minusHours(1).withNano(0))).osId();
+            });
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TelaDeTeste.<ToggleButton>achar(cena, "navCatalogos").fire();
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaSERVICO"));
+                PainelCatalogo<?> servicos = achar(cena, "painelSERVICO");
+                assertEquals(2, servicos.tabela().getItems().size());
+                salvar(cena, "oficina-19-catalogo-servicos.png");
+
+                principal.abrirOs(ana);
+                TabPane abasOs = achar(cena, "abas");
+                abasOs.getSelectionModel().select(aba(abasOs, "abaOrcamento"));
+            });
+
+            TelaDeTeste.semEsperar(() -> this.<Button>daAba("botaoServicoDoCatalogo").fire(), falha);
+            Stage escolha = TelaDeTeste.esperarJanela("Serviço do catálogo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(escolha);
+                TableView<?> tabela = (TableView<?>) painel.lookup("#escolhaCatalogo");
+                List<String> nomes = tabela.getItems().stream().map(item -> ((ItemCatalogo<?>) item).info().nome())
+                        .toList();
+                TableColumn<?, ?> precos = tabela.getColumns().stream()
+                        .filter(coluna -> coluna.getText().equals("Preço de referência")).findFirst().orElseThrow();
+                assertEquals(Dinheiro.ler("250,00").formatar(), precos.getCellData(nomes.indexOf("Diagnóstico teste")),
+                        "a escolha mostra o preço de referência");
+                tabela.getSelectionModel().select(nomes.indexOf("Limpeza de bicos teste"));
+                TelaDeTeste.apertar(painel, "Usar este");
+            });
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                OrcamentoController orcamento = principal.osAberta().orcamento();
+                assertEquals(List.of(new Linha(TipoItem.SERVICO, "Limpeza de bicos teste", "1,5", "h", "180,00",
+                        porHora.get().id(), 1)), orcamento.linhas(), "sem preço: as horas × o valor da hora");
+                orcamento.adicionarServicoEscolhido(comPreco.get());
+                assertEquals(new Linha(TipoItem.SERVICO, "Diagnóstico teste", "1", "serviço", "250,00",
+                        comPreco.get().id(), 1), orcamento.linhas().get(1), "com preço: 1 serviço pelo preço");
+                assertEquals(Dinheiro.ler("520,00").formatar(), this.<Label>daAba("totalServicos").getText(),
+                        "1,5 h × R$ 180 + R$ 250");
+                this.<Button>daAba("botaoSalvar").fire();
+                List<ItemOrcamento> gravados = orcamento.atual().orElseThrow().orcamento().conteudo().itens();
+                assertEquals(List.of(porHora.get().id(), comPreco.get().id()),
+                        gravados.stream().map(ItemOrcamento::catalogoItemId).toList(), "a linha guarda o item");
+                assertEquals(List.of(1, 1), gravados.stream().map(ItemOrcamento::catalogoVersao).toList());
+                salvar(cena, "oficina-20-servico-do-catalogo.png");
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {
