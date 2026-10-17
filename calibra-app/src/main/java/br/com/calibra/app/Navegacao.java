@@ -17,4 +17,7 @@ interface Navegacao {
 
     /** A lista da Oficina só com as OS do status (o cartão do Painel); null = as em andamento. */
     void abrirOficina(StatusOs status);
+
+    /** A Nova OS, na área da Oficina. */
+    void novaOs();
 }

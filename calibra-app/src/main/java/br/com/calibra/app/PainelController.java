@@ -96,6 +96,11 @@ public class PainelController {
         atualizarBackup();
     }
 
+    @FXML
+    private void novaOs() {
+        navegacao.novaOs();
+    }
+
     /** O texto do último backup (depois de um backup em segundo plano). */
     void atualizarBackup() {
         if (ultimoBackup != null) {

@@ -105,6 +105,14 @@ public final class NumeroBr {
         return texto.replace('.', ',');
     }
 
+    /** Tamanho de arquivo: abaixo de 1 MB, em KB inteiros (no mínimo "1 KB"); daí para cima, em MB com 1 casa. */
+    public static String tamanhoArquivo(long bytes) {
+        if (bytes < 1024 * 1024) {
+            return formatar(Math.max(1, Math.round(bytes / 1024.0)), 0) + " KB";
+        }
+        return formatar(bytes / (1024.0 * 1024.0), 1) + " MB";
+    }
+
     /** Fração como percentual. Ex.: 0,8633 com 1 casa → "86,3%". */
     public static String percentual(double fracao, int casasDecimais) {
         if (!Double.isFinite(fracao)) {

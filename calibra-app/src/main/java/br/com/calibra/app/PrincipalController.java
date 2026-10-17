@@ -70,9 +70,10 @@ public class PrincipalController implements Navegacao {
     private PainelController painel;
     private Parent telaListaOficina;
     private OficinaController oficina;
-    /** O que está aberto na área da Oficina. */
+    /** O que está aberto na área da Oficina: a lista ou a Nova OS. */
     private Parent telaOficina;
     private String tituloOficina;
+    private NovaOsController novaOsAberta;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -158,10 +159,11 @@ public class PrincipalController implements Navegacao {
             FXMLLoader carregador = carregador("oficina.fxml");
             telaListaOficina = carregar(carregador);
             oficina = carregador.getController();
-            oficina.iniciar(casosOficina, contexto.relogio());
+            oficina.iniciar(casosOficina, this, contexto.relogio());
         } else {
             oficina.atualizar();
         }
+        novaOsAberta = null;
         abrirNaAreaDaOficina(telaListaOficina, "Oficina");
         oficina.focarBusca();
     }
@@ -170,6 +172,25 @@ public class PrincipalController implements Navegacao {
     public void abrirOficina(StatusOs status) {
         voltarParaOficina();
         oficina.filtrar(status);
+    }
+
+    /** A Nova OS; se já há uma sendo preenchida, volta para ela, com o que foi digitado. */
+    @Override
+    public void novaOs() {
+        if (novaOsAberta != null) {
+            mostrar(telaOficina, navOficina, tituloOficina);
+            return;
+        }
+        FXMLLoader carregador = carregador("nova-os.fxml");
+        Parent tela = carregar(carregador);
+        novaOsAberta = carregador.getController();
+        novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio());
+        abrirNaAreaDaOficina(tela, "Nova OS");
+    }
+
+    /** A Nova OS sendo preenchida; null se não há nenhuma (para os testes de interface). */
+    NovaOsController novaOsAberta() {
+        return novaOsAberta;
     }
 
     private void abrirNaAreaDaOficina(Parent tela, String titulo) {
@@ -304,6 +325,7 @@ public class PrincipalController implements Navegacao {
         telaListaOficina = null;
         oficina = null;
         telaOficina = null;
+        novaOsAberta = null;
         telaInicio = null;
         inicio = null;
         telaProjetos = null;

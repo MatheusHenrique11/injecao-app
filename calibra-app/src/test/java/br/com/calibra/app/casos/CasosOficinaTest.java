@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,7 @@ import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.backup.Backup;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
@@ -399,6 +401,37 @@ class CasosOficinaTest {
         assertEquals("A OS OS-2026-0001 está \"Cancelada\": os anexos dela não se removem.", cancelada.getMessage());
         assertEquals(1, oficina.anexar(os, List.of(new NovoAnexo(nota, TipoAnexo.OUTRO, "Depois", null, false)))
                 .size(), "anexar ainda vale");
+    }
+
+    /**
+     * A Nova OS grava as fotos da entrada junto com a OS. Com uma foto recusada, nada é gravado (nem o cliente, nem a
+     * OS) e não sobra cópia na pasta: dá para tirar a foto e tentar de novo sem OS repetida.
+     */
+    @Test
+    void abrirComAsFotosDaEntrada() throws Exception {
+        Path porta = Files.write(raiz.resolve("porta.jpg"), new byte[] {(byte) 0xFF, (byte) 0xD8, 4, 5, 6});
+        Path painel = Files.write(raiz.resolve("painel.png"), new byte[] {(byte) 0x89, 'P', 'N', 'G', 7});
+        Path heic = Files.writeString(raiz.resolve("IMG_0002.heic"), "foto do iPhone");
+        NovaOs nova = new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Íris Souza")),
+                new VeiculoNovo(CasosProjetoTest.carro("GHI7J89")), "Revisão", null, null, "", entrada(251_500.0));
+
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.abrir(nova, List.of(
+                new NovoAnexo(porta, TipoAnexo.FOTO_ENTRADA, "", null, false),
+                new NovoAnexo(heic, TipoAnexo.FOTO_ENTRADA, "", null, false))));
+        assertEquals(List.of(), oficina.listar(FiltroOs.todas()), "nenhuma OS gravada");
+        assertEquals(List.of(), casos.pesquisarClientes("Íris"), "nem o cliente novo");
+        try (Stream<Path> arquivos = Files.walk(pastas.anexos())) {
+            assertEquals(List.of(), arquivos.filter(Files::isRegularFile).toList(), "a cópia da porta foi apagada");
+        }
+
+        long os = oficina.abrir(nova, List.of(new NovoAnexo(porta, TipoAnexo.FOTO_ENTRADA, "Porta", null, false),
+                new NovoAnexo(painel, TipoAnexo.FOTO_ENTRADA, "Painel", null, false))).osId();
+        assertEquals("OS-2026-0001", oficina.buscar(os).os().numero().texto(), "o número recusado não foi gasto");
+        List<AnexoSalvo> fotos = oficina.anexosDaOs(os);
+        assertEquals(List.of("porta.jpg", "painel.png"), fotos.stream().map(AnexoSalvo::nomeOriginal).toList());
+        assertTrue(fotos.stream().allMatch(foto -> foto.tipo() == TipoAnexo.FOTO_ENTRADA));
+        assertArrayEquals(Files.readAllBytes(painel), Files.readAllBytes(oficina.arquivoDoAnexo(fotos.get(1))
+                .orElseThrow()));
     }
 
     /** A OS ganha o projeto de preparação do mesmo veículo; o de outro veículo, não. */

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Etapa Veículo da Nova OS e do assistente de projeto: um veículo do cliente escolhido ou um veículo novo. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.EscolhaVeiculoController" spacing="8.0">
+  <fx:define>
+    <ToggleGroup fx:id="grupoVeiculo"/>
+  </fx:define>
+  <RadioButton fx:id="veiculoExistente" text="Veículo já cadastrado do cliente" toggleGroup="$grupoVeiculo"/>
+  <ListView fx:id="listaVeiculos" prefHeight="140.0"/>
+  <RadioButton fx:id="veiculoNovo" text="Veículo novo" toggleGroup="$grupoVeiculo"/>
+  <VBox fx:id="caixaVeiculoNovo">
+    <fx:include fx:id="formVeiculo" source="veiculo.fxml"/>
+  </VBox>
+</VBox>

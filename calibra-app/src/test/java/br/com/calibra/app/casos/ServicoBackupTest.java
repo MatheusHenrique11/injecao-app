@@ -160,8 +160,6 @@ class ServicoBackupTest {
         InfoBackup feito = servico.fazer(MotivoBackup.MANUAL);
         assertTrue(ServicoBackup.descrever(feito).startsWith("12/10/2026 09:00 · feito por você · "),
                 ServicoBackup.descrever(feito));
-        assertEquals("1 KB", ServicoBackup.tamanho(300));
-        assertEquals("35 KB", ServicoBackup.tamanho(35 * 1024));
-        assertEquals("1,5 MB", ServicoBackup.tamanho(1_572_864));
+        assertTrue(ServicoBackup.descrever(feito).endsWith(" KB"), "o tamanho vem do NumeroBr.tamanhoArquivo");
     }
 }

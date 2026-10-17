@@ -77,4 +77,12 @@ class NumeroBrTest {
         assertEquals("86,3%", NumeroBr.percentual(0.8633, 1));
         assertEquals("80%", NumeroBr.percentual(0.80, 0));
     }
+
+    @Test
+    void formataTamanhoDeArquivo() {
+        assertEquals("1 KB", NumeroBr.tamanhoArquivo(300));
+        assertEquals("35 KB", NumeroBr.tamanhoArquivo(35 * 1024));
+        assertEquals("1,5 MB", NumeroBr.tamanhoArquivo(1_572_864));
+        assertEquals("20,0 MB", NumeroBr.tamanhoArquivo(20L * 1024 * 1024));
+    }
 }

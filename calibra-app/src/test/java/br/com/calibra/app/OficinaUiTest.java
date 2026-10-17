@@ -4,22 +4,37 @@ import static br.com.calibra.app.TelaDeTeste.achar;
 import static br.com.calibra.app.TelaDeTeste.contemTexto;
 import static br.com.calibra.app.TelaDeTeste.salvar;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+
+import javax.imageio.ImageIO;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.VBox;
@@ -30,6 +45,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
+import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
@@ -41,6 +57,7 @@ import br.com.calibra.core.cadastro.TipoVeiculo;
 import br.com.calibra.core.cadastro.Tracao;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.Vistoria;
@@ -51,12 +68,17 @@ import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.dados.PastasDados;
+import br.com.calibra.dados.cadastro.ClienteSalvo;
+import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 
 /**
- * Teste de interface da fase 3 (opcional, fora do verify padrão): o Painel, que é a tela inicial, e a lista da Oficina
- * com a busca e o filtro por status. Clientes e veículos fictícios. Salva imagens das telas em target/.
+ * Teste de interface da fase 3 (opcional, fora do verify padrão): o Painel, que é a tela inicial, a lista da Oficina
+ * com a busca e o filtro por status, e a Nova OS. Clientes, veículos e fotos fictícios. Salva imagens das telas em
+ * target/.
  */
 @Tag("ui")
 class OficinaUiTest {
@@ -75,6 +97,7 @@ class OficinaUiTest {
     @Test
     void painelEListaDaOficina() throws Throwable {
         try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
             TelaDeTeste.naTelaDoJavaFx(this::prepararDados);
             TelaDeTeste.naTelaDoJavaFx(this::abrir);
             TelaDeTeste.naTelaDoJavaFx(this::painel);
@@ -87,13 +110,36 @@ class OficinaUiTest {
     }
 
     /**
+     * A Nova OS pelas telas: cliente e veículo novos, com a entrada, a vistoria e as fotos (a HEIC fica fora); depois
+     * uma OS do mesmo cliente, achado pela placa, com o orçamento antes do veículo.
+     */
+    @Test
+    void novaOsPelasTelas() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> oficina.novoMecanico("Carlos (fictício)"));
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(this::novaOsComEntradaEFotos);
+            TelaDeTeste.naTelaDoJavaFx(this::novaOsPelaPlacaSemOVeiculo);
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    private void abrirBanco() throws Exception {
+        contexto = Partida.abrir(new PastasDados(pasta.resolve("dados")), "0.3.0-teste", Clock.systemDefaultZone());
+        oficina = new CasosOficina(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()), contexto.pastas().anexos());
+    }
+
+    /**
      * Três OS: Ana chegou e a entrega é hoje; Bruno ainda não trouxe o carro e a entrega era ontem; Carla chegou, tem
      * o orçamento aprovado e a entrega é daqui a 3 dias.
      */
     private void prepararDados() throws Exception {
-        contexto = Partida.abrir(new PastasDados(pasta.resolve("dados")), "0.3.0-teste", Clock.systemDefaultZone());
         CasosProjeto projetos = new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp());
-        oficina = new CasosOficina(contexto.banco(), contexto.relogio(), projetos, contexto.pastas().anexos());
         CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(), projetos);
         LocalDate hoje = LocalDate.now(contexto.relogio());
         LocalDateTime agora = LocalDateTime.now(contexto.relogio()).withNano(0);
@@ -170,6 +216,109 @@ class OficinaUiTest {
         assertEquals("carla", TelaDeTeste.<TextField>achar(cena, "busca").getText(), "a busca continua lá");
         assertEquals(List.of(carla), ids("listaOs"));
         salvar(cena, "oficina-3-busca.png");
+    }
+
+    /** Cliente e veículo novos; a entrada com km, tanque, vistoria, objetos e duas fotos. */
+    private void novaOsComEntradaEFotos() throws Exception {
+        TelaDeTeste.<Button>achar(cena, "botaoNovaOs").fire();
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navOficina").isSelected(), "a Nova OS fica na Oficina");
+        assertTrue(TelaDeTeste.<RadioButton>achar(cena, "clienteNovo").isSelected(), "sem clientes, já vem cliente novo");
+        TelaDeTeste.<TextField>achar(cena, "nome").setText("Diego Alves (fictício)");
+        TelaDeTeste.<TextField>achar(cena, "telefone").setText("(11) 97654-3210");
+        TelaDeTeste.<CheckBox>achar(cena, "consentiu").setSelected(true);
+        proximo();
+        TelaDeTeste.<TextField>achar(cena, "marca").setText("Fiat");
+        TelaDeTeste.<TextField>achar(cena, "modelo").setText("Uno");
+        TelaDeTeste.<TextField>achar(cena, "versao").setText("Mille");
+        TelaDeTeste.<TextField>achar(cena, "anoFabricacao").setText("2010");
+        TelaDeTeste.<TextField>achar(cena, "anoModelo").setText("2011");
+        TelaDeTeste.<TextField>achar(cena, "placa").setText("EFG4H56");
+        proximo();
+
+        assertTrue(TelaDeTeste.<CheckBox>achar(cena, "veiculoChegou").isSelected(), "o veículo já está aqui");
+        TextField hora = achar(cena, "entradaHora");
+        String agora = hora.getText();
+        hora.setText("25:00");
+        TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+        assertTrue(contemTexto(cena.getRoot(), "Descreva o serviço pedido pelo cliente."));
+        assertTrue(contemTexto(cena.getRoot(), "Hora da chegada: use horas e minutos, como 09:30."));
+        hora.setText(agora);
+
+        TelaDeTeste.<TextArea>achar(cena, "servicoPedido").setText("Barulho na suspensão dianteira em lombada");
+        ComboBox<MecanicoSalvo> mecanico = achar(cena, "mecanico");
+        mecanico.setValue(mecanico.getItems().stream().filter(Objects::nonNull).findFirst().orElseThrow());
+        TelaDeTeste.<DatePicker>achar(cena, "previsao").setValue(LocalDate.now().plusDays(2));
+        TelaDeTeste.<TextField>achar(cena, "usoEntrada").setText("120.500");
+        TelaDeTeste.<ComboBox<NivelCombustivel>>achar(cena, "combustivel").setValue(NivelCombustivel.MEIO);
+        TelaDeTeste.<TextField>achar(cena, "vistoria0").setText("Risco na porta direita");
+        TelaDeTeste.<TextField>achar(cena, "objetos").setText("Estepe e macaco");
+        Path heic = Files.writeString(pasta.resolve("IMG_0003.heic"), "foto do iPhone (fictícia)");
+        principal.novaOsAberta().adicionarFotos(List.of(foto("porta.png"), foto("painel.jpg"), heic));
+        assertEquals(2, TelaDeTeste.<ListView<?>>achar(cena, "listaFotos").getItems().size());
+        assertTrue(contemTexto(cena.getRoot(), "IMG_0003.heic não é foto em JPG ou PNG."), "a HEIC fica fora");
+        salvar(cena, "oficina-4-nova-os.png");
+        TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+
+        assertNull(principal.novaOsAberta(), "abriu a OS e voltou para a lista");
+        List<Long> criadas = ids("listaOs");
+        assertEquals(1, criadas.size());
+        OsAberta aberta = oficina.buscar(criadas.getFirst());
+        assertEquals("Diego Alves (fictício)", aberta.cliente().cliente().nome());
+        assertEquals("Carlos (fictício)", aberta.mecanico().nome());
+        assertEquals(LocalDate.now().plusDays(2), aberta.os().previsaoEntrega());
+        EntradaVeiculo entrada = aberta.os().entrada();
+        assertEquals(120_500.0, entrada.uso());
+        assertEquals(NivelCombustivel.MEIO, entrada.combustivel());
+        assertEquals(Vistoria.ITENS_PADRAO, entrada.vistoria().itens().stream().map(ItemVistoria::item).toList());
+        assertEquals("Risco na porta direita", entrada.vistoria().itens().getFirst().observacao());
+        assertEquals("Estepe e macaco", entrada.vistoria().objetos());
+        assertEquals(List.of("porta.png", "painel.jpg"), oficina.anexosDaOs(aberta.os().id()).stream()
+                .map(AnexoSalvo::nomeOriginal).toList());
+        assertEquals(120_500.0, aberta.veiculo().veiculo().usoAcumulado(), "o km da entrada vai para o veículo");
+    }
+
+    /** O cliente achado pela placa já traz o veículo dele escolhido; o orçamento vem antes do veículo. */
+    private void novaOsPelaPlacaSemOVeiculo() throws Exception {
+        long primeira = ids("listaOs").getFirst();
+        TelaDeTeste.<Button>achar(cena, "botaoNovaOs").fire();
+        TelaDeTeste.<TextField>achar(cena, "buscaCliente").setText("efg-4h56");
+        ListView<ClienteSalvo> clientes = achar(cena, "listaClientes");
+        assertEquals(1, clientes.getItems().size(), "achou o cliente pela placa do carro dele");
+        clientes.getSelectionModel().selectFirst();
+        proximo();
+        ListView<VeiculoSalvo> veiculos = achar(cena, "listaVeiculos");
+        assertEquals("EFG4H56", veiculos.getSelectionModel().getSelectedItem().veiculo().placa());
+        proximo();
+        assertEquals("Fiat Uno Mille · EFG4H56 — Diego Alves (fictício)",
+                TelaDeTeste.<Label>achar(cena, "resumoEscolha").getText());
+        assertEquals("no cadastro: 120.500 km", TelaDeTeste.<Label>achar(cena, "dicaUso").getText());
+        TelaDeTeste.<TextArea>achar(cena, "servicoPedido").setText("Orçamento de embreagem pelo WhatsApp");
+        TelaDeTeste.<CheckBox>achar(cena, "veiculoChegou").setSelected(false);
+        salvar(cena, "oficina-5-nova-os-sem-o-veiculo.png");
+        TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+
+        List<Long> lista = ids("listaOs");
+        assertEquals(2, lista.size());
+        OsAberta segunda = oficina.buscar(lista.getFirst());
+        assertFalse(segunda.os().veiculoChegou(), "a entrada fica para quando o carro chegar");
+        assertEquals(oficina.buscar(primeira).veiculo().id(), segunda.veiculo().id(), "o mesmo carro, sem cadastro novo");
+        salvar(cena, "oficina-6-lista-com-as-novas.png");
+    }
+
+    private void proximo() {
+        TelaDeTeste.<Button>achar(cena, "botaoProximo").fire();
+    }
+
+    /** Uma foto fictícia (um retângulo azul) em PNG ou JPG, pela extensão do nome. */
+    private Path foto(String nome) throws IOException {
+        BufferedImage imagem = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
+        Graphics2D desenho = imagem.createGraphics();
+        desenho.setColor(new Color(21, 101, 192));
+        desenho.fillRect(0, 0, 320, 240);
+        desenho.dispose();
+        Path arquivo = pasta.resolve(nome);
+        ImageIO.write(imagem, nome.endsWith(".png") ? "png" : "jpg", arquivo.toFile());
+        return arquivo;
     }
 
     private String numero(StatusOs status) {

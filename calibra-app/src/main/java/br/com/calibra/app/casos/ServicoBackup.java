@@ -177,13 +177,6 @@ public final class ServicoBackup {
     /** Ex.: "12/10/2026 14:50 · automático (diário) · 1,2 MB". */
     public static String descrever(InfoBackup info) {
         return DATA_HORA.format(info.manifesto().criadoEm()) + " · " + info.manifesto().motivo().rotulo() + " · "
-                + tamanho(info.tamanhoBytes());
-    }
-
-    static String tamanho(long bytes) {
-        if (bytes < 1024 * 1024) {
-            return NumeroBr.formatar(Math.max(1, Math.round(bytes / 1024.0)), 0) + " KB";
-        }
-        return NumeroBr.formatar(bytes / (1024.0 * 1024.0), 1) + " MB";
+                + NumeroBr.tamanhoArquivo(info.tamanhoBytes());
     }
 }

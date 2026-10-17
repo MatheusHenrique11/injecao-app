@@ -177,6 +177,19 @@ public final class CasosOficina {
      * @throws EntradaInvalidaException com todas as mensagens, se algo não passar (nada é gravado)
      */
     public Gravado abrir(NovaOs nova) {
+        return abrir(nova, List.of());
+    }
+
+    /**
+     * Abre a OS junto com os anexos da abertura (as fotos da entrada): cada arquivo é copiado para a pasta de anexos
+     * do veículo e tudo é gravado de uma vez. Se um arquivo não servir, nada é gravado, nem a OS, e as cópias feitas
+     * são apagadas: dá para tirar o arquivo e tentar de novo sem criar OS repetida.
+     *
+     * @throws EntradaInvalidaException com todas as mensagens, se algo não passar
+     * @throws OperacaoRecusadaException se um arquivo não for JPG, PNG ou PDF, ou passar de 20 MB
+     */
+    public Gravado abrir(NovaOs nova, List<NovoAnexo> anexosDaAbertura) {
+        List<NovoAnexo> novos = anexosDaAbertura == null ? List.of() : List.copyOf(anexosDaAbertura);
         if (nova.cliente() == null || nova.veiculo() == null) {
             throw new EntradaInvalidaException("Escolha o cliente e o veículo da OS.");
         }
@@ -187,21 +200,33 @@ public final class CasosOficina {
         if (nova.entrada() != null) {
             erros.addAll(nova.entrada().validar(agora()));
         }
+        erros.addAll(errosDosAnexos(novos));
         if (!erros.isEmpty()) {
             throw new EntradaInvalidaException(erros);
         }
-        return banco.transacao(c -> {
-            CasosProjeto.ClienteEVeiculo escolhidos = projetos.gravarEscolha(c, nova.cliente(), nova.veiculo(),
-                    "OS nova");
-            exigirMecanicoAtivo(c, nova.mecanicoId());
-            int ano = LocalDate.now(relogio).getYear();
-            long id = ordens.inserir(c, new NumeroOs(ano, ordens.proximoSequencial(c, ano)), new DadosAbertura(
-                    escolhidos.clienteId(), escolhidos.veiculoId(), null, nova.servicoPedido(), nova.mecanicoId(),
-                    nova.previsaoEntrega(), nova.observacoes()));
-            List<String> avisos = nova.entrada() == null ? List.of()
-                    : gravarEntrada(c, id, escolhidos.veiculoId(), nova.entrada());
-            return new Gravado(id, avisos);
-        });
+        List<AnexosDaOficina.Copia> copias = new ArrayList<>();
+        try {
+            return banco.transacao(c -> {
+                CasosProjeto.ClienteEVeiculo escolhidos = projetos.gravarEscolha(c, nova.cliente(), nova.veiculo(),
+                        "OS nova");
+                exigirMecanicoAtivo(c, nova.mecanicoId());
+                int ano = LocalDate.now(relogio).getYear();
+                long id = ordens.inserir(c, new NumeroOs(ano, ordens.proximoSequencial(c, ano)), new DadosAbertura(
+                        escolhidos.clienteId(), escolhidos.veiculoId(), null, nova.servicoPedido(),
+                        nova.mecanicoId(), nova.previsaoEntrega(), nova.observacoes()));
+                List<String> avisos = nova.entrada() == null ? List.of()
+                        : gravarEntrada(c, id, escolhidos.veiculoId(), nova.entrada());
+                for (NovoAnexo novo : novos) {
+                    AnexosDaOficina.Copia copia = copiar(novo.arquivo(), escolhidos.veiculoId());
+                    copias.add(copia);
+                    inserirAnexo(c, escolhidos.veiculoId(), id, novo, copia);
+                }
+                return new Gravado(id, avisos);
+            });
+        } catch (RuntimeException erro) {
+            apagarSobras(copias);
+            throw erro;
+        }
     }
 
     /** Muda o que foi informado na abertura (o serviço pedido, o mecânico, a previsão e as observações). */
@@ -445,6 +470,32 @@ public final class CasosOficina {
         if (novos == null || novos.isEmpty()) {
             return List.of();
         }
+        List<String> erros = errosDosAnexos(novos);
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
+        List<AnexosDaOficina.Copia> copias = new ArrayList<>();
+        try {
+            for (NovoAnexo novo : novos) {
+                copias.add(copiar(novo.arquivo(), os.veiculoId()));
+            }
+            return banco.transacao(c -> {
+                List<AnexoSalvo> gravados = new ArrayList<>();
+                for (int i = 0; i < novos.size(); i++) {
+                    long id = inserirAnexo(c, os.veiculoId(), osId, novos.get(i), copias.get(i));
+                    gravados.add(anexos.buscar(c, id).orElseThrow());
+                }
+                return gravados;
+            });
+        } catch (RuntimeException erro) {
+            apagarSobras(copias);
+            throw erro;
+        }
+    }
+
+    /** Arquivo que não existe e anexo sem tipo (o formato e o tamanho do arquivo são conferidos na cópia). */
+    private static List<String> errosDosAnexos(List<NovoAnexo> novos) {
         List<String> erros = new ArrayList<>();
         for (NovoAnexo novo : novos) {
             if (novo.arquivo() == null || !Files.isRegularFile(novo.arquivo())) {
@@ -453,34 +504,23 @@ public final class CasosOficina {
                 erros.add("Escolha o tipo do anexo " + novo.arquivo().getFileName() + ".");
             }
         }
-        if (!erros.isEmpty()) {
-            throw new EntradaInvalidaException(erros);
-        }
-        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
-        List<AnexosDaOficina.Copia> copias = new ArrayList<>();
+        return erros;
+    }
+
+    /** Copia o arquivo para a pasta de anexos do veículo; um erro de disco vira {@link ErroDados}. */
+    private AnexosDaOficina.Copia copiar(Path arquivo, long veiculoId) {
         try {
-            for (NovoAnexo novo : novos) {
-                copias.add(AnexosDaOficina.guardar(novo.arquivo(), pastaAnexos, os.veiculoId()));
-            }
-            return banco.transacao(c -> {
-                List<AnexoSalvo> gravados = new ArrayList<>();
-                for (int i = 0; i < novos.size(); i++) {
-                    NovoAnexo novo = novos.get(i);
-                    AnexosDaOficina.Copia copia = copias.get(i);
-                    long id = anexos.inserir(c, os.veiculoId(), osId, novo.tipo(), novo.descricao(), copia.arquivo(),
-                            novo.arquivo().getFileName().toString(), copia.tamanhoBytes(), copia.sha256(),
-                            novo.validade(), novo.pessoal());
-                    gravados.add(anexos.buscar(c, id).orElseThrow());
-                }
-                return gravados;
-            });
+            return AnexosDaOficina.guardar(arquivo, pastaAnexos, veiculoId);
         } catch (IOException erro) {
-            apagarSobras(copias);
             throw new ErroDados("Não foi possível copiar o arquivo para a pasta de anexos: " + erro.getMessage(), erro);
-        } catch (RuntimeException erro) {
-            apagarSobras(copias);
-            throw erro;
         }
+    }
+
+    private long inserirAnexo(Connection conexao, long veiculoId, long osId, NovoAnexo novo,
+            AnexosDaOficina.Copia copia) throws SQLException {
+        return anexos.inserir(conexao, veiculoId, osId, novo.tipo(), novo.descricao(), copia.arquivo(),
+                novo.arquivo().getFileName().toString(), copia.tamanhoBytes(), copia.sha256(), novo.validade(),
+                novo.pessoal());
     }
 
     /** Muda o tipo, a descrição, a validade ou a marca de documento pessoal do anexo. */

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Etapa Cliente da Nova OS e do assistente de projeto: cliente já cadastrado (a busca acha também pela placa) ou novo. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.EscolhaClienteController" spacing="8.0">
+  <fx:define>
+    <ToggleGroup fx:id="grupoCliente"/>
+  </fx:define>
+  <RadioButton fx:id="clienteExistente" text="Cliente já cadastrado" toggleGroup="$grupoCliente"/>
+  <VBox fx:id="caixaClienteExistente" spacing="6.0">
+    <TextField fx:id="buscaCliente" promptText="Buscar por nome, telefone, documento, placa ou embarcação"/>
+    <ListView fx:id="listaClientes" prefHeight="180.0"/>
+  </VBox>
+  <RadioButton fx:id="clienteNovo" text="Cliente novo" toggleGroup="$grupoCliente"/>
+  <VBox fx:id="caixaClienteNovo">
+    <fx:include fx:id="formCliente" source="cliente.fxml"/>
+  </VBox>
+</VBox>

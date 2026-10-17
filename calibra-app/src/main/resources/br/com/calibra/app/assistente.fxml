@@ -3,11 +3,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -19,11 +16,6 @@
 <!-- Assistente de novo projeto (SPEC 8.2): Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.AssistenteController">
-  <fx:define>
-    <ToggleGroup fx:id="grupoCliente"/>
-    <ToggleGroup fx:id="grupoVeiculo"/>
-  </fx:define>
-
   <top>
     <VBox styleClass="pagina">
       <Label styleClass="titulo-secao" text="Novo projeto"/>
@@ -46,25 +38,12 @@
       <StackPane>
         <!-- ===================== 1. Cliente ===================== -->
         <VBox fx:id="painelCliente" styleClass="pagina">
-          <RadioButton fx:id="clienteExistente" text="Cliente já cadastrado" toggleGroup="$grupoCliente"/>
-          <VBox fx:id="caixaClienteExistente" spacing="6.0">
-            <TextField fx:id="buscaCliente" promptText="Buscar por nome, telefone ou documento"/>
-            <ListView fx:id="listaClientes" prefHeight="180.0"/>
-          </VBox>
-          <RadioButton fx:id="clienteNovo" text="Cliente novo" toggleGroup="$grupoCliente"/>
-          <VBox fx:id="caixaClienteNovo">
-            <fx:include fx:id="formCliente" source="cliente.fxml"/>
-          </VBox>
+          <fx:include fx:id="escolhaCliente" source="escolha-cliente.fxml"/>
         </VBox>
 
         <!-- ===================== 2. Veículo ===================== -->
         <VBox fx:id="painelVeiculo" styleClass="pagina">
-          <RadioButton fx:id="veiculoExistente" text="Veículo já cadastrado do cliente" toggleGroup="$grupoVeiculo"/>
-          <ListView fx:id="listaVeiculos" prefHeight="140.0"/>
-          <RadioButton fx:id="veiculoNovo" text="Veículo novo" toggleGroup="$grupoVeiculo"/>
-          <VBox fx:id="caixaVeiculoNovo">
-            <fx:include fx:id="formVeiculo" source="veiculo.fxml"/>
-          </VBox>
+          <fx:include fx:id="escolhaVeiculo" source="escolha-veiculo.fxml"/>
         </VBox>
 
         <!-- ===================== 3. Motor ===================== -->

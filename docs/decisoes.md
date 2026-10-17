@@ -494,3 +494,11 @@ Plano aprovado em 15/10/2026. Vistoria padrão escolhida pelo dono: lataria e pi
     - o cartão abre a Oficina com o filtro daquele status;
     - "Entregas previstas até hoje" traz as de hoje e as atrasadas. "Atrasada" quer dizer que a previsão passou e o serviço não ficou pronto; a OS pronta não conta, porque espera o cliente buscar, não a oficina.
 178. **Listas de OS (Painel e Oficina):** o veículo e a placa (ou o nome da embarcação) ficam numa coluna só, e as colunas se ajustam à largura da tabela, sem rolagem para o lado na janela padrão.
+179. **Nova OS em 3 etapas: Cliente → Veículo → Serviço e entrada.** As etapas de cliente e veículo são as mesmas do assistente de projeto, separadas em `escolha-cliente.fxml` e `escolha-veiculo.fxml` para as duas telas usarem. O cliente achado pela placa já traz o veículo daquela placa escolhido.
+180. **As fotos da entrada são gravadas junto com a OS, tudo ou nada.** Se uma foto não servir, nada é gravado (nem a OS, nem o cliente novo) e as cópias feitas são apagadas: dá para tirar a foto e tentar de novo sem criar OS repetida. Na Nova OS só entram fotos (JPG ou PNG); documento em PDF vai depois, na OS.
+181. **Entrada na Nova OS:**
+    - vem marcado "o veículo já está aqui", com o dia e a hora de agora; desmarcado, a OS abre sem a entrada (orçamento antes do veículo);
+    - a vistoria tem os 4 itens padrão, cada um com a observação; em branco quer dizer nada a anotar, e o item é gravado assim mesmo, para a via do cliente (bloco 3.3) mostrar o que foi conferido;
+    - "Abrir a OS" não é o botão do Enter: um Enter no meio dos campos não abre a OS pela metade.
+182. **Cadastro rápido do mecânico na Nova OS** ("Novo mecânico…", só o nome), para o campo não ficar sem uso até o bloco 3.3, quando Configurações ganha a lista completa (renomear, ativar e desativar).
+183. **A Nova OS sendo preenchida fica guardada:** sair para outra tela e voltar, ou clicar de novo em "Nova OS…", mostra o que já foi digitado. Ela some quando a OS é aberta ou cancelada.

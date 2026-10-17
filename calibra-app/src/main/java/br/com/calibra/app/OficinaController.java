@@ -43,6 +43,7 @@ public class OficinaController {
 
     private final List<FiltroStatus> escolhas = new ArrayList<>();
     private CasosOficina casos;
+    private Navegacao navegacao;
 
     @FXML
     private void initialize() {
@@ -57,8 +58,9 @@ public class OficinaController {
         filtroStatus.valueProperty().addListener((obs, antes, depois) -> atualizar());
     }
 
-    void iniciar(CasosOficina casos, Clock relogio) {
+    void iniciar(CasosOficina casos, Navegacao navegacao, Clock relogio) {
         this.casos = casos;
+        this.navegacao = navegacao;
         ListaOs.montar(listaOs, relogio, Coluna.NUMERO, Coluna.CLIENTE, Coluna.VEICULO, Coluna.SERVICO,
                 Coluna.STATUS, Coluna.CHEGADA, Coluna.PREVISAO);
         atualizar();
@@ -72,7 +74,13 @@ public class OficinaController {
         FiltroStatus escolha = filtroStatus.getValue() == null ? FiltroStatus.EM_ANDAMENTO : filtroStatus.getValue();
         listaOs.getItems().setAll(casos.listar(escolha.filtro(busca.getText())));
         boolean filtrando = !busca.getText().isBlank() || escolha != FiltroStatus.EM_ANDAMENTO;
-        vazio.setText(filtrando ? "Nenhuma OS com essa busca." : "Nenhuma OS em andamento.");
+        vazio.setText(filtrando ? "Nenhuma OS com essa busca." : "Nenhuma OS em andamento. Clique em \"Nova OS\" "
+                + "quando um veículo chegar ou um cliente pedir orçamento.");
+    }
+
+    @FXML
+    private void novaOs() {
+        navegacao.novaOs();
     }
 
     /** Mostra só as OS do status, sem a busca, lidas de novo (o cartão do Painel); null = as em andamento. */

@@ -109,6 +109,17 @@ final class CamposTela {
         combo.setPromptText(textoVazio);
     }
 
+    /** Linha de uma lista que mostra o item pelo texto (ex.: o cliente pelo nome e telefone). */
+    static <T> ListCell<T> celula(Function<T, String> texto) {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(T item, boolean vazio) {
+                super.updateItem(item, vazio);
+                setText(vazio || item == null ? null : texto.apply(item));
+            }
+        };
+    }
+
     /** Escolhas de uma caixa, mostradas pelo rótulo em português. */
     static <T> void configurar(ComboBox<T> combo, List<T> itens, Function<T, String> rotulo) {
         combo.getItems().setAll(itens);

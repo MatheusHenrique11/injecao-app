@@ -8,6 +8,13 @@ public record Vistoria(List<ItemVistoria> itens, String objetos) {
 
     public static final Vistoria VAZIA = new Vistoria(List.of(), "");
 
+    /**
+     * Os itens conferidos na entrada, escolhidos pelo dono da oficina em 15/10/2026 (o tanque e os objetos deixados
+     * têm campo próprio). No bloco 3.3, a lista passa a ser editável em Configurações.
+     */
+    public static final List<String> ITENS_PADRAO = List.of("Lataria e pintura", "Vidros, faróis e retrovisores",
+            "Pneus, rodas e estepe", "Interior e painel");
+
     public Vistoria {
         itens = itens == null ? List.of() : List.copyOf(itens);
         objetos = objetos == null ? "" : objetos.strip();

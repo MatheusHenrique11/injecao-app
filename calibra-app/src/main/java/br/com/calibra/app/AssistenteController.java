@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -16,25 +15,15 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosProjeto;
-import br.com.calibra.app.casos.CasosProjeto.ClienteExistente;
-import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
-import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
-import br.com.calibra.app.casos.CasosProjeto.EscolhaVeiculo;
 import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
-import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
-import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
 import br.com.calibra.app.casos.SugestaoPecas;
 import br.com.calibra.core.EntradaInvalidaException;
-import br.com.calibra.core.cadastro.Cliente;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.calculo.CalculoDimensionamento;
 import br.com.calibra.core.calculo.Parametros;
@@ -47,8 +36,6 @@ import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.projeto.PontoMedicao;
 import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.ErroDados;
-import br.com.calibra.dados.cadastro.ClienteSalvo;
-import br.com.calibra.dados.cadastro.VeiculoSalvo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 
@@ -71,19 +58,9 @@ public class AssistenteController {
     @FXML private Label etapa5;
     @FXML private ScrollPane rolagem;
     @FXML private VBox painelCliente;
-    @FXML private RadioButton clienteExistente;
-    @FXML private VBox caixaClienteExistente;
-    @FXML private TextField buscaCliente;
-    @FXML private ListView<ClienteSalvo> listaClientes;
-    @FXML private RadioButton clienteNovo;
-    @FXML private VBox caixaClienteNovo;
-    @FXML private ClienteFormController formClienteController;
+    @FXML private EscolhaClienteController escolhaClienteController;
     @FXML private VBox painelVeiculo;
-    @FXML private RadioButton veiculoExistente;
-    @FXML private ListView<VeiculoSalvo> listaVeiculos;
-    @FXML private RadioButton veiculoNovo;
-    @FXML private VBox caixaVeiculoNovo;
-    @FXML private VeiculoFormController formVeiculoController;
+    @FXML private EscolhaVeiculoController escolhaVeiculoController;
     @FXML private VBox painelMotor;
     @FXML private TextField descricaoMotor;
     @FXML private MotorFormController formMotorController;
@@ -137,19 +114,6 @@ public class AssistenteController {
         pressaoMeta.disableProperty().bind(tipoMeta.valueProperty().isNotEqualTo(TipoMeta.PRESSAO));
         unidadePressaoMeta.disableProperty().bind(tipoMeta.valueProperty().isNotEqualTo(TipoMeta.PRESSAO));
 
-        listaClientes.setCellFactory(lista -> celula(c -> c.cliente().nome() + " · " + c.cliente().telefone()));
-        listaVeiculos.setCellFactory(lista -> celula(v -> v.veiculo().descricao()
-                + (v.veiculo().identificacao().isEmpty() ? "" : " · " + v.veiculo().identificacao())));
-        buscaCliente.textProperty().addListener((obs, antes, depois) -> pesquisarClientes());
-        caixaClienteExistente.disableProperty().bind(clienteExistente.selectedProperty().not());
-        caixaClienteNovo.disableProperty().bind(clienteNovo.selectedProperty().not());
-        listaVeiculos.disableProperty().bind(veiculoExistente.selectedProperty().not());
-        caixaVeiculoNovo.disableProperty().bind(veiculoNovo.selectedProperty().not());
-        listaClientes.getSelectionModel().selectedItemProperty().addListener((obs, antes, depois) -> {
-            if (depois != null) {
-                clienteExistente.setSelected(true);
-            }
-        });
         caixaInjecao = new CaixaCatalogo<>(injecao, "(nenhuma por enquanto)");
         caixaInjecao.aoMudar(this::conferirInjecao);
         formMotorController.aoPreencherPeloCatalogo(item -> {
@@ -169,13 +133,9 @@ public class AssistenteController {
         this.navegacao = navegacao;
         this.relogio = relogio;
         formMotorController.usarCatalogo(catalogo);
-        formVeiculoController.usarCatalogo(catalogo);
+        escolhaVeiculoController.iniciar(casos, catalogo);
         caixaInjecao.itens(catalogo.ativos(TipoCatalogo.INJECAO));
-        formClienteController.limpar(LocalDate.now(relogio));
-        pesquisarClientes();
-        boolean temClientes = !listaClientes.getItems().isEmpty();
-        clienteExistente.setDisable(!temClientes);
-        (temClientes ? clienteExistente : clienteNovo).setSelected(true);
+        escolhaClienteController.iniciar(casos, LocalDate.now(relogio));
         mostrarEtapa(CLIENTE);
     }
 
@@ -189,7 +149,8 @@ public class AssistenteController {
             return;
         }
         if (etapa == CLIENTE) {
-            prepararVeiculo();
+            escolhaVeiculoController.prepararPara(escolhaClienteController.existente(),
+                    escolhaClienteController.busca());
         }
         if (etapa < INJECAO) {
             mostrarEtapa(etapa + 1);
@@ -215,8 +176,9 @@ public class AssistenteController {
         }
         try {
             ItemCatalogo<Injecao> escolhida = caixaInjecao.escolhido();
-            long projeto = casos.criarProjeto(new NovoProjeto(escolhaCliente(), escolhaVeiculo(),
-                    descricaoMotor.getText(), formMotorController.ler().motor(), lerMeta().meta(),
+            long projeto = casos.criarProjeto(new NovoProjeto(escolhaClienteController.escolha(),
+                    escolhaVeiculoController.escolha(), descricaoMotor.getText(), formMotorController.ler().motor(),
+                    lerMeta().meta(),
                     escolhida == null ? null : escolhida.id()));
             navegacao.abrirProjeto(projeto);
         } catch (EntradaInvalidaException erro) {
@@ -267,24 +229,8 @@ public class AssistenteController {
         LocalDate hoje = LocalDate.now(relogio);
         List<String> erros = new ArrayList<>();
         switch (etapa) {
-            case CLIENTE -> {
-                if (clienteExistente.isSelected() && listaClientes.getSelectionModel().getSelectedItem() == null) {
-                    erros.add("Escolha o cliente na lista ou marque \"Cliente novo\".");
-                } else if (clienteNovo.isSelected()) {
-                    erros.addAll(formClienteController.ler().validar(hoje));
-                }
-            }
-            case VEICULO -> {
-                if (veiculoExistente.isSelected() && listaVeiculos.getSelectionModel().getSelectedItem() == null) {
-                    erros.add("Escolha o veículo na lista ou marque \"Veículo novo\".");
-                } else if (veiculoNovo.isSelected()) {
-                    VeiculoFormController.Leitura leitura = formVeiculoController.ler();
-                    erros.addAll(leitura.erros());
-                    if (leitura.veiculo() != null) {
-                        erros.addAll(leitura.veiculo().validar(hoje.getYear()));
-                    }
-                }
-            }
+            case CLIENTE -> erros.addAll(escolhaClienteController.conferir(hoje));
+            case VEICULO -> erros.addAll(escolhaVeiculoController.conferir(hoje.getYear()));
             case MOTOR -> {
                 LeitorFormulario.LeituraMotor leitura = formMotorController.ler();
                 if (!leitura.erros().isEmpty()) {
@@ -347,19 +293,11 @@ public class AssistenteController {
         if (motor.sensorEtanol()) {
             exigidos.add(Recurso.SENSOR_ETANOL);
         }
-        Veiculo veiculo = veiculoEscolhido();
+        Veiculo veiculo = escolhaVeiculoController.veiculo();
         if (veiculo != null && veiculo.cambioControladoPelaInjecao()) {
             exigidos.add(Recurso.CAMBIO);
         }
         return exigidos;
-    }
-
-    private Veiculo veiculoEscolhido() {
-        if (veiculoExistente.isSelected()) {
-            VeiculoSalvo salvo = listaVeiculos.getSelectionModel().getSelectedItem();
-            return salvo == null ? null : salvo.veiculo();
-        }
-        return formVeiculoController.ler().veiculo();
     }
 
     private void mostrarInjecao(String titulo, List<String> itens, String estilo) {
@@ -376,42 +314,6 @@ public class AssistenteController {
         }
     }
 
-    /** Ao sair da etapa Cliente: os veículos do cliente escolhido, ou só "Veículo novo" para cliente novo. */
-    private void prepararVeiculo() {
-        ClienteSalvo escolhido = clienteExistente.isSelected() ? listaClientes.getSelectionModel().getSelectedItem()
-                : null;
-        List<VeiculoSalvo> veiculos = escolhido == null ? List.of() : casos.veiculosDoCliente(escolhido.id());
-        listaVeiculos.getItems().setAll(veiculos);
-        veiculoExistente.setDisable(veiculos.isEmpty());
-        if (veiculos.isEmpty()) {
-            veiculoNovo.setSelected(true);
-        } else {
-            veiculoExistente.setSelected(true);
-            listaVeiculos.getSelectionModel().selectFirst();
-        }
-    }
-
-    private void pesquisarClientes() {
-        if (casos != null) {
-            listaClientes.getItems().setAll(casos.pesquisarClientes(buscaCliente.getText()));
-        }
-    }
-
-    private EscolhaCliente escolhaCliente() {
-        if (clienteExistente.isSelected()) {
-            return new ClienteExistente(listaClientes.getSelectionModel().getSelectedItem().id());
-        }
-        Cliente novo = formClienteController.ler();
-        return new ClienteNovo(novo);
-    }
-
-    private EscolhaVeiculo escolhaVeiculo() {
-        if (veiculoExistente.isSelected()) {
-            return new VeiculoExistente(listaVeiculos.getSelectionModel().getSelectedItem().id());
-        }
-        return new VeiculoNovo(formVeiculoController.ler().veiculo(), formVeiculoController.cambioItemId());
-    }
-
     private LeitorFormulario.LeituraMeta lerMeta() {
         return LeitorFormulario.lerMeta(camposMeta.valores());
     }
@@ -424,15 +326,5 @@ public class AssistenteController {
             rotulo.setWrapText(true);
             mensagens.getChildren().add(rotulo);
         }
-    }
-
-    private static <T> ListCell<T> celula(Function<T, String> texto) {
-        return new ListCell<>() {
-            @Override
-            protected void updateItem(T item, boolean vazio) {
-                super.updateItem(item, vazio);
-                setText(vazio || item == null ? null : texto.apply(item));
-            }
-        };
     }
 }

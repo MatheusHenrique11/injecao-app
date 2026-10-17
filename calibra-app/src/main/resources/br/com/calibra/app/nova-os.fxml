@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Nova OS (SPEC 8.9): Cliente → Veículo → Serviço e entrada (a entrada só se o veículo já chegou). -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.NovaOsController">
+  <top>
+    <VBox styleClass="pagina">
+      <Label styleClass="titulo-secao" text="Nova OS"/>
+      <HBox spacing="10.0" alignment="CENTER_LEFT">
+        <Label fx:id="etapa1" text="1. Cliente"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa2" text="2. Veículo"/>
+        <Label styleClass="dica" text="›"/>
+        <Label fx:id="etapa3" text="3. Serviço e entrada"/>
+      </HBox>
+    </VBox>
+  </top>
+
+  <center>
+    <ScrollPane fx:id="rolagem" fitToWidth="true">
+      <StackPane>
+        <!-- ===================== 1. Cliente ===================== -->
+        <VBox fx:id="painelCliente" styleClass="pagina">
+          <fx:include fx:id="escolhaCliente" source="escolha-cliente.fxml"/>
+        </VBox>
+
+        <!-- ===================== 2. Veículo ===================== -->
+        <VBox fx:id="painelVeiculo" styleClass="pagina">
+          <fx:include fx:id="escolhaVeiculo" source="escolha-veiculo.fxml"/>
+        </VBox>
+
+        <!-- ===================== 3. Serviço e entrada ===================== -->
+        <VBox fx:id="painelServico" styleClass="pagina">
+          <Label fx:id="resumoEscolha" styleClass="negrito" wrapText="true"/>
+          <GridPane styleClass="grade">
+            <columnConstraints>
+              <ColumnConstraints minWidth="230.0"/>
+              <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+            <Label text="Serviço pedido pelo cliente" GridPane.rowIndex="0" GridPane.columnIndex="0"
+                   GridPane.valignment="TOP"/>
+            <TextArea fx:id="servicoPedido" prefRowCount="3" wrapText="true"
+                      promptText="Nas palavras do cliente, ex.: barulho na suspensão dianteira ao passar em lombada"
+                      GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+            <Label text="Mecânico (opcional)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
+              <ComboBox fx:id="mecanico" prefWidth="260.0"/>
+              <Button fx:id="botaoNovoMecanico" text="Novo mecânico…" onAction="#novoMecanico"/>
+            </HBox>
+            <Label text="Previsão de entrega (opcional)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <DatePicker fx:id="previsao" prefWidth="160.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            <Label text="Observações (opcional)" GridPane.rowIndex="3" GridPane.columnIndex="0"
+                   GridPane.valignment="TOP"/>
+            <TextArea fx:id="observacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="3"
+                      GridPane.columnIndex="1"/>
+          </GridPane>
+
+          <CheckBox fx:id="veiculoChegou" text="O veículo já está aqui: registrar a entrada agora" selected="true"/>
+          <Label fx:id="dicaSemEntrada" styleClass="dica" wrapText="true"
+                 text="Sem o veículo (orçamento por WhatsApp ou telefone), a entrada fica para quando ele chegar, na tela da OS. O serviço só começa depois da entrada."/>
+          <VBox fx:id="caixaEntrada" spacing="8.0">
+            <Label styleClass="titulo-secao" text="Entrada do veículo"/>
+            <GridPane styleClass="grade">
+              <columnConstraints>
+                <ColumnConstraints minWidth="230.0"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+              </columnConstraints>
+              <Label text="Chegada (dia e hora)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+              <HBox spacing="6.0" alignment="CENTER_LEFT" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                <DatePicker fx:id="entradaData" prefWidth="160.0"/>
+                <TextField fx:id="entradaHora" prefWidth="80.0" promptText="hh:mm"/>
+              </HBox>
+              <Label fx:id="rotuloUso" text="Km no painel" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+              <HBox spacing="10.0" alignment="CENTER_LEFT" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                <TextField fx:id="usoEntrada" prefWidth="160.0"/>
+                <Label fx:id="dicaUso" styleClass="dica"/>
+              </HBox>
+              <Label text="Tanque" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+              <ComboBox fx:id="combustivel" prefWidth="160.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+            </GridPane>
+
+            <Label styleClass="titulo-secao" text="Vistoria"/>
+            <Label styleClass="dica" wrapText="true"
+                   text="Anote o que já estava assim na chegada (riscos, amassados, trincas, pneu gasto). Em branco: nada a anotar."/>
+            <GridPane fx:id="gradeVistoria" styleClass="grade">
+              <columnConstraints>
+                <ColumnConstraints minWidth="230.0"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+              </columnConstraints>
+            </GridPane>
+
+            <Label styleClass="titulo-secao" text="Fotos da entrada"/>
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+              <Button fx:id="botaoFotos" text="Adicionar fotos…" onAction="#adicionarFotos"/>
+              <Button fx:id="botaoTirarFoto" text="Tirar da lista" onAction="#tirarFoto"/>
+              <Label styleClass="dica" wrapText="true"
+                     text="JPG ou PNG, até 20 MB cada. Dá para arrastar as fotos do Windows Explorer para cá."/>
+            </HBox>
+            <ListView fx:id="listaFotos" prefHeight="110.0"/>
+          </VBox>
+        </VBox>
+      </StackPane>
+    </ScrollPane>
+  </center>
+
+  <bottom>
+    <VBox>
+      <VBox fx:id="mensagens" styleClass="pagina" spacing="4.0"/>
+      <HBox styleClass="rodape" spacing="10.0">
+        <Button text="Cancelar" cancelButton="true" onAction="#cancelar"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="botaoVoltar" text="← _Voltar" onAction="#voltar"/>
+        <Button fx:id="botaoProximo" text="_Próximo →" defaultButton="true" onAction="#proximo"/>
+        <Button fx:id="botaoAbrir" text="_Abrir a OS" onAction="#abrirOs"/>
+      </HBox>
+    </VBox>
+  </bottom>
+</BorderPane>
