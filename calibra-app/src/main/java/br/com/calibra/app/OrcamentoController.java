@@ -100,7 +100,6 @@ public class OrcamentoController {
     @FXML private VBox mensagens;
     @FXML private Button botaoPdf;
     @FXML private Button botaoWhatsApp;
-    @FXML private Label avisoDocumento;
     @FXML private Button botaoEnviado;
     @FXML private Button botaoAprovado;
     @FXML private Button botaoRecusado;
@@ -355,8 +354,6 @@ public class OrcamentoController {
                 + "obra em horas. Valores em reais com vírgula (ex.: 1.234,56).");
         botaoPecasDoCalculo.setVisible(comCalculo);
         botaoPecasDoCalculo.setManaged(comCalculo);
-        avisoDocumento.setVisible(!comCalculo);
-        avisoDocumento.setManaged(!comCalculo);
         boolean desatualizado = atual != null && atual.desatualizado() && o.status() != StatusOrcamento.SUBSTITUIDO;
         faixaDesatualizado.setVisible(desatualizado);
         faixaDesatualizado.setManaged(desatualizado);
@@ -399,7 +396,7 @@ public class OrcamentoController {
         botaoAdicionarServico.setDisable(!editavel);
         botaoServicoDoCatalogo.setDisable(!editavel);
         botaoPecasDoCalculo.setDisable(!editavel);
-        boolean documento = atual != null && comCalculo();
+        boolean documento = atual != null;
         botaoPdf.setDisable(!documento);
         botaoWhatsApp.setDisable(!documento);
         botaoEnviado.setDisable(status != StatusOrcamento.RASCUNHO);

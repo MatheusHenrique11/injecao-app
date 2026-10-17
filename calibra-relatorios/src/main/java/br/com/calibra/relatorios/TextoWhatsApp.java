@@ -9,7 +9,8 @@ import br.com.calibra.core.orcamento.Orcamento;
 
 /**
  * O orçamento em texto para colar no WhatsApp (bloco 2.5), com o *negrito* do WhatsApp. O app só copia para a área
- * de transferência: quem envia é a pessoa (regra 2.1, zero rede).
+ * de transferência: quem envia é a pessoa (regra 2.1, zero rede). O da OS sem projeto (bloco 3.3) sai sem o motor, a
+ * meta e a nota do mapa base.
  */
 public final class TextoWhatsApp {
 
@@ -24,8 +25,10 @@ public final class TextoWhatsApp {
                 + (oficina.nome().isEmpty() ? "" : " — " + oficina.nome()));
         linhas.add("Cliente: " + dados.cliente());
         linhas.add("Veículo: " + dados.veiculo());
-        linhas.add("Motor: " + dados.motor());
-        linhas.add("Meta: " + RelatorioMemoria.descreverMeta(dados.entrada().meta()));
+        if (dados.dePreparacao()) {
+            linhas.add("Motor: " + dados.preparacao().motor());
+            linhas.add("Meta: " + RelatorioMemoria.descreverMeta(dados.preparacao().entrada().meta()));
+        }
         itens(linhas, "*Peças*", o.pecas());
         itens(linhas, "*Serviços*", o.servicos());
         linhas.add("");
@@ -48,10 +51,16 @@ public final class TextoWhatsApp {
         if (!o.observacoes().isEmpty()) {
             linhas.add("Obs.: " + o.observacoes());
         }
-        linhas.add("");
-        linhas.add("_" + TextoOrcamento.NOTA_MAPA_BASE + "_");
+        List<String> rodape = new ArrayList<>();
+        if (dados.dePreparacao()) {
+            rodape.add("_" + TextoOrcamento.NOTA_MAPA_BASE + "_");
+        }
         if (!oficina.telefone().isEmpty()) {
-            linhas.add(oficina.nome().isEmpty() ? oficina.telefone() : oficina.nome() + " · " + oficina.telefone());
+            rodape.add(oficina.nome().isEmpty() ? oficina.telefone() : oficina.nome() + " · " + oficina.telefone());
+        }
+        if (!rodape.isEmpty()) {
+            linhas.add("");
+            linhas.addAll(rodape);
         }
         return String.join("\n", linhas);
     }

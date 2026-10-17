@@ -49,6 +49,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.Tag;
@@ -703,7 +704,10 @@ class OficinaUiTest {
         salvar(cena, "oficina-6-lista-com-as-novas.png");
     }
 
-    /** O orçamento da OS comum: itens digitados, enviado e aprovado; o cabeçalho da OS acompanha. */
+    /**
+     * O orçamento da OS comum: itens digitados, o PDF e o texto de WhatsApp (bloco 3.3), enviado e aprovado; o
+     * cabeçalho da OS acompanha.
+     */
     private void orcamentoDaOs() throws Exception {
         principal.abrirOs(ana);
         OsController os = principal.osAberta();
@@ -722,8 +726,15 @@ class OficinaUiTest {
         this.<Button>daAba("botaoAdicionarPeca").fire();
         orcamento.preencherLinha(1, "Amortecedor dianteiro (par)", "1", "par", "640,00");
         this.<Button>daAba("botaoSalvar").fire();
-        assertTrue(this.<Button>daAba("botaoPdf").isDisabled(), "o PDF do orçamento da OS comum chega no bloco 3.3");
-        assertTrue(this.<Label>daAba("avisoDocumento").isVisible());
+        assertFalse(this.<Button>daAba("botaoPdf").isDisabled(), "o PDF do orçamento da OS comum (bloco 3.3)");
+        Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+        Files.createDirectories(alvo);
+        orcamento.escreverPdf(alvo.resolve("exemplo-orcamento-os-app.pdf"));
+        assertTrue(Files.size(alvo.resolve("exemplo-orcamento-os-app.pdf")) > 1_500);
+        this.<Button>daAba("botaoWhatsApp").fire();
+        String whatsapp = Clipboard.getSystemClipboard().getString();
+        assertTrue(whatsapp.contains("*Total: R$ 1.000,00*"), whatsapp);
+        assertFalse(whatsapp.contains("Motor:"), "sem projeto, o texto sai sem o motor e a meta");
         this.<Button>daAba("botaoEnviado").fire();
         assertEquals("Aguardando aprovação", texto("status"), "o cabeçalho acompanha o orçamento");
         orcamento.aprovar(LocalDateTime.now().minusMinutes(5).withNano(0), MeioAprovacao.WHATSAPP, "Pode fazer.");

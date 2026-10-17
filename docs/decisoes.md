@@ -543,3 +543,7 @@ Plano aprovado em 17/10/2026. Respostas do dono:
     - cada serviço tem nome, horas (o tempo padrão), preço de referência (opcional), fonte (vem "Tabela da oficina") e observações, com versões como as outras abas; sem preço, as horas são obrigatórias. O tipo é texto no banco, então a aba nova não precisou de migração;
     - no orçamento (do projeto e da OS), "+ Serviço do catálogo…" acrescenta a linha: com preço, "1 serviço" pelo preço; sem preço, as horas × o valor da hora de Configurações (sem valor da hora configurado, o valor fica em branco para preencher). A linha guarda o item e a versão do catálogo, e os valores continuam editáveis;
     - a janela de escolha do catálogo passou a mostrar o preço de referência; vale também na escolha do motor e da injeção.
+195. **PDF e texto de WhatsApp do orçamento da OS sem projeto:**
+    - saem com o cliente e o veículo da OS, os itens, os totais, o prazo e a validade;
+    - não levam o motor, a meta, o resumo técnico nem a nota do mapa base, que só valem para a preparação;
+    - o aviso "chegam no bloco 3.3" saiu da tela do orçamento.

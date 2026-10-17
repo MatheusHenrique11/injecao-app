@@ -230,7 +230,7 @@ class CasosOrcamentoTest {
         DadosOrcamento rascunho = orcamentos.documento(criado.id(), DadosOficina.vazia(), null, "0.2.0-teste");
         assertEquals("João da Silva", rascunho.cliente());
         assertEquals("VW Gol GTi 1994 · ABC1D23", rascunho.veiculo());
-        assertEquals("AP 2.0 turbo (v1)", rascunho.motor());
+        assertEquals("AP 2.0 turbo (v1)", rascunho.preparacao().motor());
         assertNull(rascunho.logo());
 
         orcamentos.marcarEnviado(criado.id());

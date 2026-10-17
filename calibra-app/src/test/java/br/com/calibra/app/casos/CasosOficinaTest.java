@@ -35,6 +35,7 @@ import br.com.calibra.app.casos.CasosProjeto.NovoProjeto;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
 import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
@@ -69,6 +70,7 @@ import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
+import br.com.calibra.relatorios.DadosOrcamento;
 
 /**
  * A OS (fase 3, bloco 3.1): da entrada à entrega de uma OS comum, o orçamento antes do veículo, a recusa e as
@@ -152,6 +154,11 @@ class CasosOficinaTest {
         OrcamentoSalvo orcamento = orcamentos.criarNaOs(os, revisao("180,00"));
         assertFalse(orcamento.dePreparacao());
         assertEquals(List.of(), orcamentos.orcamentosDaOs(os).getFirst().motivos(), "a OS comum não desatualiza");
+        DadosOrcamento documento = orcamentos.documento(orcamento.id(), DadosOficina.vazia(), null, "0.3.0-teste");
+        assertFalse(documento.dePreparacao(), "o PDF da OS comum sai sem motor, meta e resumo técnico");
+        assertEquals("Ana Costa", documento.cliente(), "o cliente da OS");
+        assertEquals("VW Gol GTi 1994 · ABC1D23", documento.veiculo(), "o veículo da OS");
+        assertEquals(LocalDate.of(2026, 10, 13), documento.emissao(), "rascunho: a data da geração");
 
         OperacaoRecusadaException cedo = assertThrows(OperacaoRecusadaException.class,
                 () -> oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, ""));

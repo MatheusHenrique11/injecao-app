@@ -39,7 +39,10 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** PDF e texto de WhatsApp do orçamento (bloco 2.5), com o caso golden B e dados fictícios. */
+/**
+ * PDF e texto de WhatsApp do orçamento (bloco 2.5), com o caso golden B, e do orçamento da OS sem projeto (bloco
+ * 3.3). Dados fictícios.
+ */
 class RelatorioOrcamentoTest {
 
     private static final LocalDateTime AGORA = LocalDateTime.of(2026, 10, 13, 16, 45);
@@ -72,14 +75,31 @@ class RelatorioOrcamentoTest {
         return arquivo;
     }
 
+    private static DadosOficina oficina() {
+        return new DadosOficina("Oficina Teste (fictícia)", "11.222.333/0001-81", "Rua das Bielas, 100 · São Paulo",
+                "(11) 99999-0000", "contato@oficina-teste.com.br", null);
+    }
+
     private DadosOrcamento dados(String cliente, StatusOrcamento status, Path logo) {
         EntradaDimensionamento entrada = RelatorioMemoriaTest.casoB();
         Resultado<Dimensionamento> resultado = CalculoDimensionamento.calcular(entrada);
-        return new DadosOrcamento(new DadosOficina("Oficina Teste (fictícia)", "11.222.333/0001-81",
-                "Rua das Bielas, 100 · São Paulo", "(11) 99999-0000", "contato@oficina-teste.com.br", null), logo,
-                cliente, "VW Gol GTi 1994 · ABC1D23", "AP 2.0 turbo (v1)", new NumeroOrcamento(2026, 1, 1), status,
-                conteudo(), LocalDate.of(2026, 10, 13), entrada, resultado,
-                List.of(new Justificativa(Indicador.DC_BICO, "Bico maior encomendado.", AGORA)), "0.2.0-teste", AGORA);
+        return new DadosOrcamento(oficina(), logo, cliente, "VW Gol GTi 1994 · ABC1D23", new NumeroOrcamento(2026, 1, 1),
+                status, conteudo(), LocalDate.of(2026, 10, 13), new DadosOrcamento.Preparacao("AP 2.0 turbo (v1)",
+                        entrada, resultado, List.of(new Justificativa(Indicador.DC_BICO, "Bico maior encomendado.",
+                                AGORA))), "0.2.0-teste", AGORA);
+    }
+
+    /** O orçamento da OS sem projeto (bloco 3.3): 4 l de óleo e 2 h de mão de obra, sem a parte de preparação. */
+    private static DadosOrcamento dadosDaOs(Path logo) {
+        Orcamento revisao = new Orcamento(List.of(
+                ItemOrcamento.digitado(TipoItem.PECA, "Óleo 5W30 (litro)", BigDecimal.valueOf(4), "l",
+                        Dinheiro.ler("45,00")),
+                ItemOrcamento.digitado(TipoItem.SERVICO, "Troca de óleo e filtros", BigDecimal.valueOf(2), "h",
+                        Dinheiro.ler("180,00"))),
+                Desconto.NENHUM, 1, "", 15, "", "");
+        return new DadosOrcamento(oficina(), logo, "Ana Costa (fictícia)", "Fiat Uno Mille 2011 · EFG4H56",
+                new NumeroOrcamento(2026, 3, 1), StatusOrcamento.ENVIADO, revisao, LocalDate.of(2026, 10, 13), null,
+                "0.3.0-teste", AGORA);
     }
 
     private static String texto(Path pdf) throws IOException {
@@ -156,7 +176,56 @@ class RelatorioOrcamentoTest {
         assertEquals(esperado, TextoWhatsApp.de(dados("João da Silva", StatusOrcamento.ENVIADO, null)));
     }
 
-    /** Deixa um PDF de exemplo em target/ para conferência visual (evidência do bloco 2.5). */
+    /** O orçamento da OS sem projeto (bloco 3.3) sai sem o motor, a meta, o resumo técnico e a nota do mapa base. */
+    @Test
+    void pdfDaOsSemProjeto() throws IOException {
+        Path destino = pasta.resolve("orcamento-os.pdf");
+        RelatorioOrcamento.gerar(dadosDaOs(logo()), destino);
+        String texto = texto(destino);
+        assertTrue(texto.contains("Orçamento ORC-2026-0003"));
+        assertTrue(texto.contains("Ana Costa (fictícia)"));
+        assertTrue(texto.contains("Fiat Uno Mille 2011 · EFG4H56"));
+        assertTrue(texto.contains("Óleo 5W30 (litro) 4 l R$ 45,00 R$ 180,00"), "linha da tabela");
+        assertTrue(texto.contains("Troca de óleo e filtros 2 h R$ 180,00 R$ 360,00"));
+        assertTrue(texto.contains("Total R$ 540,00"));
+        assertTrue(texto.contains("1 dia útil"));
+        for (String deFora : List.of("Motor", "Meta", "Resumo técnico", "mapa base", "dinamômetro")) {
+            assertFalse(texto.contains(deFora), deFora);
+        }
+        assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+        assertTrue(temImagem(destino), "o logo entra no PDF");
+    }
+
+    @Test
+    void textoParaWhatsAppDaOsSemProjeto() {
+        String esperado = """
+                *Orçamento ORC-2026-0003* — Oficina Teste (fictícia)
+                Cliente: Ana Costa (fictícia)
+                Veículo: Fiat Uno Mille 2011 · EFG4H56
+
+                *Peças*
+                • Óleo 5W30 (litro) — 4 l × R$ 45,00 = R$ 180,00
+
+                *Serviços*
+                • Troca de óleo e filtros — 2 h × R$ 180,00 = R$ 360,00
+
+                Peças: R$ 180,00
+                Serviços: R$ 360,00
+                *Total: R$ 540,00*
+
+                Prazo: 1 dia útil
+                Validade: até 28/10/2026 (15 dias)
+
+                Oficina Teste (fictícia) · (11) 99999-0000""";
+        assertEquals(esperado, TextoWhatsApp.de(dadosDaOs(null)));
+        DadosOrcamento semTelefone = new DadosOrcamento(DadosOficina.vazia(), null, "Ana Costa (fictícia)", "Fiat Uno",
+                new NumeroOrcamento(2026, 3, 1), StatusOrcamento.ENVIADO, dadosDaOs(null).conteudo(),
+                LocalDate.of(2026, 10, 13), null, "0.3.0-teste", AGORA);
+        assertTrue(TextoWhatsApp.de(semTelefone).endsWith("Validade: até 28/10/2026 (15 dias)"),
+                "sem a nota e sem o telefone, o texto termina na validade");
+    }
+
+    /** Deixa PDFs de exemplo em target/ para conferência visual (evidência dos blocos 2.5 e 3.3). */
     @Test
     void geraExemploParaConferencia() throws IOException {
         Path destino = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target")
@@ -166,6 +235,10 @@ class RelatorioOrcamentoTest {
         Files.writeString(destino.resolveSibling("exemplo-orcamento-whatsapp.txt"),
                 TextoWhatsApp.de(dados("João da Silva (fictício)", StatusOrcamento.ENVIADO, null)));
         assertTrue(Files.size(destino) > 3_000);
+        Path daOs = destino.resolveSibling("exemplo-orcamento-os.pdf");
+        RelatorioOrcamento.gerar(dadosDaOs(logo()), daOs);
+        Files.writeString(destino.resolveSibling("exemplo-orcamento-os-whatsapp.txt"), TextoWhatsApp.de(dadosDaOs(null)));
+        assertTrue(Files.size(daOs) > 1_500, "uma página só, menor que a do orçamento de preparação");
     }
 
     private static boolean temImagem(Path pdf) throws IOException {

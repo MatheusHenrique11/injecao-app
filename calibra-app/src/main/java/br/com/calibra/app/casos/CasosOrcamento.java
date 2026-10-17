@@ -33,6 +33,8 @@ import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.dados.BancoDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
+import br.com.calibra.dados.cadastro.ClienteRepositorio;
+import br.com.calibra.dados.cadastro.VeiculoRepositorio;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.catalogo.VersaoCatalogo;
@@ -82,6 +84,8 @@ public final class CasosOrcamento {
     private final OrdemServicoRepositorio ordens;
     private final OrdensDoProjeto ordensDoProjeto;
     private final CatalogoRepositorio catalogo;
+    private final ClienteRepositorio clientes;
+    private final VeiculoRepositorio veiculos;
 
     public CasosOrcamento(BancoDados banco, Clock relogio, CasosProjeto projetos) {
         this.banco = Objects.requireNonNull(banco, "banco");
@@ -92,6 +96,8 @@ public final class CasosOrcamento {
         this.ordens = new OrdemServicoRepositorio(relogio);
         this.ordensDoProjeto = new OrdensDoProjeto(relogio);
         this.catalogo = new CatalogoRepositorio(relogio);
+        this.clientes = new ClienteRepositorio(relogio);
+        this.veiculos = new VeiculoRepositorio(relogio);
     }
 
     // ===================== Consultas =====================
@@ -185,26 +191,40 @@ public final class CasosOrcamento {
 
     /**
      * Os dados do PDF e do texto de WhatsApp de uma revisão: o cliente como está agora no cadastro (anonimizado, se
-     * for o caso), o veículo, a versão do motor e o cálculo que o orçamento usou.
+     * for o caso) e o veículo; no de preparação, também a versão do motor e o cálculo que o orçamento usou. O da OS
+     * sem projeto (bloco 3.3) leva o cliente e o veículo da OS.
      *
      * @param logo o arquivo do logo da oficina; null sem logo
      */
     public DadosOrcamento documento(long orcamentoId, DadosOficina oficina, Path logo, String versaoApp) {
         OrcamentoSalvo orcamento = exigir(orcamentoId);
-        CalculoDoOrcamento usado = exigirPreparacao(orcamento);
+        LocalDateTime agora = LocalDateTime.now(relogio).withSecond(0).withNano(0);
+        LocalDate emissao = orcamento.enviadoEm() == null ? agora.toLocalDate() : orcamento.enviadoEm().toLocalDate();
+        if (!orcamento.dePreparacao()) {
+            return banco.ler(c -> {
+                OrdemServicoSalva os = ordens.buscar(c, orcamento.osId()).orElseThrow();
+                String cliente = clientes.buscar(c, os.clienteId()).orElseThrow().cliente().nome();
+                Veiculo veiculo = veiculos.buscar(c, os.veiculoId()).orElseThrow().veiculo();
+                return new DadosOrcamento(oficina, logo, cliente, textoVeiculo(veiculo), orcamento.numero(),
+                        orcamento.status(), orcamento.conteudo(), emissao, null, versaoApp, agora);
+            });
+        }
+        CalculoDoOrcamento usado = orcamento.calculo();
         CasosProjeto.ProjetoAberto aberto = projetos.abrir(usado.projetoId());
         CalculoSalvo calculo = projetos.calculo(usado.calculoId()).orElseThrow();
         VersaoMotor motor = projetos.versoesMotor(usado.projetoId()).stream()
                 .filter(v -> v.id() == usado.motorVersaoId()).findFirst().orElseThrow();
-        Veiculo veiculo = aberto.veiculo().veiculo();
-        String textoVeiculo = veiculo.descricao() + (veiculo.anoModelo() == null ? "" : " " + veiculo.anoModelo())
-                + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao());
         String textoMotor = (motor.descricao().isEmpty() ? "Motor" : motor.descricao()) + " (v" + motor.numero() + ")";
-        LocalDateTime agora = LocalDateTime.now(relogio).withSecond(0).withNano(0);
-        LocalDate emissao = orcamento.enviadoEm() == null ? agora.toLocalDate() : orcamento.enviadoEm().toLocalDate();
-        return new DadosOrcamento(oficina, logo, aberto.cliente().cliente().nome(), textoVeiculo, textoMotor,
-                orcamento.numero(), orcamento.status(), orcamento.conteudo(), emissao, calculo.entrada(),
-                calculo.resultado(), calculo.justificativas(), versaoApp, agora);
+        return new DadosOrcamento(oficina, logo, aberto.cliente().cliente().nome(),
+                textoVeiculo(aberto.veiculo().veiculo()), orcamento.numero(), orcamento.status(), orcamento.conteudo(),
+                emissao, new DadosOrcamento.Preparacao(textoMotor, calculo.entrada(), calculo.resultado(),
+                        calculo.justificativas()), versaoApp, agora);
+    }
+
+    /** "VW Gol GTi 1994 · ABC1D23": o veículo, o ano do modelo e a placa (ou o nome da embarcação). */
+    private static String textoVeiculo(Veiculo veiculo) {
+        return veiculo.descricao() + (veiculo.anoModelo() == null ? "" : " " + veiculo.anoModelo())
+                + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao());
     }
 
     // ===================== Rascunho =====================

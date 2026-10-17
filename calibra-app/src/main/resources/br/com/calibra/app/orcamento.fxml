@@ -100,8 +100,6 @@
       <Button fx:id="botaoRecusado" text="Recusado…" onAction="#recusado"/>
       <Button fx:id="botaoNovaRevisao" text="Nova revisão" onAction="#novaRevisao"/>
     </HBox>
-    <Label fx:id="avisoDocumento" styleClass="dica" wrapText="true" visible="false" managed="false"
-           text="O PDF e o texto de WhatsApp deste orçamento (sem projeto de preparação) chegam no bloco 3.3. Até lá, mande os itens e o total pelo WhatsApp e marque como enviado."/>
 
     <Label styleClass="titulo-secao" text="Revisões"/>
     <TableView fx:id="revisoes" prefHeight="170.0">

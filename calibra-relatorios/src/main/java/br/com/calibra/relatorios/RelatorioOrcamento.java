@@ -26,7 +26,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 /**
  * PDF do orçamento (bloco 2.5): cabeçalho da oficina com o logo; cliente, veículo, motor e meta; peças, serviços e
  * totais; prazo, validade, condições e observações; o resumo técnico (peças e semáforo, com as justificativas) e a
- * nota do mapa base conservador.
+ * nota do mapa base conservador. O da OS sem projeto (bloco 3.3) sai sem o motor, a meta, o resumo técnico e a nota.
  */
 public final class RelatorioOrcamento {
 
@@ -46,9 +46,11 @@ public final class RelatorioOrcamento {
             clienteEMeta(pdf, dados);
             itensETotais(pdf, dados.conteudo());
             prazoECondicoes(pdf, dados);
-            resumoTecnico(pdf, dados);
-            pdf.espaco(8f);
-            pdf.caixa(TextoOrcamento.NOTA_MAPA_BASE + " O Calibra não grava nada na injeção.");
+            if (dados.dePreparacao()) {
+                resumoTecnico(pdf, dados.preparacao());
+                pdf.espaco(8f);
+                pdf.caixa(TextoOrcamento.NOTA_MAPA_BASE + " O Calibra não grava nada na injeção.");
+            }
             pdf.terminar("Calibra · Orçamento " + dados.numero().comRevisao() + " · gerado em "
                     + dados.geradoEm().format(DATA_HORA));
             // Salva num temporário e troca depois: um PDF aberto no leitor nunca fica pela metade.
@@ -90,8 +92,10 @@ public final class RelatorioOrcamento {
         pdf.secao("Cliente e veículo");
         pdf.item("Cliente", dados.cliente());
         pdf.item("Veículo", dados.veiculo());
-        pdf.item("Motor", dados.motor());
-        pdf.item("Meta", RelatorioMemoria.descreverMeta(dados.entrada().meta()));
+        if (dados.dePreparacao()) {
+            pdf.item("Motor", dados.preparacao().motor());
+            pdf.item("Meta", RelatorioMemoria.descreverMeta(dados.preparacao().entrada().meta()));
+        }
     }
 
     private static void itensETotais(EscritorPdf pdf, Orcamento o) throws IOException {
@@ -132,7 +136,7 @@ public final class RelatorioOrcamento {
     }
 
     /** O que o cálculo diz das peças, com o semáforo e as justificativas dos vermelhos. */
-    private static void resumoTecnico(EscritorPdf pdf, DadosOrcamento dados) throws IOException {
+    private static void resumoTecnico(EscritorPdf pdf, DadosOrcamento.Preparacao dados) throws IOException {
         Dimensionamento d = dados.resultado().valor();
         EntradaDimensionamento e = dados.entrada();
         pdf.secao("Resumo técnico (estimativa do cálculo, núcleo " + dados.resultado().versaoNucleo() + ")");
