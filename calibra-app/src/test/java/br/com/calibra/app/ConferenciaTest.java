@@ -27,12 +27,14 @@ class ConferenciaTest {
     @Test
     void tudoCertoNoJavaDeDesenvolvimento() {
         List<Conferencia.Item> itens = Conferencia.executar(pasta);
-        assertEquals(4, itens.size());
+        assertEquals(5, itens.size());
         assertTrue(itens.stream().allMatch(Conferencia.Item::ok), itens::toString);
         String texto = imprimir(itens, 0);
         assertTrue(texto.contains("OK      Vírgula decimal (pt-BR): 1.234,5 · R$ 1.234,56"), texto);
         assertTrue(texto.contains("OK      Banco SQLite e migrações: banco na versão 7, 6 combustíveis"), texto);
         assertTrue(texto.contains("OK      PDF com fontes e imagens"), texto);
+        assertTrue(texto.contains("OK      Páginas para imprimir: "), texto);
+        assertTrue(texto.contains("pontos (A4 a 72 DPI)"), texto);
         assertTrue(texto.endsWith("Tudo certo." + System.lineSeparator()), texto);
     }
 

@@ -566,3 +566,12 @@ Plano aprovado em 17/10/2026. Respostas do dono:
     - o botão de voltar leva para onde a ficha foi aberta (a OS ou o projeto).
 200. **Componentes reaproveitados:** a lista de anexos virou um componente (`anexos.fxml` + `AnexosController`), usado na aba Anexos da OS e na ficha. As janelas de editar e de ver o histórico do cliente e do veículo, e a confirmação da anonimização, ficam em `JanelasCadastro`, usadas pelo projeto e pela ficha.
 201. **LGPD dos anexos:** anonimizar o cliente (pela ficha ou pelo projeto) apaga, na mesma gravação, os anexos marcados como documento pessoal: os das OS dele e os dos veículos dele que não são de OS. O arquivo sai da pasta só se nenhum outro anexo usar o mesmo. Fotos, laudos, notas, OS, projetos e cálculos ficam, e a confirmação diz que não tem volta. A anonimização passou de `CasosProjeto` para `CasosOficina`.
+
+## 18/10/2026 — Fase 3, bloco 3.4: revisão final, versão 0.3.0 e ensaio do instalador
+
+Plano aprovado em 18/10/2026. Resposta do dono: antes de ele abrir o 0.3.0 com os dados de verdade, a atualização do banco (V5 → V7) é ensaiada numa cópia deles, só com números (sem nome de cliente), e a cópia é apagada no fim.
+
+202. **Versão 0.3.0 e a conferência do pacote:**
+    - os 6 `pom.xml` passam para 0.3.0; o CHANGELOG fecha a 0.3.0, e o README e o manual dizem o que a versão faz;
+    - a conferência do instalador (`Inicio --conferir`) ganha o 5º item, "Páginas para imprimir": desenha a página A4 do PDF de exemplo no Java embutido, com o cache de fontes do PDFBox na pasta `cache`. Confere que o jlink não deixou de fora o que a impressão usa (a janela de impressão do Windows não dá para automatizar);
+    - o manual ganha "Atualizar do 0.2.0 para o 0.3.0": o backup "antes de atualizar o banco", os orçamentos que viram OS, o 0.2.0 que não abre mais os dados e como voltar se precisar.

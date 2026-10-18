@@ -1,5 +1,6 @@
 package br.com.calibra.app;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -35,13 +36,15 @@ import br.com.calibra.core.semaforo.Justificativa;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.relatorios.DadosRelatorio;
+import br.com.calibra.relatorios.PaginasPdf;
 import br.com.calibra.relatorios.RelatorioMemoria;
 
 /**
  * Conferência do pacote ({@code Inicio --conferir}): roda no Java embutido do instalador, sem abrir a tela, e confere
  * o que o jlink pode deixar de fora sem ninguém perceber: a vírgula decimal (dados do idioma pt-BR), o SQLite (a DLL
- * do sqlite-jdbc) com as migrações, o PDF (fontes e imagens) e o JavaFX. Tudo numa pasta temporária: não mexe nos
- * dados da oficina. A lista de módulos (regra 2.1, sem rede) quem confere é o script do instalador.
+ * do sqlite-jdbc) com as migrações, o PDF (fontes e imagens), o JavaFX e as páginas para imprimir (bloco 3.3). Tudo
+ * numa pasta temporária: não mexe nos dados da oficina. A lista de módulos (regra 2.1, sem rede) quem confere é o
+ * script do instalador.
  */
 final class Conferencia {
 
@@ -90,6 +93,17 @@ final class Conferencia {
             Class<?> botao = Class.forName("javafx.scene.control.Button", false, Conferencia.class.getClassLoader());
             String origem = botao.getModule().isNamed() ? "módulo " + botao.getModule().getName() : "classpath";
             return item(true, origem);
+        }));
+        itens.add(conferir("Páginas para imprimir", () -> {
+            // A impressão (bloco 3.3) desenha as páginas do PDF; as fontes do PDFBox vão para o cache da pasta.
+            Partida.prepararCaches(pastas);
+            Path pdf = pasta.resolve("para-imprimir.pdf");
+            RelatorioMemoria.gerar(dadosDeExemplo(), pdf);
+            List<BufferedImage> paginas = PaginasPdf.desenhar(pdf, 72f);
+            BufferedImage primeira = paginas.getFirst();
+            boolean a4 = Math.abs(primeira.getWidth() - 595) <= 1 && Math.abs(primeira.getHeight() - 842) <= 1;
+            return item(a4, paginas.size() + (paginas.size() == 1 ? " página" : " páginas") + " de "
+                    + primeira.getWidth() + " × " + primeira.getHeight() + " pontos (A4 a 72 DPI)");
         }));
         return itens;
     }

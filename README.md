@@ -8,8 +8,9 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
 Fase 2 (0.2.0): banco de dados com backup e restauração; projetos com cliente, veículo (com histórico) e motor (com versões); catálogos de peças, com o digitalizador do mapa do compressor; dimensionamento com as peças do catálogo, meta pela pressão do turbo e torque × câmbio; orçamento em PDF e em texto para WhatsApp; instalador MSI. Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
+Fase 3 (0.3.0): a oficina. Ordem de serviço da entrada do veículo (vistoria e fotos) à entrega com garantia e ao pagamento em partes; Painel e lista da Oficina; o orçamento passa a pertencer à OS; via do cliente e comprovante de entrega em PDF ou impressos; textos para o WhatsApp; catálogo de serviços; ficha do veículo; projeto de preparação ligado à OS.
+
 Próximas fases (SPEC 12, roteiro de 15/10/2026):
-- **3 — Oficina:** ordens de serviço, da entrada do veículo à entrega.
 - **4 — Mapa base.**
 - **5 — Agenda e lembretes.**
 - **6 — Acerto, relatório e biblioteca.**

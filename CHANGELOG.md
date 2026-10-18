@@ -2,7 +2,7 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
-## [Não lançado] — Fase 3 (vai sair como 0.3.0)
+## [0.3.0] — 18/10/2026 — Fase 3
 
 ### Adicionado
 - **Ordem de serviço (OS)**, do número `OS-ano-sequência` à entrega: status com histórico (aberta, aguardando aprovação, aprovada, em execução, aguardando peças, pronta, entregue ou cancelada com o motivo), entrada do veículo com km, tanque, vistoria e objetos deixados, entrega com km de saída e garantia, e pagamento em partes, com o recebimento errado cancelado (nunca apagado). Serviço só começa com orçamento aprovado e com a entrada registrada.
@@ -28,6 +28,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - A busca de cliente acha também pela placa ou pelo nome da embarcação dos veículos dele.
 - Banco de dados na versão 7 (V6: ordens de serviço; V7: anexos). Como sempre, a atualização faz um backup antes.
 - O app de desenvolvimento (`javafx:run`) usa uma pasta de dados só dele, `%LOCALAPPDATA%\Calibra-dev`.
+- A conferência do instalador confere também as páginas para imprimir (5 itens).
 
 ## [0.2.0] — 15/10/2026 — Fase 2
 
