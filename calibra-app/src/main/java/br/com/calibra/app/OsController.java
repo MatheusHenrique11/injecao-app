@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -29,6 +30,8 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
@@ -52,7 +55,9 @@ import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosOficina.ProjetoDoVeiculo;
 import br.com.calibra.app.casos.CasosOficina.SituacaoDoPagamento;
 import br.com.calibra.app.casos.CasosProjeto;
+import br.com.calibra.app.casos.LogoOficina;
 import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.EntradaVeiculo;
@@ -68,6 +73,9 @@ import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.projeto.VersaoMotor;
+import br.com.calibra.relatorios.DadosOs;
+import br.com.calibra.relatorios.RelatorioOs;
+import br.com.calibra.relatorios.TextoWhatsAppOs;
 
 /**
  * Tela da OS (SPEC 8.9): o cabeçalho com o cliente, o veículo, o status e os passos do serviço (começar, aguardar
@@ -79,10 +87,11 @@ public class OsController {
     /**
      * O que a tela usa do resto do app.
      *
-     * @param padroes os padrões de Configurações › OS, lidos na hora (itens da vistoria e garantia da entrega)
+     * @param padroes os padrões de Configurações › OS, lidos na hora (itens da vistoria, garantia e texto da via)
+     * @param temporaria onde o PDF de uma impressão fica enquanto as páginas são desenhadas
      */
     record Recursos(CasosOficina oficina, CasosProjeto projetos, OrcamentoController.Recursos orcamento,
-            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes) {
+            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes, Path temporaria) {
     }
 
     private static final double LARGURA_MINIATURA = 120;
@@ -98,6 +107,13 @@ public class OsController {
     @FXML private Button botaoPronta;
     @FXML private Button botaoEntregar;
     @FXML private Button botaoCancelarOs;
+    @FXML private MenuButton menuDocumentos;
+    @FXML private MenuItem itemViaPdf;
+    @FXML private MenuItem itemViaImprimir;
+    @FXML private MenuItem itemComprovantePdf;
+    @FXML private MenuItem itemComprovanteImprimir;
+    @FXML private MenuItem itemTextoAberta;
+    @FXML private MenuItem itemTextoPronta;
     @FXML private TabPane abas;
     @FXML private Tab abaEntrada;
     // ---------- Entrada ----------
@@ -293,6 +309,14 @@ public class OsController {
         mostrar(botaoPronta, atual == StatusOs.EM_EXECUCAO);
         mostrar(botaoEntregar, atual == StatusOs.PRONTA);
         mostrar(botaoCancelarOs, !atual.finalizada());
+
+        // A via não sai da OS cancelada; o comprovante, só depois da entrega; cada texto, no momento dele.
+        itemViaPdf.setDisable(atual == StatusOs.CANCELADA);
+        itemViaImprimir.setDisable(atual == StatusOs.CANCELADA);
+        itemComprovantePdf.setDisable(atual != StatusOs.ENTREGUE);
+        itemComprovanteImprimir.setDisable(atual != StatusOs.ENTREGUE);
+        itemTextoAberta.setDisable(atual.finalizada());
+        itemTextoPronta.setDisable(atual != StatusOs.PRONTA);
     }
 
     /** O que fazer agora, em português, pelo status (e pelo que falta: o orçamento aprovado, a entrada). */
@@ -675,11 +699,128 @@ public class OsController {
         }
     }
 
+    // ===================== Documentos =====================
+
+    /** Um documento da OS em PDF: a via do cliente ou o comprovante de entrega. */
+    @FunctionalInterface
+    private interface DocumentoOs {
+        void escrever(DadosOs dados, Path destino) throws IOException;
+    }
+
+    @FXML
+    private void viaPdf() {
+        if (tudoSalvo()) {
+            gerarPdf("Via do cliente", "via-do-cliente", RelatorioOs::viaDoCliente);
+        }
+    }
+
+    @FXML
+    private void viaImprimir() {
+        if (tudoSalvo()) {
+            imprimir("Via do cliente", RelatorioOs::viaDoCliente);
+        }
+    }
+
+    @FXML
+    private void comprovantePdf() {
+        gerarPdf("Comprovante de entrega", "comprovante-de-entrega", RelatorioOs::comprovanteDeEntrega);
+    }
+
+    @FXML
+    private void comprovanteImprimir() {
+        imprimir("Comprovante de entrega", RelatorioOs::comprovanteDeEntrega);
+    }
+
+    @FXML
+    private void copiarTextoAberta() {
+        if (tudoSalvo()) {
+            copiar(TextoWhatsAppOs.osAberta(documento()));
+        }
+    }
+
+    @FXML
+    private void copiarTextoPronta() {
+        copiar(TextoWhatsAppOs.prontaParaRetirar(documento()));
+    }
+
+    private void gerarPdf(String titulo, String nome, DocumentoOs documento) {
+        DadosOs dados = documento();
+        ArquivoPdf.gerar(janela(), recursos.servicos(), titulo, numero() + "-" + nome + ".pdf",
+                destino -> documento.escrever(dados, destino), this::mostrarOk, () -> { });
+    }
+
+    private void imprimir(String titulo, DocumentoOs documento) {
+        DadosOs dados = documento();
+        Impressao.imprimir(janela(), titulo + " " + numero(), recursos.temporaria(),
+                destino -> documento.escrever(dados, destino), this::mostrarOk);
+    }
+
+    private void copiar(String texto) {
+        if (AreaDeTransferencia.copiar(texto)) {
+            mostrarOk(AreaDeTransferencia.COPIADO);
+        } else {
+            mostrarErros(List.of(AreaDeTransferencia.NAO_COPIOU));
+        }
+    }
+
+    /** Os dados dos documentos, lidos na hora: a oficina e o texto da via de Configurações e a OS como está gravada. */
+    private DadosOs documento() {
+        DadosOficina oficina = recursos.orcamento().oficina().get();
+        Path logo = LogoOficina.arquivo(oficina, recursos.orcamento().anexos()).orElse(null);
+        return recursos.oficina().documento(osId, oficina, logo, recursos.orcamento().versaoApp(),
+                recursos.padroes().get().textoVia());
+    }
+
+    /**
+     * Os documentos usam o que está gravado: com a abertura ou a entrada mudadas na tela e não salvas, a via sairia
+     * sem elas. Nesse caso, avisa o que salvar e não gera.
+     */
+    private boolean tudoSalvo() {
+        List<String> pendentes = pendentes();
+        if (pendentes.isEmpty()) {
+            return true;
+        }
+        mostrarErros(List.of("Antes do documento, salve o que mudou na aba Entrada: " + String.join(" e ", pendentes)
+                + ". O documento usa o que está gravado."));
+        return false;
+    }
+
+    /** O que mudou na aba Entrada e não foi salvo, com o botão que salva; vazio = a tela está igual ao gravado. */
+    List<String> pendentes() {
+        OrdemServicoSalva os = aberta.os();
+        List<String> pendentes = new ArrayList<>();
+        if (!servicoPedido.getText().strip().equals(os.servicoPedido())
+                || !Objects.equals(caixaMecanico.escolhido(), os.mecanicoId())
+                || !Objects.equals(previsao.getValue(), os.previsaoEntrega())
+                || !observacoes.getText().strip().equals(os.observacoes())) {
+            pendentes.add("a abertura (Salvar abertura)");
+        }
+        if (formEntradaController.diferenteDe(os.entrada())) {
+            pendentes.add("a entrada (" + botaoSalvarEntrada.getText() + ")");
+        }
+        return pendentes;
+    }
+
     // ===================== Para os testes =====================
 
     /** A aba Orçamento. */
     OrcamentoController orcamento() {
         return orcamento;
+    }
+
+    /** O menu Documentos do cabeçalho. */
+    MenuButton menuDocumentos() {
+        return menuDocumentos;
+    }
+
+    /** A via do cliente em PDF, sem perguntar onde salvar (para os testes e a evidência). */
+    void escreverViaDoCliente(Path destino) throws IOException {
+        RelatorioOs.viaDoCliente(documento(), destino);
+    }
+
+    /** O comprovante de entrega em PDF, sem perguntar onde salvar (para os testes e a evidência). */
+    void escreverComprovante(Path destino) throws IOException {
+        RelatorioOs.comprovanteDeEntrega(documento(), destino);
     }
 
     /** As mensagens da última ação. */
@@ -729,6 +870,11 @@ public class OsController {
     private void mostrarErros(List<String> erros) {
         mensagens.getChildren().clear();
         erros.forEach(erro -> mensagem("• " + erro, "erro"));
+    }
+
+    private void mostrarOk(String texto) {
+        mensagens.getChildren().clear();
+        mensagem(texto, "ok");
     }
 
     private void mensagem(String texto, String estilo) {

@@ -25,6 +25,7 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Labeled;
+import javafx.scene.input.Clipboard;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.stage.Stage;
@@ -70,6 +71,23 @@ final class TelaDeTeste {
         if (falha.get() != null) {
             throw falha.get();
         }
+    }
+
+    /**
+     * Roda na thread do JavaFX a ação que copia um texto e devolve o que foi para a área de transferência. Chame da
+     * thread do teste, nunca de dentro de um passo na tela: depois de cada cópia, o Windows pede o texto ao app, e só
+     * a thread da tela livre responde; presa num passo comprido, a área de transferência fica travada até ele acabar.
+     * A área é limpa antes, para não valer o que já estava nela.
+     */
+    static String copiadoPor(Runnable acao) throws Throwable {
+        naTelaDoJavaFx(() -> Clipboard.getSystemClipboard().clear());
+        naTelaDoJavaFx(acao::run);
+        AtomicReference<String> texto = new AtomicReference<>();
+        esperar(() -> {
+            texto.set(Clipboard.getSystemClipboard().getString());
+            return texto.get() != null;
+        }, "o texto ir para a área de transferência");
+        return texto.get();
     }
 
     /** Espera (até 30 s) uma condição conferida na thread do JavaFX, para trabalhos em segundo plano. */

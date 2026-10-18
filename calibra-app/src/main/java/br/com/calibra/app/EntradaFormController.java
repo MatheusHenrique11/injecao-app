@@ -5,9 +5,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -126,6 +128,28 @@ public class EntradaFormController {
         }
         return new EntradaVeiculo(LocalDateTime.of(dia, hora), uso, combustivel.getValue(),
                 new Vistoria(vistoria, objetos.getText()));
+    }
+
+    /**
+     * Se a tela tem algo diferente da entrada gravada (os documentos da OS usam a gravada). Sem entrada gravada, conta
+     * o que foi preenchido além do dia e da hora, que já vêm com a hora atual.
+     */
+    boolean diferenteDe(EntradaVeiculo gravada) {
+        if (gravada == null) {
+            return !usoEntrada.getText().isBlank() || combustivel.getValue() != null || !objetos.getText().isBlank()
+                    || observacoes.stream().anyMatch(campo -> !campo.getText().isBlank());
+        }
+        EntradaVeiculo lida = ler(new ArrayList<>());
+        if (lida == null) {
+            return true;
+        }
+        // A gravada sem itens mostra os de Configurações em branco: em branco, continua igual.
+        boolean mesmaVistoria = gravada.vistoria().itens().isEmpty()
+                ? lida.vistoria().itens().stream().allMatch(item -> item.observacao().isEmpty())
+                : lida.vistoria().itens().equals(gravada.vistoria().itens());
+        return !lida.quando().equals(gravada.quando().truncatedTo(ChronoUnit.MINUTES))
+                || !Objects.equals(lida.uso(), gravada.uso()) || lida.combustivel() != gravada.combustivel()
+                || !mesmaVistoria || !lida.vistoria().objetos().equals(gravada.vistoria().objetos());
     }
 
     /** Só se edita com a OS em andamento. */

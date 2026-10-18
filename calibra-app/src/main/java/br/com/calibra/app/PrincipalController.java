@@ -206,7 +206,7 @@ public class PrincipalController implements Navegacao {
         Parent tela = carregar(carregador);
         OsController os = carregador.getController();
         os.iniciar(new OsController.Recursos(casosOficina, casosProjeto, recursosDoOrcamento(), servicos, this,
-                contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS)), osId);
+                contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria()), osId);
         novaOsAberta = null;
         osAberta = os;
         abrirNaAreaDaOficina(tela, os.numero());

@@ -23,6 +23,9 @@ import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
 import br.com.calibra.app.casos.CasosProjeto.EscolhaVeiculo;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoExistente;
 import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.cadastro.Cliente;
+import br.com.calibra.core.cadastro.DadosOficina;
+import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
@@ -59,6 +62,7 @@ import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 import br.com.calibra.dados.projeto.MotorRepositorio;
 import br.com.calibra.dados.projeto.ProjetoRepositorio;
 import br.com.calibra.dados.projeto.ProjetoSalvo;
+import br.com.calibra.relatorios.DadosOs;
 
 /**
  * Casos de uso da oficina (fase 3, SPEC 6.5): abrir a OS (com ou sem a entrada do veículo), registrar a entrada, a
@@ -406,6 +410,32 @@ public final class CasosOficina {
 
     public List<MudancaStatusOs> historico(long osId) {
         return banco.ler(c -> ordens.historico(c, osId));
+    }
+
+    /**
+     * Os dados dos documentos da OS (bloco 3.3): a via do cliente, o comprovante de entrega e os textos de WhatsApp.
+     * O cliente como está agora no cadastro (anonimizado, se for o caso); o valor é o da última revisão aprovada.
+     *
+     * @param logo o arquivo do logo da oficina; null sem logo
+     * @param textoVia o texto acima das assinaturas na via do cliente (Configurações › OS)
+     */
+    public DadosOs documento(long osId, DadosOficina oficina, Path logo, String versaoApp, String textoVia) {
+        LocalDateTime agora = LocalDateTime.now(relogio).withSecond(0).withNano(0);
+        return banco.ler(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            Cliente cliente = clientes.buscar(c, os.clienteId()).orElseThrow().cliente();
+            Veiculo veiculo = veiculos.buscar(c, os.veiculoId()).orElseThrow().veiculo();
+            String mecanico = os.mecanicoId() == null ? ""
+                    : mecanicos.buscar(c, os.mecanicoId()).map(MecanicoSalvo::nome).orElse("");
+            DadosOs.OrcamentoAprovado aprovado = orcamentos.ultimoAprovado(c, osId)
+                    .map(o -> new DadosOs.OrcamentoAprovado(o.numero().comRevisao(), o.conteudo())).orElse(null);
+            List<DadosOs.Recebimento> recebimentos = pagamentos.daOs(c, osId).stream()
+                    .map(p -> new DadosOs.Recebimento(p.pagamento(), p.cancelado())).toList();
+            return new DadosOs(oficina, logo, os.numero().texto(), os.status(), os.criadoEm(), cliente.nome(),
+                    cliente.telefone(), CasosOrcamento.textoVeiculo(veiculo),
+                    veiculo.tipo() != null && veiculo.tipo().nautico(), os.servicoPedido(), os.previsaoEntrega(),
+                    mecanico, os.entrada(), os.entrega(), aprovado, recebimentos, textoVia, versaoApp, agora);
+        });
     }
 
     /** A OS atual do projeto de preparação; sem nenhuma em andamento, abre uma para ele (ABERTA, sem a entrada). */

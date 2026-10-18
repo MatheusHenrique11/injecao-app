@@ -221,8 +221,8 @@ public final class CasosOrcamento {
                         calculo.justificativas()), versaoApp, agora);
     }
 
-    /** "VW Gol GTi 1994 · ABC1D23": o veículo, o ano do modelo e a placa (ou o nome da embarcação). */
-    private static String textoVeiculo(Veiculo veiculo) {
+    /** "VW Gol GTi 1994 · ABC1D23": o veículo, o ano do modelo e a placa (ou o nome da embarcação); também na OS. */
+    static String textoVeiculo(Veiculo veiculo) {
         return veiculo.descricao() + (veiculo.anoModelo() == null ? "" : " " + veiculo.anoModelo())
                 + (veiculo.identificacao().isEmpty() ? "" : " · " + veiculo.identificacao());
     }

@@ -24,8 +24,6 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -543,10 +541,11 @@ public class OrcamentoController {
         if (!gravarSePreciso()) {
             return;
         }
-        ClipboardContent conteudo = new ClipboardContent();
-        conteudo.putString(TextoWhatsApp.de(documento()));
-        Clipboard.getSystemClipboard().setContent(conteudo);
-        mostrarOk("Texto copiado. Cole no WhatsApp do cliente (Ctrl+V) e envie você mesmo.");
+        if (AreaDeTransferencia.copiar(TextoWhatsApp.de(documento()))) {
+            mostrarOk(AreaDeTransferencia.COPIADO);
+        } else {
+            mostrarErros(List.of(AreaDeTransferencia.NAO_COPIOU));
+        }
     }
 
     private DadosOrcamento documento() {

@@ -21,8 +21,7 @@ public final class TextoWhatsApp {
         Orcamento o = dados.conteudo();
         DadosOficina oficina = dados.oficina();
         List<String> linhas = new ArrayList<>();
-        linhas.add("*Orçamento " + dados.numero().comRevisao() + "*"
-                + (oficina.nome().isEmpty() ? "" : " — " + oficina.nome()));
+        linhas.add("*Orçamento " + dados.numero().comRevisao() + "*" + TextoOficina.noTitulo(oficina));
         linhas.add("Cliente: " + dados.cliente());
         linhas.add("Veículo: " + dados.veiculo());
         if (dados.dePreparacao()) {
@@ -55,8 +54,8 @@ public final class TextoWhatsApp {
         if (dados.dePreparacao()) {
             rodape.add("_" + TextoOrcamento.NOTA_MAPA_BASE + "_");
         }
-        if (!oficina.telefone().isEmpty()) {
-            rodape.add(oficina.nome().isEmpty() ? oficina.telefone() : oficina.nome() + " · " + oficina.telefone());
+        if (!TextoOficina.contato(oficina).isEmpty()) {
+            rodape.add(TextoOficina.contato(oficina));
         }
         if (!rodape.isEmpty()) {
             linhas.add("");

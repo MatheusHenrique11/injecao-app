@@ -547,3 +547,14 @@ Plano aprovado em 17/10/2026. Respostas do dono:
     - saem com o cliente e o veículo da OS, os itens, os totais, o prazo e a validade;
     - não levam o motor, a meta, o resumo técnico nem a nota do mapa base, que só valem para a preparação;
     - o aviso "chegam no bloco 3.3" saiu da tela do orçamento.
+196. **Documentos da OS (menu Documentos ▾ no cabeçalho da OS):**
+    - **via do cliente** (A4): a OS, o cliente e o veículo, o serviço pedido, a previsão e o mecânico, a entrada com a vistoria item a item ("nada anotado" no item sem observação) e os objetos deixados, o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Não sai da OS cancelada;
+    - **comprovante de entrega** (A4, só depois da entrega): a entrega, o km de saída, a garantia com a data, os itens e os totais da última revisão aprovada numa tabela só (as peças antes dos serviços), os recebimentos (o cancelado aparece marcado e não conta), o valor, o recebido, o que falta, a situação e a assinatura de quem recebeu o veículo;
+    - **textos para o WhatsApp**, que só copiam: "OS aberta" (com a OS em andamento) e "pronto para retirar" (com a OS pronta), com o contato da oficina no fim. Se o Windows não deixar copiar (outro programa usando a área de transferência naquele instante), a tela avisa em vez de dizer "Texto copiado"; vale também para o texto do orçamento;
+    - o cabeçalho da oficina passou a ser o mesmo do orçamento (`TextoOficina`), e a tabela de itens e os totais do orçamento são reaproveitados no comprovante.
+197. **Os documentos usam o que está gravado:** com a abertura ou a entrada mudadas na tela e não salvas, a via e o texto "OS aberta" não saem, e a mensagem diz o que salvar (ex.: "a entrada (Salvar a correção da entrada)"). Assim a via que o cliente assina nunca sai sem uma observação da vistoria.
+198. **Imprimir** (via e comprovante):
+    - primeiro a janela de impressão do Windows, presa à do app; sem impressora instalada, um aviso (com a dica da "Microsoft Print to PDF");
+    - depois, em segundo plano, o PDF vai para um arquivo temporário em `cache\tmp` dos dados (apagado no fim) e as páginas são desenhadas a 200 DPI com o desenhista do PDFBox que já estava no projeto, sem dependência nova;
+    - cada página vai para a impressora do tamanho da área de impressão da folha escolhida, sem distorcer;
+    - na primeira vez o PDFBox procura as fontes do Windows (alguns segundos); a mensagem avisa, e o cache dele já fica na pasta `cache` dos dados desde a fase 2.

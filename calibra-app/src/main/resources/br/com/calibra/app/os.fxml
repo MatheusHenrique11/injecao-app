@@ -5,7 +5,10 @@
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -28,6 +31,24 @@
         <Button fx:id="botaoVoltar" text="← Oficina" onAction="#voltar"/>
         <Label fx:id="titulo" styleClass="titulo-projeto"/>
         <Label fx:id="status" styleClass="etiqueta-status"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <!-- Os documentos da OS (bloco 3.3): o PDF, a impressão e os textos para o WhatsApp. -->
+        <MenuButton fx:id="menuDocumentos" text="Documentos" minWidth="-Infinity">
+          <items>
+            <MenuItem fx:id="itemViaPdf" text="Via do cliente: gerar PDF…" onAction="#viaPdf"/>
+            <MenuItem fx:id="itemViaImprimir" text="Via do cliente: imprimir…" onAction="#viaImprimir"/>
+            <SeparatorMenuItem/>
+            <MenuItem fx:id="itemComprovantePdf" text="Comprovante de entrega: gerar PDF…"
+                      onAction="#comprovantePdf"/>
+            <MenuItem fx:id="itemComprovanteImprimir" text="Comprovante de entrega: imprimir…"
+                      onAction="#comprovanteImprimir"/>
+            <SeparatorMenuItem/>
+            <MenuItem fx:id="itemTextoAberta" text="Copiar texto para WhatsApp: OS aberta"
+                      onAction="#copiarTextoAberta"/>
+            <MenuItem fx:id="itemTextoPronta" text="Copiar texto para WhatsApp: pronto para retirar"
+                      onAction="#copiarTextoPronta"/>
+          </items>
+        </MenuButton>
       </HBox>
       <Label fx:id="subtitulo" styleClass="dica" wrapText="true"/>
       <HBox spacing="10.0" alignment="CENTER_LEFT">

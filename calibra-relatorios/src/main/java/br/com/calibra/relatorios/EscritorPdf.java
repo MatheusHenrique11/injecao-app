@@ -3,6 +3,7 @@ package br.com.calibra.relatorios;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -271,6 +272,49 @@ final class EscritorPdf {
         mostrar(textoRotulo, fonte, tamanho, direita - 110f - largura(textoRotulo, fonte, tamanho), y - tamanho);
         mostrar(textoValor, fonte, tamanho, direita - largura(textoValor, fonte, tamanho), y - tamanho);
         y -= altura;
+    }
+
+    /**
+     * Uma ou duas linhas de assinatura lado a lado, com o rótulo centralizado embaixo de cada uma (ex.: "Cliente" e
+     * "Responsável pela oficina"). As linhas e os rótulos ficam juntos na mesma página.
+     */
+    void assinaturas(List<String> rotulos) throws IOException {
+        if (rotulos.isEmpty() || rotulos.size() > 2) {
+            throw new IllegalArgumentException("Uma ou duas assinaturas por linha.");
+        }
+        float espacoParaAssinar = 42f;
+        float entre = 36f;
+        float largura = (LARGURA - entre) / 2;
+        float alturaLinha = CORPO * ENTRELINHA;
+        List<List<String>> textos = new ArrayList<>();
+        int maior = 1;
+        for (String rotulo : rotulos) {
+            List<String> linhas = quebrar(limpar(rotulo, normal), normal, CORPO, largura);
+            textos.add(linhas);
+            maior = Math.max(maior, linhas.size());
+        }
+        garantir(espacoParaAssinar + 3f + maior * alturaLinha);
+        y -= espacoParaAssinar;
+        conteudo.setStrokingColor(0f, 0f, 0f);
+        for (int i = 0; i < textos.size(); i++) {
+            float x = MARGEM + i * (largura + entre);
+            conteudo.moveTo(x, y);
+            conteudo.lineTo(x + largura, y);
+            conteudo.stroke();
+            float linhaY = y - 3f;
+            for (String linha : textos.get(i)) {
+                mostrar(linha, normal, CORPO, x + (largura - largura(linha, normal, CORPO)) / 2, linhaY - CORPO);
+                linhaY -= alturaLinha;
+            }
+        }
+        y -= 3f + maior * alturaLinha + 4f;
+    }
+
+    /** Salva num temporário e troca depois: um PDF aberto no leitor nunca fica pela metade. */
+    void salvar(Path destino) throws IOException {
+        Path temporario = destino.resolveSibling(destino.getFileName() + ".tmp");
+        documento.save(temporario.toFile());
+        Files.move(temporario, destino, StandardCopyOption.REPLACE_EXISTING);
     }
 
     /** Fecha a última página e escreve o rodapé com "página X de Y" em todas. */

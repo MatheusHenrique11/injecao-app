@@ -16,6 +16,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -40,6 +41,7 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
@@ -48,8 +50,8 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.Clipboard;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.Tag;
@@ -165,7 +167,8 @@ class OficinaUiTest {
 
     /**
      * A tela da OS: o orçamento comum enviado e aprovado, os passos do serviço (começar, aguardando peças, retomar,
-     * pronto), os anexos com miniatura, os recebimentos em partes (um cancelado) e a entrega com garantia.
+     * pronto), os anexos com miniatura, os recebimentos em partes (um cancelado), a entrega com garantia e, do bloco
+     * 3.3, os documentos da OS (os textos, a via e o comprovante).
      */
     @Test
     void osDoOrcamentoAEntrega() throws Throwable {
@@ -175,8 +178,13 @@ class OficinaUiTest {
                     "Barulho na suspensão dianteira", LocalDate.now().plusDays(2),
                     LocalDateTime.now().minusHours(1).withNano(0))).osId());
             TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(this::abrirAOsDaAna);
+            documentosNaAbertura();
             TelaDeTeste.naTelaDoJavaFx(this::orcamentoDaOs);
+            orcamentoPeloWhatsApp();
+            TelaDeTeste.naTelaDoJavaFx(this::aprovarOrcamento);
             TelaDeTeste.naTelaDoJavaFx(this::passosEAnexos);
+            textoProntaParaRetirar();
             TelaDeTeste.esperar(this::miniaturasCarregadas, "as miniaturas dos anexos carregarem");
             TelaDeTeste.naTelaDoJavaFx(this::recebimentosEEntrega);
         } finally {
@@ -704,21 +712,20 @@ class OficinaUiTest {
         salvar(cena, "oficina-6-lista-com-as-novas.png");
     }
 
-    /**
-     * O orçamento da OS comum: itens digitados, o PDF e o texto de WhatsApp (bloco 3.3), enviado e aprovado; o
-     * cabeçalho da OS acompanha.
-     */
-    private void orcamentoDaOs() throws Exception {
+    /** A OS da Ana aberta: o cabeçalho diz o que falta (o orçamento). */
+    private void abrirAOsDaAna() throws Exception {
         principal.abrirOs(ana);
-        OsController os = principal.osAberta();
         assertEquals("Aberta", texto("status"));
         assertTrue(TelaDeTeste.<Button>achar(cena, "botaoComecar").isDisabled(), "sem orçamento aprovado, não começa");
         assertTrue(texto("proximoPasso").startsWith("Próximo passo: monte o orçamento"), texto("proximoPasso"));
         salvar(cena, "oficina-7-os-entrada.png");
+    }
 
+    /** O orçamento da OS comum: itens digitados e o PDF (bloco 3.3). */
+    private void orcamentoDaOs() throws Exception {
         TabPane abas = achar(cena, "abas");
         abas.getSelectionModel().select(aba(abas, "abaOrcamento"));
-        OrcamentoController orcamento = os.orcamento();
+        OrcamentoController orcamento = principal.osAberta().orcamento();
         assertEquals(List.of(), orcamento.linhas(), "na OS comum, os itens são digitados");
         assertFalse(this.<Button>daAba("botaoPecasDoCalculo").isVisible(), "sem projeto, sem as peças do cálculo");
         this.<Button>daAba("botaoAdicionarServico").fire();
@@ -731,10 +738,18 @@ class OficinaUiTest {
         Files.createDirectories(alvo);
         orcamento.escreverPdf(alvo.resolve("exemplo-orcamento-os-app.pdf"));
         assertTrue(Files.size(alvo.resolve("exemplo-orcamento-os-app.pdf")) > 1_500);
-        this.<Button>daAba("botaoWhatsApp").fire();
-        String whatsapp = Clipboard.getSystemClipboard().getString();
+    }
+
+    /** O texto do orçamento da OS comum para o WhatsApp (bloco 3.3), sem o motor e a meta. Da thread do teste. */
+    private void orcamentoPeloWhatsApp() throws Throwable {
+        String whatsapp = TelaDeTeste.copiadoPor(() -> this.<Button>daAba("botaoWhatsApp").fire());
         assertTrue(whatsapp.contains("*Total: R$ 1.000,00*"), whatsapp);
         assertFalse(whatsapp.contains("Motor:"), "sem projeto, o texto sai sem o motor e a meta");
+    }
+
+    /** Enviado e aprovado: o cabeçalho da OS acompanha o orçamento. */
+    private void aprovarOrcamento() throws Exception {
+        OrcamentoController orcamento = principal.osAberta().orcamento();
         this.<Button>daAba("botaoEnviado").fire();
         assertEquals("Aguardando aprovação", texto("status"), "o cabeçalho acompanha o orçamento");
         orcamento.aprovar(LocalDateTime.now().minusMinutes(5).withNano(0), MeioAprovacao.WHATSAPP, "Pode fazer.");
@@ -769,6 +784,78 @@ class OficinaUiTest {
         assertEquals("Pronta", texto("status"));
     }
 
+    /** O texto "pronto para retirar" (bloco 3.3), com o valor e o que falta. Da thread do teste. */
+    private void textoProntaParaRetirar() throws Throwable {
+        TelaDeTeste.naTelaDoJavaFx(() -> {
+            assertTrue(item("itemComprovantePdf").isDisable(), "o comprovante só depois da entrega");
+            assertFalse(item("itemTextoPronta").isDisable());
+        });
+        String pronta = TelaDeTeste.copiadoPor(() -> item("itemTextoPronta").fire());
+        assertTrue(pronta.startsWith("*" + principal.osAberta().numero() + ": pronto para retirar*"), pronta);
+        assertTrue(pronta.contains("Valor: R$ 1.000,00\n*Falta: R$ 1.000,00*"), pronta);
+    }
+
+    /**
+     * Documentos ▾ com a OS aberta (bloco 3.3): o texto "OS aberta" e a via, que não sai com a abertura ou a entrada
+     * mudadas na tela e não salvas. Da thread do teste, por causa da cópia (ver {@link TelaDeTeste#copiadoPor}).
+     */
+    private void documentosNaAbertura() throws Throwable {
+        TelaDeTeste.naTelaDoJavaFx(() -> {
+            assertFalse(item("itemViaPdf").isDisable());
+            assertTrue(item("itemComprovantePdf").isDisable(), "o comprovante só depois da entrega");
+            assertTrue(item("itemTextoPronta").isDisable(), "o pronto para retirar só com a OS pronta");
+        });
+        String aberta = TelaDeTeste.copiadoPor(() -> item("itemTextoAberta").fire());
+        assertTrue(aberta.startsWith("*" + principal.osAberta().numero() + "*"), aberta);
+        assertTrue(aberta.contains("\nChegou em ") && aberta.contains("\nServiço pedido: Barulho na suspensão"), aberta);
+
+        TelaDeTeste.naTelaDoJavaFx(() -> {
+            OsController os = principal.osAberta();
+            assertEquals(List.of(), os.pendentes(), "a tela igual ao gravado");
+            TextField vistoria = achar(cena, "vistoria0");
+            vistoria.setText("Risco novo, ainda não salvo");
+            assertEquals(List.of("a entrada (Salvar a correção da entrada)"), os.pendentes());
+            item("itemViaPdf").fire();
+            assertEquals(List.of("• Antes do documento, salve o que mudou na aba Entrada: a entrada (Salvar a correção "
+                    + "da entrada). O documento usa o que está gravado."), os.mensagens(),
+                    "a via não sai sem a vistoria nova");
+            vistoria.setText("");
+            TelaDeTeste.<TextArea>achar(cena, "servicoPedido").appendText(" e no quebra-molas");
+            assertEquals(List.of("a abertura (Salvar abertura)"), os.pendentes());
+            TelaDeTeste.<Button>achar(cena, "botaoSalvarAbertura").fire();
+            assertEquals(List.of(), os.pendentes(), "salvo, a via pode sair");
+        });
+    }
+
+    /** Depois da entrega: o comprovante e a via em PDF (em target/, para conferir) e a imagem da página impressa. */
+    private void documentosNaEntrega(OsController os) throws IOException {
+        assertFalse(item("itemComprovantePdf").isDisable());
+        assertFalse(item("itemComprovanteImprimir").isDisable());
+        assertTrue(item("itemTextoAberta").isDisable(), "entregue: os textos já passaram");
+        assertTrue(item("itemTextoPronta").isDisable());
+        Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+        Files.createDirectories(alvo);
+        os.escreverViaDoCliente(alvo.resolve("exemplo-via-do-cliente-app.pdf"));
+        os.escreverComprovante(alvo.resolve("exemplo-comprovante-de-entrega-app.pdf"));
+        for (String nome : List.of("exemplo-via-do-cliente-app.pdf", "exemplo-comprovante-de-entrega-app.pdf")) {
+            assertTrue(Files.size(alvo.resolve(nome)) > 1_500, nome);
+            assertEquals("%PDF", Files.readString(alvo.resolve(nome), StandardCharsets.ISO_8859_1).substring(0, 4));
+        }
+
+        BufferedImage pagina = new BufferedImage(2, 1, BufferedImage.TYPE_INT_RGB);
+        pagina.setRGB(0, 0, 0xC62828);
+        pagina.setRGB(1, 0, 0x1565C0);
+        Image imagem = Impressao.imagem(pagina);
+        assertEquals(2, imagem.getWidth());
+        assertEquals(0xFFC62828, imagem.getPixelReader().getArgb(0, 0), "a página impressa sai com as cores certas");
+        assertEquals(0xFF1565C0, imagem.getPixelReader().getArgb(1, 0));
+    }
+
+    private MenuItem item(String id) {
+        return principal.osAberta().menuDocumentos().getItems().stream().filter(item -> id.equals(item.getId()))
+                .findFirst().orElseThrow();
+    }
+
     /** Recebimentos em duas partes (um lançado errado e cancelado), a entrega com garantia e o histórico. */
     private void recebimentosEEntrega() throws Exception {
         salvar(cena, "oficina-9-os-anexos.png");
@@ -790,6 +877,7 @@ class OficinaUiTest {
 
         os.entregar(new Entrega(agora, 120_150.0, new Garantia(90)));
         assertEquals("Entregue", texto("status"));
+        documentosNaEntrega(os);
         assertFalse(TelaDeTeste.<Button>achar(cena, "botaoCancelarOs").isVisible(), "entregue não se cancela");
         assertTrue(texto("situacaoEntrega").endsWith("com garantia de 90 dias, até "
                 + Datas.dia(agora.toLocalDate().plusDays(90)) + "."), texto("situacaoEntrega"));

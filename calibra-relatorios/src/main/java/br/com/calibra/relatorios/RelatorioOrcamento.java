@@ -4,15 +4,11 @@ import static br.com.calibra.core.util.NumeroBr.formatar;
 import static br.com.calibra.core.util.NumeroBr.percentual;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Dimensionamento;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.orcamento.ItemOrcamento;
@@ -53,34 +49,12 @@ public final class RelatorioOrcamento {
             }
             pdf.terminar("Calibra · Orçamento " + dados.numero().comRevisao() + " · gerado em "
                     + dados.geradoEm().format(DATA_HORA));
-            // Salva num temporário e troca depois: um PDF aberto no leitor nunca fica pela metade.
-            Path temporario = destino.resolveSibling(destino.getFileName() + ".tmp");
-            documento.save(temporario.toFile());
-            Files.move(temporario, destino, StandardCopyOption.REPLACE_EXISTING);
+            pdf.salvar(destino);
         }
     }
 
     private static void cabecalho(EscritorPdf pdf, DadosOrcamento dados) throws IOException {
-        DadosOficina o = dados.oficina();
-        List<String> linhas = new ArrayList<>();
-        linhas.add(o.nome().isEmpty() ? "Oficina (preencha os dados em Configurações)" : o.nome());
-        if (!o.cnpj().isEmpty()) {
-            linhas.add("CNPJ " + o.cnpj());
-        }
-        if (!o.endereco().isEmpty()) {
-            linhas.add(o.endereco());
-        }
-        List<String> contato = new ArrayList<>();
-        if (!o.telefone().isEmpty()) {
-            contato.add(o.telefone());
-        }
-        if (!o.email().isEmpty()) {
-            contato.add(o.email());
-        }
-        if (!contato.isEmpty()) {
-            linhas.add(String.join(SEPARADOR, contato));
-        }
-        pdf.cabecalhoOficina(linhas, dados.logo());
+        pdf.cabecalhoOficina(TextoOficina.cabecalho(dados.oficina()), dados.logo());
         pdf.titulo("Orçamento " + dados.numero().comRevisao());
         String situacao = dados.status() == StatusOrcamento.RASCUNHO ? SEPARADOR + "RASCUNHO (ainda não enviado)"
                 : dados.status() == StatusOrcamento.ENVIADO ? "" : SEPARADOR + dados.status().rotulo();
@@ -101,6 +75,11 @@ public final class RelatorioOrcamento {
     private static void itensETotais(EscritorPdf pdf, Orcamento o) throws IOException {
         tabela(pdf, "Peças", o.pecas());
         tabela(pdf, "Serviços", o.servicos());
+        totais(pdf, o);
+    }
+
+    /** As peças, os serviços, o desconto e o total, alinhados à direita (também no comprovante de entrega da OS). */
+    static void totais(EscritorPdf pdf, Orcamento o) throws IOException {
         pdf.espaco(4f);
         if (!o.pecas().isEmpty()) {
             pdf.total("Peças", o.totalPecas().formatar(), false);
@@ -119,6 +98,11 @@ public final class RelatorioOrcamento {
             return;
         }
         pdf.secao(titulo);
+        tabelaDeItens(pdf, itens);
+    }
+
+    /** A tabela dos itens: descrição, quantidade, unidade, valor unitário e total (também no comprovante da OS). */
+    static void tabelaDeItens(EscritorPdf pdf, List<ItemOrcamento> itens) throws IOException {
         pdf.tabela(COLUNAS, LARGURAS, A_DIREITA, TextoOrcamento.linhas(itens));
     }
 

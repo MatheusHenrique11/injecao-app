@@ -71,6 +71,7 @@ import br.com.calibra.dados.oficina.PagamentoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
 import br.com.calibra.relatorios.DadosOrcamento;
+import br.com.calibra.relatorios.DadosOs;
 
 /**
  * A OS (fase 3, bloco 3.1): da entrada à entrega de uma OS comum, o orçamento antes do veículo, a recusa e as
@@ -205,6 +206,47 @@ class CasosOficinaTest {
         OperacaoRecusadaException revisao = assertThrows(OperacaoRecusadaException.class,
                 () -> orcamentos.novaRevisao(orcamento.id()));
         assertEquals("A OS OS-2026-0001 está \"Entregue\": o orçamento dela não muda mais.", revisao.getMessage());
+    }
+
+    /**
+     * Os dados dos documentos da OS (bloco 3.3): o cliente como está no cadastro, o veículo, o mecânico, a entrada, o
+     * orçamento aprovado e os recebimentos, com o cancelado na lista e fora da conta.
+     */
+    @Test
+    void documentoDaOs() {
+        long carlos = oficina.novoMecanico("Carlos");
+        long os = oficina.abrir(new NovaOs(new ClienteNovo(CasosProjetoTest.cliente("Ana Costa")),
+                new VeiculoNovo(CasosProjetoTest.carro("ABC1D23")), "Revisão e troca de óleo", carlos,
+                LocalDate.of(2026, 10, 15), "", entrada(251_500.0))).osId();
+        DadosOs aberta = oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "Texto da via (teste).");
+        assertEquals("OS-2026-0001", aberta.numero());
+        assertEquals(StatusOs.ABERTA, aberta.status());
+        assertEquals("Ana Costa", aberta.cliente());
+        assertEquals("(11) 98765-4321", aberta.telefoneCliente());
+        assertEquals("VW Gol GTi 1994 · ABC1D23", aberta.veiculo());
+        assertFalse(aberta.embarcacao());
+        assertEquals("Revisão e troca de óleo", aberta.servicoPedido());
+        assertEquals(LocalDate.of(2026, 10, 15), aberta.previsao());
+        assertEquals("Carlos", aberta.mecanico());
+        assertEquals(251_500.0, aberta.entrada().uso());
+        assertEquals("risco na porta direita", aberta.entrada().vistoria().itens().getFirst().observacao());
+        assertNull(aberta.entrega());
+        assertNull(aberta.aprovado(), "sem orçamento aprovado");
+        assertNull(aberta.valor());
+        assertEquals("Texto da via (teste).", aberta.textoVia());
+
+        enviarEAprovar(orcamentos.criarNaOs(os, revisao("180,00")));
+        oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("270,00"), "sinal"));
+        long errado = oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("270,00"),
+                "lançado duas vezes"));
+        oficina.cancelarPagamento(errado, "Lançado duas vezes.");
+        DadosOs paga = oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "");
+        assertEquals("ORC-2026-0001", paga.aprovado().numero());
+        assertEquals(Dinheiro.ler("540,00"), paga.valor(), "4 × 45 + 2 × 180");
+        assertEquals(List.of(false, true), paga.recebimentos().stream().map(DadosOs.Recebimento::cancelado).toList());
+        assertEquals(Dinheiro.ler("270,00"), paga.recebido(), "o cancelado não conta");
+        assertEquals(Dinheiro.ler("270,00"), paga.falta());
+        assertEquals(SituacaoPagamento.PARCIAL, paga.situacao());
     }
 
     /**
