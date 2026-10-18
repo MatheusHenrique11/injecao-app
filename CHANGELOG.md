@@ -12,10 +12,18 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **Tela da OS:** os passos do serviço no cabeçalho, com o próximo passo, e as abas Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e Histórico.
 - **Anexos da OS:** fotos (JPG ou PNG) e PDF até 20 MB, com miniatura, por botão ou arrastando do Explorador; o backup leva junto.
 - **Projeto de preparação criado pela OS**, já ligado a ela; o cabeçalho do projeto mostra a OS.
-- **Mecânicos:** cadastro rápido pelo nome, para pôr na OS.
+- **Mecânicos:** cadastro rápido pelo nome, para pôr na OS; em Configurações › OS, renomear, desativar e reativar.
+- **Configurações › OS:** a garantia padrão (90 dias, já preenchida na entrega), os itens da vistoria e o texto da via do cliente.
+- **Documentos da OS** (menu Documentos ▾): a via do cliente, para assinar na chegada, com a vistoria item a item, e o comprovante de entrega, com a garantia, o serviço aprovado e os recebimentos; os dois em PDF ou impressos (A4). A via não sai com a aba Entrada mudada e não salva.
+- **Textos para o WhatsApp** da OS: "OS aberta" e "pronto para retirar".
+- **Catálogo de serviços** (aba Serviços dos Catálogos) e "+ Serviço do catálogo…" no orçamento: com preço próprio, entra 1 serviço pelo preço; sem preço, as horas × o valor da hora.
+- **Ficha do veículo:** o cliente e o veículo (editar, histórico e anonimizar), todas as OS e todos os projetos do veículo e os anexos de todas as OS, com os documentos do próprio veículo (ex.: o CRLV, com a validade).
 
 ### Mudado
-- O orçamento passou a pertencer à OS. Ao atualizar, cada projeto que já tinha orçamento ganha uma OS, com o status tirado do orçamento; os números e o conteúdo dos orçamentos não mudam (migração V6). A OS sem projeto tem orçamento com os itens digitados; o PDF e o WhatsApp dele chegam no bloco 3.3.
+- O orçamento passou a pertencer à OS. Ao atualizar, cada projeto que já tinha orçamento ganha uma OS, com o status tirado do orçamento; os números e o conteúdo dos orçamentos não mudam (migração V6). A OS sem projeto tem orçamento com os itens digitados, e o PDF e o texto de WhatsApp dele saem sem o motor, a meta e o resumo técnico.
+- **Anonimizar o cliente** apaga também os anexos marcados como documento pessoal (das OS dele e dos veículos dele); fotos, laudos e notas ficam.
+- A janela de escolher um item do catálogo mostra o preço de referência.
+- Copiar um texto para o WhatsApp avisa quando o Windows não deixa copiar.
 - Menu: "Projetos" virou "Preparação", e entraram Painel e Oficina.
 - A busca de cliente acha também pela placa ou pelo nome da embarcação dos veículos dele.
 - Banco de dados na versão 7 (V6: ordens de serviço; V7: anexos). Como sempre, a atualização faz um backup antes.

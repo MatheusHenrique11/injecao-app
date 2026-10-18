@@ -36,6 +36,7 @@ Antes do primeiro orçamento, abra **Configurações** (menu à esquerda). Cada 
 
 - **Oficina:** nome, CNPJ, endereço, telefone, e-mail e logo (PNG ou JPG, até 5 MB). Tudo opcional; aparece no cabeçalho dos PDFs.
 - **Cálculo e semáforo:** os padrões de cálculo (k_ar, DC máximo, eficiências, perdas...) e os limiares do semáforo (item 13). Valor diferente do padrão da SPEC aparece em azul. "Voltar aos padrões da SPEC" só preenche os campos: grava ao salvar. Os limiares do mapa do compressor e do torque × câmbio estão marcados "a validar".
+- **OS:** a garantia padrão em dias (vem 90 e já aparece preenchida na entrega), os itens da vistoria (adicionar, renomear, remover e mudar a ordem; valem para as entradas seguintes) e o texto da via do cliente, que vai acima das assinaturas (em branco, ficam só as assinaturas). O texto que vem é um modelo, não um texto jurídico revisado: confira antes de usar com cliente. Embaixo, os **mecânicos**: novo, renomear, desativar e reativar, valendo na hora.
 - **Orçamento:** o que um orçamento novo traz preenchido: desconto, prazo em dias úteis (e a partir de quando conta), validade em dias, condições de pagamento e o valor da hora de mão de obra.
 - **Backup:** a pasta dos backups, "Fazer backup agora" e "Restaurar um backup…" (item 10).
 
@@ -62,7 +63,7 @@ Busca por placa, cliente, embarcação ou número da OS, sem precisar de acento 
 2. **Veículo:** um do cliente ou novo. Achando o cliente pela placa, o veículo daquela placa já vem escolhido.
 3. **Serviço e entrada:**
    - o **serviço pedido**, nas palavras do cliente (obrigatório), o mecânico ("Novo mecânico…" cadastra pelo nome), a previsão de entrega e observações;
-   - com **"O veículo já está aqui"** marcado (o padrão): a chegada (dia e hora), o km no painel (ou as horas de motor, na embarcação), o tanque, a **vistoria** e os objetos deixados no veículo. A vistoria tem lataria e pintura; vidros, faróis e retrovisores; pneus, rodas e estepe; interior e painel. Anote o que já estava assim na chegada; em branco quer dizer nada a anotar;
+   - com **"O veículo já está aqui"** marcado (o padrão): a chegada (dia e hora), o km no painel (ou as horas de motor, na embarcação), o tanque, a **vistoria** e os objetos deixados no veículo. A vistoria traz os itens de Configurações › OS (de fábrica: lataria e pintura; vidros, faróis e retrovisores; pneus, rodas e estepe; interior e painel). Anote o que já estava assim na chegada; em branco quer dizer nada a anotar;
    - as **fotos da entrada**: JPG ou PNG, até 20 MB cada, pelo botão ou arrastando do Explorador de Arquivos;
    - desmarcando "O veículo já está aqui", a OS abre sem a entrada (orçamento por WhatsApp ou telefone). A entrada fica para quando o veículo chegar, na aba Entrada da OS.
 
@@ -72,11 +73,11 @@ O número sai como `OS-ano-sequência` (ex.: OS-2026-0001), e a sequência recom
 
 ### 5.4 Tela da OS
 
-O cabeçalho mostra o número, o cliente, o veículo, a etapa, o valor e o que já foi recebido, e o **próximo passo**. Os botões mudam com a etapa:
+O cabeçalho mostra o número, o cliente, o veículo, a etapa, o valor e o que já foi recebido, e o **próximo passo**. No canto, **Ficha do veículo** (item 5.6) e **Documentos ▾** (item 5.5). Os botões dos passos mudam com a etapa:
 
 - **Começar o serviço:** só com o orçamento aprovado e a entrada registrada. Serviço só com orçamento aprovado é a regra do Código de Defesa do Consumidor (art. 39, VI).
 - **Aguardando peças…** (diga quais), **Retomar o serviço** e **Serviço pronto**.
-- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia). A data em que a garantia vence aparece na OS.
+- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS.
 - **Cancelar OS…:** a qualquer momento antes da entrega, com o motivo. A OS cancelada fica no histórico; OS não se apaga.
 
 As abas:
@@ -89,6 +90,26 @@ As abas:
 - **Histórico:** cada mudança de etapa, com data, hora e observação.
 
 Depois da entrega, a OS não muda mais; os recebimentos e os anexos continuam valendo. Avisos que não impedem (ex.: km de saída menor que o da entrada) aparecem em amarelo, embaixo.
+
+### 5.5 Documentos da OS
+
+O botão **Documentos ▾**, no cabeçalho da OS:
+
+- **Via do cliente** (gerar PDF ou imprimir): a folha A4 que o cliente assina na chegada. Tem a OS, o cliente e o veículo, o serviço pedido, a previsão e o mecânico, a entrada (chegada, km, tanque, a vistoria item a item e os objetos deixados), o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Com algo mudado e não salvo na aba Entrada, a via não sai: a mensagem diz o que salvar. Assim nenhuma observação da vistoria fica de fora da folha assinada.
+- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence, os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta, a situação e a assinatura de quem recebeu o veículo.
+- **Copiar texto para WhatsApp:** "OS aberta" (o número, o veículo, quando chegou ou "orçamento a fazer", o serviço pedido e a previsão) e "pronto para retirar" (com a OS pronta: o valor, o recebido e o que falta). O app só copia: cole na conversa (Ctrl+V) e envie você mesmo.
+- **Imprimir…** abre a janela de impressão do Windows. As páginas são preparadas em segundo plano; a primeira impressão demora alguns segundos (o app procura as fontes do Windows). Sem impressora, gere o PDF ou use a "Microsoft Print to PDF".
+
+### 5.6 Ficha do veículo
+
+**Ficha do veículo** (no cabeçalho da OS e no do projeto) mostra tudo do veículo, numa tela da Oficina:
+
+- **Cliente:** o contato e o consentimento, com "Editar cliente…", "Histórico…" e "Anonimizar…" (item 6.6).
+- **Veículo:** o resumo, com "Editar veículo…" e "Histórico do veículo…". É aqui que se edita o veículo de uma OS sem projeto.
+- **OS do veículo** e **projetos de preparação:** todas as OS e todos os projetos, também os arquivados. Duplo clique abre.
+- **Anexos e documentos:** os anexos de todas as OS do veículo e os documentos do próprio veículo. "Adicionar documento do veículo…" anexa sem OS, marcado como documento pessoal (ex.: o CRLV; ponha a validade em "Editar…"). O anexo de uma OS se remove na própria OS.
+
+O botão de voltar leva para onde a ficha foi aberta (a OS ou o projeto).
 
 ## 6. Preparação (projetos)
 
@@ -118,7 +139,7 @@ Aberto pela OS ("Criar projeto de preparação…", item 5.4), o assistente já 
 
 ### 6.4 A OS do projeto
 
-O cabeçalho do projeto mostra a OS dele, num botão que a abre (ex.: "Abrir a OS-2026-0003 · Aprovada"). O orçamento feito na aba Peças e orçamento vai para essa OS; se o projeto não tem OS em andamento, o app abre uma para ele, sem a entrada do veículo.
+O cabeçalho do projeto mostra a OS dele, num botão que a abre (ex.: "Abrir a OS-2026-0003 · Aprovada"), e o botão **Ficha do veículo** (item 5.6). O orçamento feito na aba Peças e orçamento vai para essa OS; se o projeto não tem OS em andamento, o app abre uma para ele, sem a entrada do veículo.
 
 ### 6.5 Status do projeto
 
@@ -126,7 +147,12 @@ Rascunho → Dimensionado (primeiro cálculo salvo) → Orçado (orçamento envi
 
 ### 6.6 Dados pessoais (LGPD)
 
-O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ quando precisar de documento, com o consentimento registrado. **Anonimizar cliente** (aba Resumo) apaga os dados pessoais dele e dos veículos dele (o nome vira "Cliente anonimizado #N"; placa, chassi e identificação da embarcação somem) e mantém os projetos, cálculos e orçamentos. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
+O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ quando precisar de documento, com o consentimento registrado. **Anonimizar cliente** (na aba Resumo do projeto ou na ficha do veículo) apaga:
+
+- os dados pessoais dele e dos veículos dele: o nome vira "Cliente anonimizado #N"; placa, chassi e identificação da embarcação somem;
+- os anexos marcados como documento pessoal (como CNH e CRLV), os das OS dele e os dos veículos dele. O arquivo só sai da pasta de anexos se nenhum outro anexo usar o mesmo.
+
+Fotos, laudos, notas fiscais, OS, projetos, cálculos e orçamentos ficam. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
 
 ## 7. Calculadora e dimensionamento
 
@@ -170,9 +196,10 @@ Se você mudar qualquer campo depois de calcular, o resultado fica **desatualiza
 
 ## 8. Catálogos
 
-**Catálogos** (menu à esquerda) guarda as peças e os dados técnicos, em abas: Bicos, Bombas, Injeções, Turbos, Combustíveis, Intercoolers, Sensores, Câmbios, e Motores e montagens.
+**Catálogos** (menu à esquerda) guarda as peças, os dados técnicos e os serviços da oficina, em abas: Bicos, Bombas, Injeções, Turbos, Combustíveis, Intercoolers, Sensores, Câmbios, Motores e montagens, e Serviços.
 
-- **As peças começam vazias:** cadastre a partir do manual ou do site do fabricante. Combustíveis e motores já vêm cadastrados (os motores marcados "a verificar").
+- **As peças e os serviços começam vazios:** cadastre as peças a partir do manual ou do site do fabricante, e os serviços pela tabela da oficina. Combustíveis e motores já vêm cadastrados (os motores marcados "a verificar").
+- **Serviços:** o nome, as horas (o tempo padrão) e, se o serviço tiver preço próprio, o preço de referência. Sem preço, as horas são obrigatórias. A fonte já vem "Tabela da oficina". No orçamento, entram pelo "+ Serviço do catálogo…" (item 9).
 - **Todo item tem fonte** (obrigatória), data, a marca **"a verificar"** (para dado ainda não confirmado), preço de referência (vai para o orçamento) e observações.
 - **Editar cria uma versão nova**; "Versões…" compara as versões campo a campo, com a mudança em amarelo. Gravar sem mudar nada não cria versão.
 - **Arquivar** tira o item das escolhas, mas ele continua nos cálculos antigos. Nada é apagado.
@@ -196,12 +223,18 @@ A escala dos eixos precisa ser linear (é a dos mapas de compressor comuns).
 O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a OS tem projeto de preparação, também na aba **Peças e orçamento** do projeto: é o mesmo orçamento nas duas.
 
 - **De preparação** (a OS tem projeto): sai do último cálculo salvo do projeto, que precisa estar em dia.
-- **Comum** (sem projeto, ex.: revisão, freios, suspensão): os itens são digitados. O PDF e o texto de WhatsApp dele chegam no bloco 3.3; até lá, mande os itens e o total pelo WhatsApp e marque como enviado.
+- **Comum** (sem projeto, ex.: revisão, freios, suspensão): os itens são digitados ou vêm do catálogo de serviços. O PDF e o texto de WhatsApp dele saem sem o motor, a meta, o resumo técnico e a nota do mapa base.
 
-1. **Itens:** no de preparação, as peças do cálculo vêm com o preço de referência do catálogo (bicos × número de cilindros, bomba, turbo, intercooler, sensor MAP e injeção); peça sem preço vem com o valor em branco. "+ Serviço (mão de obra)" traz o valor da hora de Configurações; ajuste a quantidade de horas. "+ Peça" acrescenta uma peça digitada. Os totais aparecem enquanto você digita.
+1. **Itens:**
+   - no de preparação, as peças do cálculo vêm com o preço de referência do catálogo (bicos × número de cilindros, bomba, turbo, intercooler, sensor MAP e injeção); peça sem preço vem com o valor em branco;
+   - "+ Serviço (mão de obra)" traz o valor da hora de Configurações; ajuste a quantidade de horas;
+   - "+ Serviço do catálogo…" escolhe um serviço da aba Serviços dos Catálogos: com preço próprio, entra 1 serviço pelo preço; sem preço, entram as horas × o valor da hora de Configurações (sem o valor da hora configurado, o valor fica em branco para preencher);
+   - "+ Peça" acrescenta uma peça digitada.
+
+   Os valores continuam editáveis, e os totais aparecem enquanto você digita.
 2. **Desconto, prazo e condições:** desconto em reais ou em %, prazo em dias úteis (0 = a combinar), validade em dias, condições de pagamento e observações. Os padrões vêm de Configurações.
 3. **Salvar rascunho:** grava o orçamento com o número `ORC-ano-sequência` (ex.: ORC-2026-0001). O rascunho pode ser editado à vontade.
-4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo, a validade, o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O Calibra não envia nada.
+4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo e a validade; no de preparação, também o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O Calibra não envia nada. Se o Windows não deixar copiar naquele instante (outro programa usando a área de transferência), a tela avisa: clique de novo.
 5. **Marcar como enviado:** depois de mandar ao cliente. A validade conta a partir daí; a OS passa para Aguardando aprovação e o projeto, se houver, para Orçado.
 6. **Aprovado pelo cliente…** ou **Recusado…:** informe a data, a hora e como o cliente respondeu (pessoalmente, WhatsApp ou telefone). Aprovado leva a OS para Aprovada e o projeto para Aprovado. **Orçamento aprovado não muda mais.**
 7. **Nova revisão:** para mudar um orçamento enviado, aprovado ou recusado. A revisão nova sai com o mesmo número ("ORC-2026-0001 rev. 2"), em rascunho, e a anterior fica como substituída. A tabela "Revisões" mostra todas.
