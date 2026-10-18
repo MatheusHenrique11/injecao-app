@@ -586,3 +586,9 @@ Plano aprovado em 18/10/2026. Resposta do dono: antes de ele abrir o 0.3.0 com o
     - **corrigido:** o km (ou as horas) gravado com duas casas aparece com uma na aba Entrada (1.250,25 vira 1.250,3), e a trava dos documentos (decisão 197) via mudança onde não havia: a via ficava presa até "salvar" de novo, o que ainda trocaria o valor gravado. A comparação passou a usar o mesmo texto que a tela mostra. Teste de interface novo;
     - **teste que faltava:** a anonimização apaga o documento pessoal também da OS entregue (o banco não tem gatilho contra, de propósito, e a tela não deixa remover). Teste novo;
     - **fica documentado** (manual 6.6): os backups feitos antes da anonimização ainda têm os dados e os documentos do cliente, até saírem da lista dos 30 mais recentes (e para sempre nos copiados para pen drive ou HD); os textos livres da OS não mudam na anonimização. Apagar backup ou mexer nesses textos é decisão do dono, para uma fase seguinte.
+204. **Ensaio do instalador 0.3.0** (resultado em `docs/fase3/ensaio-instalador.md`):
+    - o MSI instalou por cima do 0.2.0 sem pedir clique (`/passive`), com uma entrada só em "Aplicativos instalados";
+    - o app abre em 2,9 a 3,0 s; a primeira abertura depois de instalar, com banco novo e disco "frio", levou 5,9 s, como na fase 2;
+    - os 18 testes de tela passaram no app instalado;
+    - a atualização do banco foi ensaiada numa cópia dos dados reais, com o OK do dono: o backup "antes de atualizar o banco", as migrações V6 e V7 e a conferência do SQLite sem erro, com só números anotados e a cópia apagada no fim;
+    - os dados reais ficaram com o mesmo SHA-256 e os mesmos 68 arquivos.
