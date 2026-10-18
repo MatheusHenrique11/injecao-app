@@ -9,7 +9,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -79,7 +78,7 @@ public class EntradaFormController {
     void preencher(EntradaVeiculo entrada, List<String> itensSemVistoria) {
         entradaData.setValue(entrada.quando().toLocalDate());
         entradaHora.setText(HORA.format(entrada.quando()));
-        usoEntrada.setText(entrada.uso() == null ? "" : NumeroBr.formatar(entrada.uso(), 0, 1));
+        usoEntrada.setText(textoUso(entrada.uso()));
         combustivel.setValue(entrada.combustivel());
         List<ItemVistoria> gravados = entrada.vistoria().itens();
         montarVistoria(gravados.isEmpty() ? itensSemVistoria : gravados.stream().map(ItemVistoria::item).toList());
@@ -148,8 +147,16 @@ public class EntradaFormController {
                 ? lida.vistoria().itens().stream().allMatch(item -> item.observacao().isEmpty())
                 : lida.vistoria().itens().equals(gravada.vistoria().itens());
         return !lida.quando().equals(gravada.quando().truncatedTo(ChronoUnit.MINUTES))
-                || !Objects.equals(lida.uso(), gravada.uso()) || lida.combustivel() != gravada.combustivel()
+                || !textoUso(lida.uso()).equals(textoUso(gravada.uso())) || lida.combustivel() != gravada.combustivel()
                 || !mesmaVistoria || !lida.vistoria().objetos().equals(gravada.vistoria().objetos());
+    }
+
+    /**
+     * O km (ou as horas) como a tela mostra, com até uma casa decimal. Na comparação com o gravado vale o mesmo texto:
+     * 1.250,25 h gravado aparece como 1.250,3 e não conta como mudança.
+     */
+    private static String textoUso(Double uso) {
+        return uso == null ? "" : NumeroBr.formatar(uso, 0, 1);
     }
 
     /** Só se edita com a OS em andamento. */

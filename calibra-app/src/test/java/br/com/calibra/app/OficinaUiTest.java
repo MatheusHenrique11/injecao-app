@@ -574,6 +574,33 @@ class OficinaUiTest {
         }
     }
 
+    /**
+     * Revisão final (bloco 3.4): o uso gravado com duas casas (1.250,25 h) aparece com uma na aba Entrada (1.250,3). A
+     * trava dos documentos compara o que a tela mostra, e a via não fica presa por uma mudança que ninguém fez.
+     */
+    @Test
+    void usoComDuasCasasNaoTravaOsDocumentos() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                LocalDateTime chegada = LocalDateTime.now().minusHours(1).withNano(0);
+                NovaOs base = nova("Ana Costa (fictícia)", "ABC1D23", "Revisão", null, chegada);
+                ana = oficina.abrir(new NovaOs(base.cliente(), base.veiculo(), base.servicoPedido(), null, null, "",
+                        new EntradaVeiculo(chegada, 1_250.25, NivelCombustivel.MEIO, Vistoria.VAZIA))).osId();
+            });
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                assertEquals("1.250,3", TelaDeTeste.<TextField>achar(cena, "usoEntrada").getText());
+                assertEquals(List.of(), principal.osAberta().pendentes(), "nada mudou: a via sai");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
     /** A OS da Ana pronta para entregar: orçamento de 2 h a R$ 180 aprovado, serviço começado e pronto. */
     private void prontaParaEntregar() {
         LocalDateTime agora = LocalDateTime.now().withNano(0);

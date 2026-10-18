@@ -158,6 +158,11 @@ O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ qu
 
 Fotos, laudos, notas fiscais, OS, projetos, cálculos e orçamentos ficam. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
 
+O que a anonimização não alcança:
+
+- os **backups** feitos antes dela continuam com os dados e os documentos do cliente. Os da pasta de backups saem sozinhos quando deixam de estar entre os 30 mais recentes; os copiados para pen drive ou HD ficam até você apagar;
+- os **textos livres da OS** (serviço pedido, observações, vistoria e observações dos recebimentos) não mudam. Evite escrever neles dados pessoais do cliente, como CPF, endereço ou telefone.
+
 ## 7. Calculadora e dimensionamento
 
 A **Calculadora** (menu à esquerda) faz a conta sem gravar nada. A aba **Dimensionamento** do projeto é a mesma calculadora, com o motor do projeto e o botão de salvar.

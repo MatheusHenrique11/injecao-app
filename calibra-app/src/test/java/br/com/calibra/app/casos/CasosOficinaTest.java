@@ -538,6 +538,30 @@ class CasosOficinaTest {
     }
 
     /**
+     * Revisão final (bloco 3.4): o documento pessoal sai também da OS entregue, cujo anexo não se remove pela tela; a
+     * OS continua como estava.
+     */
+    @Test
+    void anonimizarApagaDocumentoPessoalDeOsEntregue() throws Exception {
+        long os = abrirComEntrada("Olga Lima", "LMN2O34");
+        enviarEAprovar(orcamentos.criarNaOs(os, revisao("180,00")));
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(os, StatusOs.PRONTA, "");
+        Path cnh = Files.writeString(raiz.resolve("cnh-olga.pdf"), "%PDF-1.7 CNH fictícia");
+        AnexoSalvo documento = oficina.anexar(os, List.of(new NovoAnexo(cnh, TipoAnexo.DOCUMENTO, "CNH", null, true)))
+                .getFirst();
+        relogio.andar(Duration.ofHours(2));
+        oficina.entregar(os, new Entrega(agora(), 251_530.0, new Garantia(90)));
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.removerAnexo(documento.id()),
+                "pela tela, o anexo da OS entregue não sai");
+
+        assertEquals(1, oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
+        assertEquals(List.of(), oficina.anexosDaOs(os), "a anonimização tira o documento pessoal mesmo da OS entregue");
+        assertFalse(Files.exists(pastas.anexos().resolve(documento.arquivo())));
+        assertEquals(StatusOs.ENTREGUE, status(os), "a OS fica como estava");
+    }
+
+    /**
      * A Nova OS grava as fotos da entrada junto com a OS. Com uma foto recusada, nada é gravado (nem o cliente, nem a
      * OS) e não sobra cópia na pasta: dá para tirar a foto e tentar de novo sem OS repetida.
      */

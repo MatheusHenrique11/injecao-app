@@ -575,3 +575,14 @@ Plano aprovado em 18/10/2026. Resposta do dono: antes de ele abrir o 0.3.0 com o
     - os 6 `pom.xml` passam para 0.3.0; o CHANGELOG fecha a 0.3.0, e o README e o manual dizem o que a versão faz;
     - a conferência do instalador (`Inicio --conferir`) ganha o 5º item, "Páginas para imprimir": desenha a página A4 do PDF de exemplo no Java embutido, com o cache de fontes do PDFBox na pasta `cache`. Confere que o jlink não deixou de fora o que a impressão usa (a janela de impressão do Windows não dá para automatizar);
     - o manual ganha "Atualizar do 0.2.0 para o 0.3.0": o backup "antes de atualizar o banco", os orçamentos que viram OS, o 0.2.0 que não abre mais os dados e como voltar se precisar.
+203. **Revisão final (bloco 3.4):** o agente de revisão parou logo no começo, por limite de uso da conta. Para o bloco não parar, eu revisei os pontos de maior risco:
+    - as migrações V6 e V7: chaves estrangeiras desligadas fora da transação, conferência antes de gravar e o status das OS criadas;
+    - backup e restauração com os anexos, que não mudaram na fase 3;
+    - a anonimização e os arquivos, as regras de pagamento e de status;
+    - a regra 2.1: nenhum uso de rede, serial ou USB no código;
+    - o código novo do bloco 3.3.
+
+    Os achados:
+    - **corrigido:** o km (ou as horas) gravado com duas casas aparece com uma na aba Entrada (1.250,25 vira 1.250,3), e a trava dos documentos (decisão 197) via mudança onde não havia: a via ficava presa até "salvar" de novo, o que ainda trocaria o valor gravado. A comparação passou a usar o mesmo texto que a tela mostra. Teste de interface novo;
+    - **teste que faltava:** a anonimização apaga o documento pessoal também da OS entregue (o banco não tem gatilho contra, de propósito, e a tela não deixa remover). Teste novo;
+    - **fica documentado** (manual 6.6): os backups feitos antes da anonimização ainda têm os dados e os documentos do cliente, até saírem da lista dos 30 mais recentes (e para sempre nos copiados para pen drive ou HD); os textos livres da OS não mudam na anonimização. Apagar backup ou mexer nesses textos é decisão do dono, para uma fase seguinte.
