@@ -1,17 +1,13 @@
 package br.com.calibra.app;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -19,17 +15,12 @@ import javafx.application.HostServices;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
@@ -38,14 +29,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.AnexosDaOficina;
@@ -93,9 +78,6 @@ public class OsController {
     record Recursos(CasosOficina oficina, CasosProjeto projetos, OrcamentoController.Recursos orcamento,
             HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes, Path temporaria) {
     }
-
-    private static final double LARGURA_MINIATURA = 120;
-    private static final double ALTURA_MINIATURA = 90;
 
     @FXML private Label titulo;
     @FXML private Label status;
@@ -147,12 +129,7 @@ public class OsController {
     @FXML private Button botaoRegistrarRecebimento;
     @FXML private Button botaoCancelarRecebimento;
     // ---------- Anexos ----------
-    @FXML private VBox caixaAnexos;
-    @FXML private ListView<AnexoSalvo> listaAnexos;
-    @FXML private Button botaoAdicionarAnexos;
-    @FXML private Button botaoAbrirAnexo;
-    @FXML private Button botaoEditarAnexo;
-    @FXML private Button botaoRemoverAnexo;
+    @FXML private AnexosController anexosController;
     // ---------- Histórico ----------
     @FXML private TableView<MudancaStatusOs> historico;
     @FXML private TableColumn<MudancaStatusOs, String> colunaDataHora;
@@ -160,8 +137,6 @@ public class OsController {
     @FXML private TableColumn<MudancaStatusOs, String> colunaHistoricoObservacao;
     @FXML private VBox mensagens;
 
-    /** As miniaturas já carregadas, pelo id do anexo (a lista reaproveita as linhas ao rolar). */
-    private final Map<Long, Image> miniaturas = new HashMap<>();
     private Recursos recursos;
     private CaixaMecanico caixaMecanico;
     private OrcamentoController orcamento;
@@ -196,37 +171,14 @@ public class OsController {
         historico.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         CamposTela.configurar(projetosDoVeiculo, List.of(), p -> "Projeto #" + p.projetoId() + " · " + p.motor()
                 + " · " + p.status().rotulo());
-
-        listaAnexos.setCellFactory(lista -> new CelulaAnexo());
-        listaAnexos.setOnMouseClicked(evento -> {
-            if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2
-                    && listaAnexos.getSelectionModel().getSelectedItem() != null) {
-                abrirAnexo();
-            }
-        });
-        botaoAbrirAnexo.disableProperty().bind(listaAnexos.getSelectionModel().selectedItemProperty().isNull());
-        botaoEditarAnexo.disableProperty().bind(listaAnexos.getSelectionModel().selectedItemProperty().isNull());
-        listaAnexos.getSelectionModel().selectedItemProperty().addListener((obs, antes, depois) -> mostrarBotoesAnexo());
-        caixaAnexos.setOnDragOver(evento -> {
-            if (evento.getDragboard().hasFiles()) {
-                evento.acceptTransferModes(TransferMode.COPY);
-            }
-            evento.consume();
-        });
-        caixaAnexos.setOnDragDropped(evento -> {
-            boolean temArquivos = evento.getDragboard().hasFiles();
-            if (temArquivos) {
-                adicionarAnexos(evento.getDragboard().getFiles().stream().map(File::toPath).toList());
-            }
-            evento.setDropCompleted(temArquivos);
-            evento.consume();
-        });
     }
 
     void iniciar(Recursos recursos, long osId) {
         this.recursos = recursos;
         this.osId = osId;
         caixaMecanico = new CaixaMecanico(mecanico, recursos.oficina());
+        anexosController.iniciar(recursos.oficina(), recursos.servicos(), new AnexosDaOs(), this::mostrarOk,
+                this::mostrarErros);
         atualizar();
         preencherFormularios();
         montarOrcamento();
@@ -265,7 +217,7 @@ public class OsController {
         mostrarEntrada();
         mostrarPreparacao();
         mostrarEntregaEPagamento();
-        mostrarAnexos();
+        anexosController.atualizar();
         historico.getItems().setAll(mudancas.reversed());
         if (orcamento != null) {
             orcamento.atualizar();
@@ -564,139 +516,57 @@ public class OsController {
         executar(() -> recursos.oficina().cancelarPagamento(pagamentoId, motivo), "Recebimento cancelado.");
     }
 
-    // ===================== Anexos =====================
+    // ===================== Anexos e ficha do veículo =====================
 
-    private void mostrarAnexos() {
-        listaAnexos.getItems().setAll(recursos.oficina().anexosDaOs(osId));
-        mostrarBotoesAnexo();
-    }
+    /** Os anexos da OS: a foto vira foto da entrada antes de o serviço começar, e foto do serviço depois. */
+    private final class AnexosDaOs implements AnexosController.Fonte {
 
-    /** Remover só com a OS em andamento: o que ficou registrado na entrega não some. */
-    private void mostrarBotoesAnexo() {
-        boolean escolhido = listaAnexos.getSelectionModel().getSelectedItem() != null;
-        botaoRemoverAnexo.setDisable(!escolhido || aberta == null || aberta.os().status().finalizada());
-    }
-
-    @FXML
-    private void adicionarAnexos() {
-        FileChooser escolha = new FileChooser();
-        escolha.setTitle("Anexar à " + numero());
-        escolha.getExtensionFilters().add(new FileChooser.ExtensionFilter("Fotos (JPG ou PNG) e PDF", "*.jpg",
-                "*.jpeg", "*.png", "*.pdf"));
-        List<File> arquivos = escolha.showOpenMultipleDialog(janela());
-        if (arquivos != null) {
-            adicionarAnexos(arquivos.stream().map(File::toPath).toList());
+        @Override
+        public List<AnexoSalvo> anexos() {
+            return recursos.oficina().anexosDaOs(osId);
         }
-    }
 
-    /**
-     * Anexa os arquivos (do botão ou arrastados do Windows Explorer). Foto vira foto da entrada antes de o serviço
-     * começar, e foto do serviço depois; PDF vira documento. O tipo e a descrição mudam em "Editar…".
-     */
-    void adicionarAnexos(List<Path> arquivos) {
-        StatusOs atual = aberta.os().status();
-        boolean antesDoServico = atual.antesDaAprovacao() || atual == StatusOs.APROVADA;
-        List<NovoAnexo> novos = arquivos.stream().map(arquivo -> {
-            TipoAnexo tipo = !AnexosDaOficina.imagem(arquivo.getFileName().toString()) ? TipoAnexo.DOCUMENTO
-                    : antesDoServico ? TipoAnexo.FOTO_ENTRADA : TipoAnexo.FOTO_SERVICO;
-            return new NovoAnexo(arquivo, tipo, "", null, tipo.pessoalPorPadrao());
-        }).toList();
-        executar(() -> recursos.oficina().anexar(osId, novos), (novos.size() == 1 ? "Arquivo anexado."
-                : novos.size() + " arquivos anexados.") + " Para mudar o tipo ou pôr uma descrição, use Editar.");
-    }
-
-    @FXML
-    private void abrirAnexo() {
-        AnexoSalvo anexo = listaAnexos.getSelectionModel().getSelectedItem();
-        if (anexo == null) {
-            return;
+        /** PDF vira documento. O tipo e a descrição mudam em "Editar…". */
+        @Override
+        public String anexar(List<Path> arquivos) {
+            StatusOs atual = aberta.os().status();
+            boolean antesDoServico = atual.antesDaAprovacao() || atual == StatusOs.APROVADA;
+            List<NovoAnexo> novos = arquivos.stream().map(arquivo -> {
+                TipoAnexo tipo = !AnexosDaOficina.imagem(arquivo.getFileName().toString()) ? TipoAnexo.DOCUMENTO
+                        : antesDoServico ? TipoAnexo.FOTO_ENTRADA : TipoAnexo.FOTO_SERVICO;
+                return new NovoAnexo(arquivo, tipo, "", null, tipo.pessoalPorPadrao());
+            }).toList();
+            recursos.oficina().anexar(osId, novos);
+            return (novos.size() == 1 ? "Arquivo anexado." : novos.size() + " arquivos anexados.")
+                    + " Para mudar o tipo ou pôr uma descrição, use Editar.";
         }
-        Optional<Path> arquivo = recursos.oficina().arquivoDoAnexo(anexo);
-        if (arquivo.isEmpty()) {
-            mostrarErros(List.of("O arquivo de " + anexo.nomeOriginal() + " não está na pasta de anexos (foi apagado "
-                    + "fora do Calibra?). Restaure um backup ou anexe de novo."));
-        } else if (recursos.servicos() != null) {
-            recursos.servicos().showDocument(arquivo.get().toUri().toString());
-        }
-    }
 
-    @FXML
-    private void editarAnexo() {
-        AnexoSalvo anexo = listaAnexos.getSelectionModel().getSelectedItem();
-        if (anexo != null) {
-            JanelasOs.anexo(janela(), anexo).ifPresent(dados -> executar(() -> recursos.oficina().editarAnexo(
-                    anexo.id(), dados.tipo(), dados.descricao(), dados.validade(), dados.pessoal()), "Anexo alterado."));
-        }
-    }
-
-    @FXML
-    private void removerAnexo() {
-        AnexoSalvo anexo = listaAnexos.getSelectionModel().getSelectedItem();
-        if (anexo == null) {
-            return;
-        }
-        Alert alerta = Alertas.criar(Alert.AlertType.CONFIRMATION, anexo.tipo().rotulo() + ": "
-                + anexo.nomeOriginal() + ". O arquivo sai da pasta de anexos se nenhum outro anexo usar o mesmo.",
-                ButtonType.YES, ButtonType.NO);
-        alerta.initOwner(janela());
-        alerta.setTitle("Remover anexo");
-        alerta.setHeaderText("Remover o anexo da OS?");
-        if (alerta.showAndWait().filter(ButtonType.YES::equals).isPresent()) {
-            removerAnexo(anexo.id());
-        }
-    }
-
-    void removerAnexo(long anexoId) {
-        executar(() -> recursos.oficina().removerAnexo(anexoId), "Anexo removido.");
-        miniaturas.remove(anexoId);
-    }
-
-    /** Uma linha da lista de anexos: a miniatura (ou "PDF") e o tipo, a descrição, o arquivo e a validade. */
-    private final class CelulaAnexo extends ListCell<AnexoSalvo> {
-
-        private final ImageView imagem = new ImageView();
-        private final Label documento = new Label();
-        private final StackPane quadro = new StackPane();
-        private final Label nome = new Label();
-        private final Label detalhes = new Label();
-        private final HBox linha;
-
-        CelulaAnexo() {
-            quadro.setMinSize(LARGURA_MINIATURA, ALTURA_MINIATURA);
-            quadro.setPrefSize(LARGURA_MINIATURA, ALTURA_MINIATURA);
-            quadro.getStyleClass().add("miniatura");
-            documento.getStyleClass().add("negrito");
-            nome.getStyleClass().add("negrito");
-            detalhes.getStyleClass().add("dica");
-            linha = new HBox(12.0, quadro, new VBox(4.0, nome, detalhes));
-            linha.setAlignment(Pos.CENTER_LEFT);
+        /** Remover só com a OS em andamento: o que ficou registrado na entrega não some. */
+        @Override
+        public boolean podeRemover(AnexoSalvo anexo) {
+            return aberta != null && !aberta.os().status().finalizada();
         }
 
         @Override
-        protected void updateItem(AnexoSalvo anexo, boolean vazio) {
-            super.updateItem(anexo, vazio);
-            setText(null);
-            if (vazio || anexo == null) {
-                setGraphic(null);
-                return;
-            }
-            Optional<Path> arquivo = recursos.oficina().arquivoDoAnexo(anexo);
-            if (arquivo.isPresent() && AnexosDaOficina.imagem(anexo.arquivo())) {
-                // A imagem carrega em segundo plano, já no tamanho da miniatura: a lista não trava com fotos grandes.
-                imagem.setImage(miniaturas.computeIfAbsent(anexo.id(), id -> new Image(arquivo.get().toUri()
-                        .toString(), LARGURA_MINIATURA, ALTURA_MINIATURA, true, true, true)));
-                quadro.getChildren().setAll(imagem);
-            } else {
-                documento.setText(arquivo.isPresent() ? "PDF" : "arquivo\nnão achado");
-                quadro.getChildren().setAll(documento);
-            }
-            nome.setText(anexo.tipo().rotulo() + (anexo.descricao().isBlank() ? "" : " · " + anexo.descricao()));
-            detalhes.setText(anexo.nomeOriginal() + " · " + NumeroBr.tamanhoArquivo(anexo.tamanhoBytes()) + " · "
-                    + Datas.diaHora(anexo.criadoEm()) + (anexo.validade() == null ? ""
-                            : " · válido até " + Datas.dia(anexo.validade()))
-                    + (anexo.pessoal() ? " · documento pessoal" : ""));
-            setGraphic(linha);
+        public String tituloEscolha() {
+            return "Anexar à " + numero();
         }
+    }
+
+    /** Anexa os arquivos à OS (do botão ou arrastados do Windows Explorer). */
+    void adicionarAnexos(List<Path> arquivos) {
+        anexosController.adicionarAnexos(arquivos);
+    }
+
+    void removerAnexo(long anexoId) {
+        anexosController.removerAnexo(anexoId);
+    }
+
+    /** A ficha do veículo da OS; o botão de voltar dela traz de volta a esta OS. */
+    @FXML
+    private void abrirFichaDoVeiculo() {
+        recursos.navegacao().abrirFichaDoVeiculo(aberta.os().veiculoId(), numero(),
+                () -> recursos.navegacao().abrirOs(osId));
     }
 
     // ===================== Documentos =====================

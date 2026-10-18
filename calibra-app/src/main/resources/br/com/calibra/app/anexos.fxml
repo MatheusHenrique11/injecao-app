@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- A lista de anexos com miniatura (bloco 3.3): a aba Anexos da OS e a ficha do veículo usam a mesma. -->
+<VBox fx:id="caixaAnexos" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.AnexosController" styleClass="pagina">
+  <HBox spacing="10.0" alignment="CENTER_LEFT">
+    <Button fx:id="botaoAdicionarAnexos" text="Adicionar arquivos…" onAction="#adicionarAnexos"/>
+    <Button fx:id="botaoAbrirAnexo" text="Abrir" onAction="#abrirAnexo"/>
+    <Button fx:id="botaoEditarAnexo" text="Editar…" onAction="#editarAnexo"/>
+    <Button fx:id="botaoRemoverAnexo" text="Remover…" onAction="#removerAnexo"/>
+    <Region HBox.hgrow="ALWAYS"/>
+    <Label styleClass="dica" text="Fotos (JPG ou PNG) e PDF, até 20 MB. Dá para arrastar do Windows Explorer."/>
+  </HBox>
+  <ListView fx:id="listaAnexos" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label fx:id="listaVazia" styleClass="dica"
+             text="Nenhum anexo. Adicione as fotos do serviço, a nota fiscal ou os laudos."/>
+    </placeholder>
+  </ListView>
+</VBox>

@@ -235,7 +235,7 @@ class CasosOrcamentoTest {
 
         orcamentos.marcarEnviado(criado.id());
         relogio.andar(Duration.ofDays(3));
-        casos.anonimizarCliente(casos.abrir(projeto).cliente().id());
+        oficina.anonimizarCliente(casos.abrir(projeto).cliente().id());
         DadosOrcamento enviado = orcamentos.documento(criado.id(), DadosOficina.vazia(), null, "0.2.0-teste");
         assertTrue(enviado.cliente().startsWith("Cliente anonimizado #"), enviado.cliente());
         assertEquals(LocalDate.of(2026, 10, 13), enviado.emissao(), "a validade conta do envio");

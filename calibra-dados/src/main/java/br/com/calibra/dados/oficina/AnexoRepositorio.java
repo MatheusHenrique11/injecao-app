@@ -91,6 +91,16 @@ public final class AnexoRepositorio {
         return lista(conexao, "SELECT " + COLUNAS + " FROM anexo WHERE veiculo_id = ? ORDER BY id", veiculoId);
     }
 
+    /**
+     * Os anexos marcados como documento pessoal do cliente (LGPD: saem na anonimização): os das OS dele e os dos
+     * veículos dele que não são de OS.
+     */
+    public List<AnexoSalvo> pessoaisDoCliente(Connection conexao, long clienteId) throws SQLException {
+        return lista(conexao, "SELECT " + COLUNAS + " FROM anexo WHERE pessoal = 1 AND (os_id IN (SELECT id FROM "
+                + "ordem_servico WHERE cliente_id = ?) OR (os_id IS NULL AND veiculo_id IN (SELECT id FROM veiculo "
+                + "WHERE cliente_id = ?))) ORDER BY id", clienteId, clienteId);
+    }
+
     /** Quantos anexos apontam para o arquivo (o mesmo arquivo anexado duas vezes é uma cópia só). */
     public int quantosUsam(Connection conexao, String arquivo) throws SQLException {
         try (PreparedStatement consulta = conexao.prepareStatement("SELECT COUNT(*) FROM anexo WHERE arquivo = ?")) {
@@ -102,10 +112,12 @@ public final class AnexoRepositorio {
         }
     }
 
-    private static List<AnexoSalvo> lista(Connection conexao, String sql, long parametro) throws SQLException {
+    private static List<AnexoSalvo> lista(Connection conexao, String sql, long... parametros) throws SQLException {
         List<AnexoSalvo> lista = new ArrayList<>();
         try (PreparedStatement consulta = conexao.prepareStatement(sql)) {
-            consulta.setLong(1, parametro);
+            for (int i = 0; i < parametros.length; i++) {
+                consulta.setLong(i + 1, parametros[i]);
+            }
             try (ResultSet linha = consulta.executeQuery()) {
                 while (linha.next()) {
                     lista.add(new AnexoSalvo(linha.getLong("id"), linha.getLong("veiculo_id"),

@@ -13,7 +13,6 @@ import java.util.function.Function;
 
 import javafx.application.HostServices;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -23,7 +22,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -37,6 +35,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.Window;
 import javafx.util.StringConverter;
 
 import br.com.calibra.app.casos.CasosCatalogo;
@@ -416,61 +415,36 @@ public class ProjetoController {
 
     @FXML
     private void editarCliente() {
-        FXMLLoader carregador = new FXMLLoader(ProjetoController.class.getResource("cliente.fxml"));
-        Parent formulario = carregar(carregador);
-        ClienteFormController form = carregador.getController();
-        form.preencher(aberto.cliente().cliente());
-        VBox erros = new VBox(4);
-        Dialog<ButtonType> dialogo = dialogo("Editar cliente", new VBox(10, formulario, erros));
-        ButtonType salvar = new ButtonType("Salvar", ButtonBar.ButtonData.OK_DONE);
-        dialogo.getDialogPane().getButtonTypes().setAll(salvar, new ButtonType("Cancelar",
-                ButtonBar.ButtonData.CANCEL_CLOSE));
-        dialogo.getDialogPane().lookupButton(salvar).addEventFilter(ActionEvent.ACTION, evento -> {
-            try {
-                casos.salvarCliente(aberto.cliente().id(), form.ler());
-            } catch (EntradaInvalidaException erro) {
-                mostrarErros(erros, erro.erros());
-                evento.consume();
-            } catch (ErroDados erro) {
-                mostrarErros(erros, List.of(erro.getMessage()));
-                evento.consume();
-            }
-        });
-        if (dialogo.showAndWait().filter(salvar::equals).isPresent()) {
+        if (JanelasCadastro.editarCliente(janela(), casos, aberto.cliente())) {
             recarregar();
         }
     }
 
     @FXML
     private void historicoCliente() {
-        TableView<EventoAuditoria> tabela = new TableView<>();
-        tabela.getColumns().setAll(List.of(
-                coluna("Data e hora", 140, e -> Datas.diaHora(e.dataHora())),
-                coluna("Campo", 210, EventoAuditoria::campo),
-                coluna("Antes", 240, e -> valor(e.valorAntigo())),
-                coluna("Depois", 240, e -> valor(e.valorNovo()))));
-        tabela.getItems().setAll(casos.historicoCliente(aberto.cliente().id()));
-        tabela.setPrefSize(860, 360);
-        Dialog<ButtonType> dialogo = dialogo("Histórico do cliente", tabela);
-        dialogo.getDialogPane().getButtonTypes().setAll(new ButtonType("Fechar", ButtonBar.ButtonData.CANCEL_CLOSE));
-        dialogo.showAndWait();
+        JanelasCadastro.historicoCliente(janela(), casos, aberto.cliente().id());
     }
 
+    /** LGPD: anonimiza o cliente e apaga os documentos pessoais anexados (bloco 3.3); o projeto fica. */
     @FXML
     private void anonimizarCliente() {
-        if (!confirmar("Anonimizar o cliente?", "O nome vira \"Cliente anonimizado #" + aberto.cliente().id()
-                + "\" e telefone, e-mail, documento e observações são apagados, também no histórico. Os veículos "
-                + "dele perdem placa, chassi e identificação da embarcação. Projetos, motores e cálculos ficam.\n\n"
-                + "Isto não pode ser desfeito.")) {
+        if (!JanelasCadastro.confirmarAnonimizacao(janela(), aberto.cliente().id())) {
             return;
         }
         try {
-            casos.anonimizarCliente(aberto.cliente().id());
+            oficina.anonimizarCliente(aberto.cliente().id());
             recarregar();
             descartarVeiculo();
         } catch (ErroDados erro) {
             avisar(Alert.AlertType.ERROR, "Não foi possível anonimizar", erro.getMessage());
         }
+    }
+
+    /** A ficha do veículo do projeto (bloco 3.3), na área da Oficina; o botão de voltar dela traz de volta. */
+    @FXML
+    private void abrirFichaDoVeiculo() {
+        navegacao.abrirFichaDoVeiculo(aberto.veiculo().id(), "Projeto #" + projetoId,
+                () -> navegacao.abrirProjeto(projetoId));
     }
 
     @FXML
@@ -802,16 +776,8 @@ public class ProjetoController {
         };
     }
 
-    private Dialog<ButtonType> dialogo(String titulo, Node conteudo) {
-        Dialog<ButtonType> dialogo = new Dialog<>();
-        if (abas.getScene() != null) {
-            dialogo.initOwner(abas.getScene().getWindow());
-        }
-        dialogo.setTitle(titulo);
-        dialogo.setHeaderText(titulo);
-        dialogo.getDialogPane().setContent(conteudo);
-        dialogo.getDialogPane().getStylesheets().add(CalibraApp.folhaDeEstilo());
-        return dialogo;
+    private Window janela() {
+        return abas.getScene() == null ? null : abas.getScene().getWindow();
     }
 
     private static Parent carregar(FXMLLoader carregador) {

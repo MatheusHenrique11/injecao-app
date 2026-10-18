@@ -343,6 +343,13 @@ class OficinaUiTest {
         TelaDeTeste.<Button>achar(cena, "botaoCriar").fire();
 
         assertNotNull(principal.projetoAberto(), "criou e abriu o projeto");
+        TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+        assertNotNull(principal.fichaAberta(), "o cabeçalho do projeto abre a ficha do veículo");
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navOficina").isSelected(), "a ficha fica na área da Oficina");
+        Button voltar = achar(cena, "botaoVoltar");
+        assertTrue(voltar.getText().startsWith("← Projeto #"), voltar.getText());
+        voltar.fire();
+        assertTrue(TelaDeTeste.<ToggleButton>achar(cena, "navPreparacao").isSelected(), "volta para o projeto");
         Button daOs = achar(cena, "botaoAbrirOs");
         assertTrue(daOs.isVisible());
         assertEquals("Abrir a OS-2026-0001 · Aberta", daOs.getText(), "o cabeçalho do projeto mostra a OS");
@@ -493,6 +500,71 @@ class OficinaUiTest {
                         gravados.stream().map(ItemOrcamento::catalogoItemId).toList(), "a linha guarda o item");
                 assertEquals(List.of(1, 1), gravados.stream().map(ItemOrcamento::catalogoVersao).toList());
                 salvar(cena, "oficina-20-servico-do-catalogo.png");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * A ficha do veículo (bloco 3.3), aberta pela OS: o cliente, o veículo editado pela janela, as OS dele e o documento
+     * do veículo. Anonimizar apaga o documento pessoal, e o botão de voltar leva de novo à OS.
+     */
+    @Test
+    void fichaDoVeiculo() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::prontaParaEntregar);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                String numero = principal.osAberta().numero();
+                TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+                FichaVeiculoController ficha = principal.fichaAberta();
+                assertNotNull(ficha, "a OS abre a ficha do veículo");
+                assertEquals("← " + numero, TelaDeTeste.<Button>achar(cena, "botaoVoltar").getText());
+                assertEquals("Ficha do veículo · VW Gol GTi · ABC1D23", texto("titulo"));
+                assertEquals("Ana Costa (fictícia)", texto("clienteNome"));
+                assertEquals(List.of(ana), ids("ordens"));
+                Path crlv = Files.writeString(pasta.resolve("crlv.pdf"), "%PDF-1.7 CRLV fictício");
+                ficha.anexos().adicionarAnexos(List.of(crlv));
+                ListView<AnexoSalvo> anexos = ficha.anexos().lista();
+                assertEquals(1, anexos.getItems().size());
+                assertNull(anexos.getItems().getFirst().osId(), "documento do veículo, sem OS");
+                assertTrue(anexos.getItems().getFirst().pessoal(), "documento vem marcado como pessoal");
+                assertTrue(ficha.mensagens().getFirst().startsWith("Documento anexado ao veículo."),
+                        ficha.mensagens()::toString);
+                salvar(cena, "oficina-21-ficha-do-veiculo.png");
+            });
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoEditarVeiculo").fire(), falha);
+            Stage edicao = TelaDeTeste.esperarJanela("Editar veículo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(edicao);
+                painel.applyCss();
+                painel.layout();
+                TextField cor = (TextField) painel.lookup("#cor");
+                assertNotNull(cor, "o formulário do veículo dentro da janela");
+                cor.setText("Vermelho");
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> !edicao.isShowing(), "a janela de edição fechar");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertTrue(texto("veiculoDetalhes").contains("cor Vermelho"), texto("veiculoDetalhes"));
+                FichaVeiculoController ficha = principal.fichaAberta();
+                ficha.anonimizarCliente();
+                assertTrue(texto("clienteNome").startsWith("Cliente anonimizado #"), texto("clienteNome"));
+                assertEquals(List.of(), ficha.anexos().lista().getItems(), "o documento pessoal saiu");
+                assertEquals(List.of("Cliente anonimizado. 1 documento pessoal foi apagado."), ficha.mensagens());
+                assertTrue(TelaDeTeste.<Button>achar(cena, "botaoEditarCliente").isDisabled());
+                salvar(cena, "oficina-22-ficha-anonimizada.png");
+                TelaDeTeste.<Button>achar(cena, "botaoVoltar").fire();
+                assertNotNull(principal.osAberta(), "o botão de voltar leva de novo à OS");
+                assertTrue(texto("titulo").contains("Cliente anonimizado #"), "a OS mostra o cliente anonimizado");
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {

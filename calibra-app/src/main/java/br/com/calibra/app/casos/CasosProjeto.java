@@ -341,14 +341,6 @@ public final class CasosProjeto {
         });
     }
 
-    /** LGPD: apaga os dados pessoais do cliente e dos veículos dele; projetos e mapas ficam (SPEC 6.1). */
-    public void anonimizarCliente(long clienteId) {
-        banco.transacao(c -> {
-            clientes.anonimizar(c, clienteId);
-            return null;
-        });
-    }
-
     /** Grava o veículo editado, mantendo o câmbio do catálogo que ele já tinha. */
     public void salvarVeiculo(long veiculoId, Veiculo dados) {
         salvarVeiculo(veiculoId, dados, true, null);

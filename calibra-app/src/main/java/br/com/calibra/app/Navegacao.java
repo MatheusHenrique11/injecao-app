@@ -26,4 +26,12 @@ interface Navegacao {
 
     /** A tela da OS, na área da Oficina. */
     void abrirOs(long osId);
+
+    /**
+     * A ficha do veículo (bloco 3.3), na área da Oficina.
+     *
+     * @param rotuloVoltar de onde ela foi aberta, para o botão de voltar (ex.: "OS-2026-0001", "Projeto #3")
+     * @param voltar o que o botão de voltar faz
+     */
+    void abrirFichaDoVeiculo(long veiculoId, String rotuloVoltar, Runnable voltar);
 }

@@ -63,12 +63,14 @@ class CasosProjetoTest {
 
     private final RelogioAjustavel relogio = new RelogioAjustavel(LocalDateTime.of(2026, 10, 12, 9, 0));
     private CasosProjeto casos;
+    private BancoDados banco;
+    private PastasDados pastas;
 
     @BeforeEach
     void abrirBanco() throws IOException {
-        PastasDados pastas = new PastasDados(raiz);
+        pastas = new PastasDados(raiz);
         pastas.criar();
-        BancoDados banco = new BancoDados(pastas.banco());
+        banco = new BancoDados(pastas.banco());
         Migracoes.migrar(banco, new Backup(pastas, banco, "0.2.0-teste", relogio));
         casos = new CasosProjeto(banco, relogio, "0.2.0-teste");
     }
@@ -247,7 +249,7 @@ class CasosProjetoTest {
     @Test
     void anonimizarClienteMantemOProjeto() {
         long id = novoProjeto("João da Silva", "ABC1D23");
-        casos.anonimizarCliente(casos.abrir(id).cliente().id());
+        new CasosOficina(banco, relogio, casos, pastas.anexos()).anonimizarCliente(casos.abrir(id).cliente().id());
         ProjetoAberto aberto = casos.abrir(id);
         assertTrue(aberto.cliente().cliente().nome().startsWith("Cliente anonimizado #"));
         assertEquals("", aberto.veiculo().veiculo().placa());

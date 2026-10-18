@@ -75,6 +75,7 @@ public class PrincipalController implements Navegacao {
     private String tituloOficina;
     private NovaOsController novaOsAberta;
     private OsController osAberta;
+    private FichaVeiculoController fichaAberta;
     private Parent telaInicio;
     private InicioController inicio;
     /** O que está aberto na área de projetos: a lista, o assistente ou um projeto. */
@@ -169,6 +170,7 @@ public class PrincipalController implements Navegacao {
         }
         novaOsAberta = null;
         osAberta = null;
+        fichaAberta = null;
         abrirNaAreaDaOficina(telaListaOficina, "Oficina");
         oficina.focarBusca();
     }
@@ -192,6 +194,7 @@ public class PrincipalController implements Navegacao {
         novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio(),
                 contexto.configuracao().ler(Chave.OS));
         osAberta = null;
+        fichaAberta = null;
         abrirNaAreaDaOficina(tela, "Nova OS");
     }
 
@@ -209,12 +212,31 @@ public class PrincipalController implements Navegacao {
                 contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria()), osId);
         novaOsAberta = null;
         osAberta = os;
+        fichaAberta = null;
         abrirNaAreaDaOficina(tela, os.numero());
     }
 
     /** A OS aberta na área da Oficina; null na lista ou na Nova OS (para os testes de interface). */
     OsController osAberta() {
         return osAberta;
+    }
+
+    @Override
+    public void abrirFichaDoVeiculo(long veiculoId, String rotuloVoltar, Runnable voltar) {
+        FXMLLoader carregador = carregador("ficha-veiculo.fxml");
+        Parent tela = carregar(carregador);
+        FichaVeiculoController ficha = carregador.getController();
+        ficha.iniciar(new FichaVeiculoController.Recursos(casosOficina, casosProjeto, casosCatalogo, servicos, this,
+                contexto.relogio()), veiculoId, rotuloVoltar, voltar);
+        novaOsAberta = null;
+        osAberta = null;
+        fichaAberta = ficha;
+        abrirNaAreaDaOficina(tela, "Ficha do veículo");
+    }
+
+    /** A ficha do veículo aberta na área da Oficina; null se não há (para os testes de interface). */
+    FichaVeiculoController fichaAberta() {
+        return fichaAberta;
     }
 
     private void abrirNaAreaDaOficina(Parent tela, String titulo) {
@@ -369,6 +391,7 @@ public class PrincipalController implements Navegacao {
         telaOficina = null;
         novaOsAberta = null;
         osAberta = null;
+        fichaAberta = null;
         telaInicio = null;
         inicio = null;
         telaProjetos = null;

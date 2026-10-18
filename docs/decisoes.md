@@ -558,3 +558,11 @@ Plano aprovado em 17/10/2026. Respostas do dono:
     - depois, em segundo plano, o PDF vai para um arquivo temporário em `cache\tmp` dos dados (apagado no fim) e as páginas são desenhadas a 200 DPI com o desenhista do PDFBox que já estava no projeto, sem dependência nova;
     - cada página vai para a impressora do tamanho da área de impressão da folha escolhida, sem distorcer;
     - na primeira vez o PDFBox procura as fontes do Windows (alguns segundos); a mensagem avisa, e o cache dele já fica na pasta `cache` dos dados desde a fase 2.
+199. **Ficha do veículo** (área Oficina; abre pela OS e pelo cabeçalho do projeto):
+    - o cliente, com o contato e o consentimento, e Editar, Histórico e Anonimizar;
+    - o veículo, com Editar e Histórico. Antes, o veículo de uma OS sem projeto não tinha onde ser editado;
+    - as OS do veículo (todas) e os projetos de preparação (também os arquivados), que abrem com duplo clique;
+    - os anexos de todas as OS do veículo e os do próprio veículo. "Adicionar documento do veículo…" anexa sem OS, como documento pessoal (ex.: o CRLV, com a validade em Editar). O anexo de uma OS se remove na OS;
+    - o botão de voltar leva para onde a ficha foi aberta (a OS ou o projeto).
+200. **Componentes reaproveitados:** a lista de anexos virou um componente (`anexos.fxml` + `AnexosController`), usado na aba Anexos da OS e na ficha. As janelas de editar e de ver o histórico do cliente e do veículo, e a confirmação da anonimização, ficam em `JanelasCadastro`, usadas pelo projeto e pela ficha.
+201. **LGPD dos anexos:** anonimizar o cliente (pela ficha ou pelo projeto) apaga, na mesma gravação, os anexos marcados como documento pessoal: os das OS dele e os dos veículos dele que não são de OS. O arquivo sai da pasta só se nenhum outro anexo usar o mesmo. Fotos, laudos, notas, OS, projetos e cálculos ficam, e a confirmação diz que não tem volta. A anonimização passou de `CasosProjeto` para `CasosOficina`.

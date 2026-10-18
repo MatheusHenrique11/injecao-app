@@ -124,6 +124,21 @@ public final class CasosOficina {
     }
 
     /**
+     * A ficha do veículo (bloco 3.3): o veículo, o dono, as OS e os projetos de preparação dele.
+     *
+     * @param ordens todas, da mais nova para a mais antiga
+     * @param projetos todos, também os arquivados, do mais novo para o mais antigo
+     */
+    public record FichaVeiculo(VeiculoSalvo veiculo, ClienteSalvo cliente, List<ResumoOs> ordens,
+            List<ProjetoDoVeiculo> projetos) {
+
+        public FichaVeiculo {
+            ordens = List.copyOf(ordens);
+            projetos = List.copyOf(projetos);
+        }
+    }
+
+    /**
      * O que o Painel mostra (SPEC 8.8).
      *
      * @param porStatus quantas OS há em cada status de quem está em andamento (zero quando não há nenhuma)
@@ -501,19 +516,62 @@ public final class CasosOficina {
 
     /** Os projetos de preparação do veículo, do mais novo para o mais antigo, sem os arquivados. */
     public List<ProjetoDoVeiculo> projetosDoVeiculo(long veiculoId) {
-        return banco.ler(c -> {
-            List<ProjetoDoVeiculo> lista = new ArrayList<>();
-            for (ProjetoSalvo projeto : projetoRepositorio.doVeiculo(c, veiculoId)) {
-                if (projeto.status() == StatusProjeto.ARQUIVADO) {
-                    continue;
-                }
-                String motor = motores.atual(c, projeto.id()).map(v -> (v.descricao().isBlank() ? "Motor"
-                        : v.descricao()) + " v" + v.numero()).orElse("Motor");
-                lista.add(new ProjetoDoVeiculo(projeto.id(), motor, projeto.status()));
+        return banco.ler(c -> projetosDoVeiculo(c, veiculoId, false));
+    }
+
+    private List<ProjetoDoVeiculo> projetosDoVeiculo(Connection conexao, long veiculoId, boolean comArquivados)
+            throws SQLException {
+        List<ProjetoDoVeiculo> lista = new ArrayList<>();
+        for (ProjetoSalvo projeto : projetoRepositorio.doVeiculo(conexao, veiculoId)) {
+            if (projeto.status() == StatusProjeto.ARQUIVADO && !comArquivados) {
+                continue;
             }
-            lista.sort(Comparator.comparingLong(ProjetoDoVeiculo::projetoId).reversed());
-            return lista;
+            String motor = motores.atual(conexao, projeto.id()).map(v -> (v.descricao().isBlank() ? "Motor"
+                    : v.descricao()) + " v" + v.numero()).orElse("Motor");
+            lista.add(new ProjetoDoVeiculo(projeto.id(), motor, projeto.status()));
+        }
+        lista.sort(Comparator.comparingLong(ProjetoDoVeiculo::projetoId).reversed());
+        return lista;
+    }
+
+    // ===================== Ficha do veículo =====================
+
+    /**
+     * A ficha do veículo (bloco 3.3): o veículo e o dono, as OS dele (todas, da mais nova para a mais antiga) e os
+     * projetos de preparação (também os arquivados).
+     */
+    public FichaVeiculo ficha(long veiculoId) {
+        return banco.ler(c -> {
+            VeiculoSalvo veiculo = veiculos.buscar(c, veiculoId).orElseThrow(
+                    () -> new OperacaoRecusadaException("Veículo #" + veiculoId + " não encontrado."));
+            ClienteSalvo cliente = clientes.buscar(c, veiculo.clienteId()).orElseThrow();
+            return new FichaVeiculo(veiculo, cliente, ordens.resumosDoVeiculo(c, veiculoId),
+                    projetosDoVeiculo(c, veiculoId, true));
         });
+    }
+
+    /**
+     * LGPD (SPEC 6.1 e 6.5): anonimiza o cliente e os veículos dele e apaga os anexos marcados como documento pessoal
+     * (das OS dele e dos veículos dele), na mesma gravação; os arquivos que ficarem sem uso saem da pasta de anexos.
+     * Fotos, laudos, notas fiscais, OS, projetos e cálculos ficam. Não tem volta.
+     *
+     * @return quantos anexos foram apagados
+     */
+    public int anonimizarCliente(long clienteId) {
+        List<AnexoSalvo> apagados = banco.transacao(c -> {
+            clientes.buscar(c, clienteId).orElseThrow(
+                    () -> new OperacaoRecusadaException("Cliente #" + clienteId + " não encontrado."));
+            List<AnexoSalvo> pessoais = anexos.pessoaisDoCliente(c, clienteId);
+            for (AnexoSalvo anexo : pessoais) {
+                anexos.apagar(c, anexo.id());
+            }
+            clientes.anonimizar(c, clienteId);
+            return pessoais;
+        });
+        apagarSobras(apagados.stream()
+                .map(anexo -> new AnexosDaOficina.Copia(anexo.arquivo(), anexo.tamanhoBytes(), anexo.sha256()))
+                .toList());
+        return apagados.size();
     }
 
     // ===================== Anexos =====================
@@ -528,20 +586,40 @@ public final class CasosOficina {
         if (novos == null || novos.isEmpty()) {
             return List.of();
         }
+        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
+        return anexar(os.veiculoId(), osId, novos);
+    }
+
+    /**
+     * Anexa os arquivos ao próprio veículo, sem OS (bloco 3.3, ficha do veículo): ex.: o CRLV, com a validade. Como
+     * na OS, cada um é copiado para a pasta de anexos do veículo.
+     *
+     * @throws OperacaoRecusadaException se um arquivo não for JPG, PNG ou PDF, ou passar de 20 MB (nada é gravado)
+     */
+    public List<AnexoSalvo> anexarAoVeiculo(long veiculoId, List<NovoAnexo> novos) {
+        if (novos == null || novos.isEmpty()) {
+            return List.of();
+        }
+        banco.ler(c -> veiculos.buscar(c, veiculoId).orElseThrow(
+                () -> new OperacaoRecusadaException("Veículo #" + veiculoId + " não encontrado.")));
+        return anexar(veiculoId, null, novos);
+    }
+
+    /** Copia os arquivos e grava os anexos numa gravação só; se algo falhar, as cópias novas são apagadas. */
+    private List<AnexoSalvo> anexar(long veiculoId, Long osId, List<NovoAnexo> novos) {
         List<String> erros = errosDosAnexos(novos);
         if (!erros.isEmpty()) {
             throw new EntradaInvalidaException(erros);
         }
-        OrdemServicoSalva os = banco.ler(c -> exigir(c, osId));
         List<AnexosDaOficina.Copia> copias = new ArrayList<>();
         try {
             for (NovoAnexo novo : novos) {
-                copias.add(copiar(novo.arquivo(), os.veiculoId()));
+                copias.add(copiar(novo.arquivo(), veiculoId));
             }
             return banco.transacao(c -> {
                 List<AnexoSalvo> gravados = new ArrayList<>();
                 for (int i = 0; i < novos.size(); i++) {
-                    long id = inserirAnexo(c, os.veiculoId(), osId, novos.get(i), copias.get(i));
+                    long id = inserirAnexo(c, veiculoId, osId, novos.get(i), copias.get(i));
                     gravados.add(anexos.buscar(c, id).orElseThrow());
                 }
                 return gravados;
@@ -574,7 +652,8 @@ public final class CasosOficina {
         }
     }
 
-    private long inserirAnexo(Connection conexao, long veiculoId, long osId, NovoAnexo novo,
+    /** @param osId null = anexo do veículo, sem OS */
+    private long inserirAnexo(Connection conexao, long veiculoId, Long osId, NovoAnexo novo,
             AnexosDaOficina.Copia copia) throws SQLException {
         return anexos.inserir(conexao, veiculoId, osId, novo.tipo(), novo.descricao(), copia.arquivo(),
                 novo.arquivo().getFileName().toString(), copia.tamanhoBytes(), copia.sha256(), novo.validade(),
@@ -616,6 +695,11 @@ public final class CasosOficina {
     /** Os anexos da OS, do mais antigo para o mais novo. */
     public List<AnexoSalvo> anexosDaOs(long osId) {
         return banco.ler(c -> anexos.daOs(c, osId));
+    }
+
+    /** Todos os anexos do veículo: os das OS dele e os do próprio veículo, do mais antigo para o mais novo. */
+    public List<AnexoSalvo> anexosDoVeiculo(long veiculoId) {
+        return banco.ler(c -> anexos.doVeiculo(c, veiculoId));
     }
 
     /** O arquivo do anexo na pasta de anexos (para abrir e para a miniatura); vazio se sumiu da pasta. */

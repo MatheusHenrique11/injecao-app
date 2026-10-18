@@ -4,7 +4,6 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
@@ -21,8 +20,8 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Tela da OS (SPEC 8.9): o cabeçalho com os passos do serviço e as abas Entrada, Orçamento, Preparação,
-     Entrega e pagamento, Anexos e Histórico. -->
+<!-- Tela da OS (SPEC 8.9): o cabeçalho com os passos do serviço, a ficha do veículo e os documentos, e as abas
+     Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e Histórico. -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.OsController">
   <top>
@@ -32,6 +31,8 @@
         <Label fx:id="titulo" styleClass="titulo-projeto"/>
         <Label fx:id="status" styleClass="etiqueta-status"/>
         <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="botaoFichaVeiculo" text="Ficha do veículo" onAction="#abrirFichaDoVeiculo"
+                minWidth="-Infinity"/>
         <!-- Os documentos da OS (bloco 3.3): o PDF, a impressão e os textos para o WhatsApp. -->
         <MenuButton fx:id="menuDocumentos" text="Documentos" minWidth="-Infinity">
           <items>
@@ -179,21 +180,8 @@
 
       <!-- ===================== Anexos ===================== -->
       <Tab fx:id="abaAnexos" text="Anexos">
-        <VBox fx:id="caixaAnexos" styleClass="pagina">
-          <HBox spacing="10.0" alignment="CENTER_LEFT">
-            <Button fx:id="botaoAdicionarAnexos" text="Adicionar arquivos…" onAction="#adicionarAnexos"/>
-            <Button fx:id="botaoAbrirAnexo" text="Abrir" onAction="#abrirAnexo"/>
-            <Button fx:id="botaoEditarAnexo" text="Editar…" onAction="#editarAnexo"/>
-            <Button fx:id="botaoRemoverAnexo" text="Remover…" onAction="#removerAnexo"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Label styleClass="dica" text="Fotos (JPG ou PNG) e PDF, até 20 MB. Dá para arrastar do Windows Explorer."/>
-          </HBox>
-          <ListView fx:id="listaAnexos" VBox.vgrow="ALWAYS">
-            <placeholder>
-              <Label styleClass="dica" text="Nenhum anexo. Adicione as fotos do serviço, a nota fiscal ou os laudos."/>
-            </placeholder>
-          </ListView>
-        </VBox>
+        <!-- A mesma lista da ficha do veículo (bloco 3.3). -->
+        <fx:include fx:id="anexos" source="anexos.fxml"/>
       </Tab>
 
       <!-- ===================== Histórico ===================== -->

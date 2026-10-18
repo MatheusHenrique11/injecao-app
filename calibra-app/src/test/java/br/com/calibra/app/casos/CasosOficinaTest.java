@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import br.com.calibra.app.casos.CasosOficina.FichaVeiculo;
 import br.com.calibra.app.casos.CasosOficina.Gravado;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
@@ -454,6 +455,86 @@ class CasosOficinaTest {
         assertEquals("A OS OS-2026-0001 está \"Cancelada\": os anexos dela não se removem.", cancelada.getMessage());
         assertEquals(1, oficina.anexar(os, List.of(new NovoAnexo(nota, TipoAnexo.OUTRO, "Depois", null, false)))
                 .size(), "anexar ainda vale");
+    }
+
+    /**
+     * A ficha do veículo (bloco 3.3): as OS dele, os projetos (também o arquivado) e os anexos de todas as OS, com os
+     * documentos do próprio veículo, sem OS.
+     */
+    @Test
+    void fichaEDocumentosDoVeiculo() throws Exception {
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        long projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("Gabi Nunes")),
+                new VeiculoNovo(CasosProjetoTest.carro("FGH6I78")), "AP 2.0 turbo", casoB.motor(), casoB.meta()));
+        var aberto = casos.abrir(projeto);
+        long veiculo = aberto.veiculo().id();
+        long os = oficina.abrir(new NovaOs(new ClienteExistente(aberto.cliente().id()), new VeiculoExistente(veiculo),
+                "Revisão", null, null, "", entrada(251_500.0))).osId();
+        casos.arquivar(projeto);
+
+        Path foto = raiz.resolve("IMG_0002.jpg");
+        Files.write(foto, new byte[] {(byte) 0xFF, (byte) 0xD8, 4, 5, 6});
+        oficina.anexar(os, List.of(new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false)));
+        Path crlv = Files.writeString(raiz.resolve("crlv.pdf"), "%PDF-1.7 CRLV fictício");
+        AnexoSalvo documento = oficina.anexarAoVeiculo(veiculo, List.of(new NovoAnexo(crlv, TipoAnexo.DOCUMENTO,
+                "CRLV 2026", LocalDate.of(2027, 3, 31), true))).getFirst();
+        assertNull(documento.osId(), "do veículo, sem OS");
+        assertEquals(LocalDate.of(2027, 3, 31), documento.validade());
+        assertEquals(List.of(TipoAnexo.FOTO_ENTRADA, TipoAnexo.DOCUMENTO), oficina.anexosDoVeiculo(veiculo).stream()
+                .map(AnexoSalvo::tipo).toList(), "os das OS e os do veículo");
+        assertEquals(1, oficina.anexosDaOs(os).size(), "o documento do veículo não entra na OS");
+
+        FichaVeiculo ficha = oficina.ficha(veiculo);
+        assertEquals("Gabi Nunes", ficha.cliente().cliente().nome());
+        assertEquals("FGH6I78", ficha.veiculo().veiculo().placa());
+        assertEquals(List.of(os), ficha.ordens().stream().map(ResumoOs::osId).toList());
+        assertEquals(List.of(new ProjetoDoVeiculo(projeto, "AP 2.0 turbo v1", StatusProjeto.ARQUIVADO)),
+                ficha.projetos(), "na ficha, também o arquivado");
+        assertEquals(List.of(), oficina.projetosDoVeiculo(veiculo), "para ligar à OS, não");
+
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.anexarAoVeiculo(9_999, List.of(
+                new NovoAnexo(crlv, TipoAnexo.DOCUMENTO, "", null, true))));
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.ficha(9_999));
+    }
+
+    /**
+     * LGPD (bloco 3.3): anonimizar o cliente apaga, na mesma gravação, os anexos marcados como documento pessoal (das
+     * OS dele e do veículo dele); o arquivo sai da pasta só quando nenhum outro anexo o usa. Fotos e notas ficam, e os
+     * documentos de outro cliente também.
+     */
+    @Test
+    void anonimizarApagaSoOsDocumentosPessoais() throws Exception {
+        long os = abrirComEntrada("Lia Mota", "JKL0M12");
+        OsAberta aberta = oficina.buscar(os);
+        long veiculo = aberta.veiculo().id();
+        Path foto = raiz.resolve("IMG_0003.jpg");
+        Files.write(foto, new byte[] {(byte) 0xFF, (byte) 0xD8, 7, 8, 9});
+        Path cnh = Files.writeString(raiz.resolve("cnh.pdf"), "%PDF-1.7 CNH fictícia");
+        Path nota = Files.writeString(raiz.resolve("nota-lia.pdf"), "%PDF-1.7 nota fictícia");
+        List<AnexoSalvo> daOs = oficina.anexar(os, List.of(
+                new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false),
+                new NovoAnexo(cnh, TipoAnexo.DOCUMENTO, "CNH", null, true),
+                new NovoAnexo(nota, TipoAnexo.NOTA_FISCAL, "", null, false)));
+        Path crlv = Files.writeString(raiz.resolve("crlv-lia.pdf"), "%PDF-1.7 CRLV fictício");
+        List<AnexoSalvo> doVeiculo = oficina.anexarAoVeiculo(veiculo, List.of(
+                new NovoAnexo(crlv, TipoAnexo.DOCUMENTO, "CRLV", null, true),
+                new NovoAnexo(cnh, TipoAnexo.OUTRO, "A mesma CNH, sem a marca de pessoal", null, false)));
+        long outra = abrirComEntrada("Nina Rocha", "KLM1N23");
+        Path doc = Files.writeString(raiz.resolve("doc-nina.pdf"), "%PDF-1.7 documento fictício");
+        AnexoSalvo daNina = oficina.anexar(outra, List.of(new NovoAnexo(doc, TipoAnexo.DOCUMENTO, "", null, true)))
+                .getFirst();
+
+        assertEquals(2, oficina.anonimizarCliente(aberta.cliente().id()), "a CNH da OS e o CRLV do veículo");
+        assertTrue(oficina.buscar(os).cliente().cliente().nome().startsWith("Cliente anonimizado #"));
+        assertEquals("", oficina.buscar(os).veiculo().veiculo().placa());
+        assertEquals(List.of(daOs.get(0).id(), daOs.get(2).id(), doVeiculo.get(1).id()),
+                oficina.anexosDoVeiculo(veiculo).stream().map(AnexoSalvo::id).toList(), "a foto e a nota ficam");
+        assertFalse(Files.exists(pastas.anexos().resolve(doVeiculo.get(0).arquivo())), "o arquivo do CRLV sai");
+        assertTrue(Files.exists(pastas.anexos().resolve(daOs.get(1).arquivo())),
+                "o da CNH fica: o outro anexo (sem a marca de pessoal) ainda usa o mesmo arquivo");
+        assertEquals(List.of(daNina.id()), oficina.anexosDaOs(outra).stream().map(AnexoSalvo::id).toList(),
+                "o documento da outra cliente fica");
+        assertEquals(0, oficina.anonimizarCliente(aberta.cliente().id()), "de novo: nada mais a apagar");
     }
 
     /**

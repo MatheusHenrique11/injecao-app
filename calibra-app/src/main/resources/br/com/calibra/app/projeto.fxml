@@ -30,6 +30,7 @@
         <Label fx:id="subtitulo" styleClass="dica"/>
       </VBox>
       <Region HBox.hgrow="ALWAYS"/>
+      <Button fx:id="botaoFichaVeiculo" text="Ficha do veículo" onAction="#abrirFichaDoVeiculo"/>
       <Button fx:id="botaoAbrirOs" onAction="#abrirOs" visible="false" managed="false"/>
       <Label fx:id="status" styleClass="etiqueta-status"/>
       <Button fx:id="botaoArquivar" text="Arquivar projeto" onAction="#arquivarOuReativar"/>

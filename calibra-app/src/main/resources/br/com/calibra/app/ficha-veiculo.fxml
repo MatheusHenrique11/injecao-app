@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Ficha do veículo (bloco 3.3, área Oficina): o cliente e o veículo, as OS e os projetos dele e os anexos de todas
+     as OS com os documentos do próprio veículo. -->
+<BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.FichaVeiculoController">
+  <top>
+    <VBox styleClass="cabecalho-projeto" spacing="6.0">
+      <HBox spacing="12.0" alignment="CENTER_LEFT">
+        <Button fx:id="botaoVoltar" text="← Oficina" onAction="#voltar"/>
+        <Label fx:id="titulo" styleClass="titulo-projeto"/>
+      </HBox>
+      <Label fx:id="subtitulo" styleClass="dica" wrapText="true"/>
+    </VBox>
+  </top>
+
+  <center>
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina" spacing="10.0">
+        <HBox spacing="30.0">
+          <VBox spacing="6.0" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+            <Label styleClass="titulo-secao" text="Cliente"/>
+            <Label fx:id="clienteNome" styleClass="negrito" wrapText="true"/>
+            <Label fx:id="clienteContato" wrapText="true"/>
+            <Label fx:id="clienteConsentimento" styleClass="dica" wrapText="true"/>
+            <HBox spacing="10.0">
+              <Button fx:id="botaoEditarCliente" text="Editar cliente…" onAction="#editarCliente"/>
+              <Button fx:id="botaoHistoricoCliente" text="Histórico…" onAction="#historicoCliente"/>
+              <Button fx:id="botaoAnonimizar" text="Anonimizar…" onAction="#anonimizar"/>
+            </HBox>
+          </VBox>
+          <VBox spacing="6.0" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+            <Label styleClass="titulo-secao" text="Veículo"/>
+            <Label fx:id="veiculoResumo" styleClass="negrito" wrapText="true"/>
+            <Label fx:id="veiculoDetalhes" wrapText="true"/>
+            <HBox spacing="10.0">
+              <Button fx:id="botaoEditarVeiculo" text="Editar veículo…" onAction="#editarVeiculo"/>
+              <Button fx:id="botaoHistoricoVeiculo" text="Histórico do veículo…" onAction="#historicoVeiculo"/>
+            </HBox>
+          </VBox>
+        </HBox>
+
+        <Label styleClass="titulo-secao" text="OS do veículo"/>
+        <TableView fx:id="ordens" prefHeight="170.0">
+          <placeholder>
+            <Label styleClass="dica" text="Nenhuma OS deste veículo."/>
+          </placeholder>
+        </TableView>
+
+        <Label styleClass="titulo-secao" text="Projetos de preparação do veículo"/>
+        <TableView fx:id="projetos" prefHeight="110.0">
+          <columns>
+            <TableColumn fx:id="colunaProjeto" text="Projeto" prefWidth="110.0"/>
+            <TableColumn fx:id="colunaMotor" text="Motor" prefWidth="420.0"/>
+            <TableColumn fx:id="colunaSituacaoProjeto" text="Situação" prefWidth="160.0"/>
+          </columns>
+          <placeholder>
+            <Label styleClass="dica" text="Nenhum projeto de preparação deste veículo."/>
+          </placeholder>
+        </TableView>
+
+        <Label styleClass="titulo-secao" text="Anexos e documentos"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Os anexos de todas as OS deste veículo e os documentos do próprio veículo (como o CRLV, com a validade em Editar). O anexo de uma OS se remove na própria OS."/>
+        <fx:include fx:id="anexos" source="anexos.fxml" prefHeight="360.0"/>
+      </VBox>
+    </ScrollPane>
+  </center>
+
+  <bottom>
+    <VBox fx:id="mensagens" styleClass="pagina" spacing="4.0"/>
+  </bottom>
+</BorderPane>

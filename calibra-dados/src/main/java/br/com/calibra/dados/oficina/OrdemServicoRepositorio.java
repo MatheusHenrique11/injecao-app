@@ -37,6 +37,12 @@ public final class OrdemServicoRepositorio {
             + "servico_pedido, mecanico_id, previsao_entrega, entrada_em, uso_entrada, combustivel_entrada, "
             + "vistoria_json, pronta_em, entregue_em, uso_saida, garantia_dias, garantia_ate, motivo_cancelamento, "
             + "observacoes, criado_em, atualizado_em";
+    /** As linhas das listas de OS (a tela Oficina, o Painel e a ficha do veículo), com o cliente e o veículo. */
+    private static final String SELECT_RESUMO = "SELECT o.id, o.ano, o.sequencial, o.status, o.servico_pedido, "
+            + "o.projeto_id, o.entrada_em, o.previsao_entrega, o.atualizado_em, c.nome, v.tipo, v.marca, v.modelo, "
+            + "v.versao, v.placa, v.nome_embarcacao FROM ordem_servico o "
+            + "JOIN cliente c ON c.id = o.cliente_id "
+            + "JOIN veiculo v ON v.id = o.veiculo_id";
 
     private final Clock relogio;
 
@@ -216,15 +222,25 @@ public final class OrdemServicoRepositorio {
                 veiculoId);
     }
 
+    /** As OS do veículo, da mais nova para a mais antiga, todas (a ficha do veículo, bloco 3.3). */
+    public List<ResumoOs> resumosDoVeiculo(Connection conexao, long veiculoId) throws SQLException {
+        List<ResumoOs> resultado = new ArrayList<>();
+        try (PreparedStatement consulta = conexao.prepareStatement(SELECT_RESUMO
+                + " WHERE o.veiculo_id = ? ORDER BY o.id DESC")) {
+            consulta.setLong(1, veiculoId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                while (linha.next()) {
+                    resultado.add(resumo(linha));
+                }
+            }
+        }
+        return resultado;
+    }
+
     /** A lista da tela Oficina: as que mudaram por último primeiro. */
     public List<ResumoOs> pesquisar(Connection conexao, FiltroOs filtro, int limite) throws SQLException {
         List<String> palavras = TextoBusca.palavras(filtro.termo());
-        StringBuilder sql = new StringBuilder(
-                "SELECT o.id, o.ano, o.sequencial, o.status, o.servico_pedido, o.projeto_id, o.entrada_em, "
-                        + "o.previsao_entrega, o.atualizado_em, c.nome, v.tipo, v.marca, v.modelo, v.versao, v.placa, "
-                        + "v.nome_embarcacao FROM ordem_servico o "
-                        + "JOIN cliente c ON c.id = o.cliente_id "
-                        + "JOIN veiculo v ON v.id = o.veiculo_id WHERE 1 = 1");
+        StringBuilder sql = new StringBuilder(SELECT_RESUMO + " WHERE 1 = 1");
         sql.append(" AND (c.busca || ' ' || v.busca || ' ' || printf('os%d%04d', o.ano, o.sequencial)) LIKE ?"
                 .repeat(palavras.size()));
         List<StatusOs> status = filtro.status().stream().sorted().toList();
