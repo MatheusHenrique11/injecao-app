@@ -58,6 +58,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -712,6 +715,19 @@ class OficinaUiTest {
                         + Datas.dia(hoje.plusDays(90)) + ". Garantia própria: Reparo de alternador teste, 365 dias, até "
                         + Datas.dia(hoje.plusDays(365)) + "."), texto("situacaoEntrega"));
                 salvar(cena, "oficina-24-aba-entrega-garantia-propria.png");
+
+                // O comprovante pelo mesmo caminho do menu Documentos (em target/, para conferir).
+                Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+                Files.createDirectories(alvo);
+                Path comprovante = alvo.resolve("exemplo-comprovante-garantia-propria-app.pdf");
+                principal.osAberta().escreverComprovante(comprovante);
+                try (PDDocument documento = Loader.loadPDF(comprovante.toFile())) {
+                    String pdf = new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
+                    assertTrue(pdf.contains("Garantia própria: Reparo de alternador teste, 365 dias, até "
+                            + Datas.dia(hoje.plusDays(365))), pdf);
+                    assertFalse(pdf.contains("Limpeza dos terminais da bateria,"), "a da OS não se repete");
+                    assertEquals(1, documento.getNumberOfPages());
+                }
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {

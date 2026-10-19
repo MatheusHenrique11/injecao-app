@@ -81,7 +81,7 @@ O cabeçalho mostra o número, o cliente, o veículo, a etapa, o valor e o que j
 
 - **Começar o serviço:** só com o orçamento aprovado e a entrada registrada. Serviço só com orçamento aprovado é a regra do Código de Defesa do Consumidor (art. 39, VI).
 - **Aguardando peças…** (diga quais), **Retomar o serviço** e **Serviço pronto**.
-- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia, até 3650 = 10 anos; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS.
+- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia, até 3650 = 10 anos; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS. Se algum serviço do orçamento aprovado tiver **garantia própria** no catálogo (item 8), a janela avisa qual; a garantia digitada vale para os outros. Vale a garantia que o serviço tinha quando entrou no orçamento: mudar o catálogo depois não muda a OS.
 - **Cancelar OS…:** a qualquer momento antes da entrega, com o motivo. A OS cancelada fica no histórico; OS não se apaga.
 
 Com algo mudado e não salvo na aba Entrada, Entregar e Cancelar pedem para salvar antes: depois, a OS não muda mais, e a mudança se perderia.
@@ -91,7 +91,7 @@ As abas:
 - **Entrada:** os dados da abertura e a entrada do veículo (registrar quando ele chegar, ou corrigir o que foi anotado errado). Corrigir só a vistoria ou o tanque não mexe no km do cadastro do veículo; corrigir o km, sim.
 - **Orçamento:** o mesmo do projeto (item 9). Na OS sem projeto de preparação, os itens são digitados. A OS acompanha o orçamento até a aprovação: enviado leva a Aguardando aprovação; aprovado, a Aprovada; recusado ou revisão nova volta a Aberta. Depois de aprovada, uma revisão nova (o cliente pediu mais coisa) não muda a etapa, e o valor da OS passa a ser o da última revisão aprovada. Com a OS entregue ou cancelada, o orçamento fica só para ver (o PDF e o texto continuam saindo).
 - **Preparação:** com projeto ligado, o resumo e "Abrir o projeto". Sem projeto: "Criar projeto de preparação…" (o assistente começa no motor, com o cliente e o veículo da OS, e o projeto já nasce ligado a ela) ou ligar um projeto do mesmo veículo.
-- **Entrega e pagamento:** o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar. Se o recebido passar do valor, aparece "recebido a mais": confira se nenhum recebimento foi lançado duas vezes e cancele o errado.
+- **Entrega e pagamento:** depois da entrega, quando, com quantos km e a garantia, com o dia em que vence (e, para cada serviço com garantia própria, a dele, ex.: "Garantia própria: Reparo ou troca de alternador, 365 dias, até 19/10/2027"). Também o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar. Se o recebido passar do valor, aparece "recebido a mais": confira se nenhum recebimento foi lançado duas vezes e cancele o errado.
 - **Anexos:** fotos e PDF (nota fiscal, laudos, documentos), com miniatura. "Adicionar arquivos…" ou arrastar do Explorador; a cópia roda em segundo plano, como na Nova OS. Foto vira "foto da entrada" antes de o serviço começar e "foto do serviço" depois; PDF vira "documento". "Editar…" muda o tipo, a descrição, a validade e a marca de documento pessoal. "Abrir" usa o programa do Windows. "Remover…" só com a OS em andamento.
 - **Histórico:** cada mudança de etapa, com data, hora e observação.
 
@@ -102,7 +102,7 @@ Depois da entrega, a OS não muda mais; os recebimentos e os anexos continuam va
 O botão **Documentos ▾**, no cabeçalho da OS:
 
 - **Via do cliente** (gerar PDF ou imprimir): a folha A4 que o cliente assina na chegada. Tem a OS, o cliente e o veículo, o serviço pedido, a previsão e o mecânico, a entrada (chegada, km, tanque, a vistoria item a item e os objetos deixados), o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Com algo mudado e não salvo na aba Entrada, a via não sai: a mensagem diz o que salvar. Assim nenhuma observação da vistoria fica de fora da folha assinada.
-- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence, os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta (ou o recebido a mais), a situação e a assinatura de quem recebeu o veículo.
+- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence (e, embaixo, a linha "Garantia própria" com os serviços que têm a própria, quando houver), os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta (ou o recebido a mais), a situação e a assinatura de quem recebeu o veículo.
 - **Copiar texto para WhatsApp:** "OS aberta" (o número, o veículo, quando chegou ou "orçamento a fazer", o serviço pedido e a previsão) e "pronto para retirar" (com a OS pronta: o valor, o recebido e o que falta, ou o recebido a mais). O app só copia: cole na conversa (Ctrl+V), confira e envie você mesmo.
 - **Imprimir…** abre a janela de impressão do Windows. As páginas são preparadas em segundo plano; a primeira impressão demora alguns segundos (o app procura as fontes do Windows). Sem impressora, gere o PDF ou use a "Microsoft Print to PDF".
 
@@ -215,7 +215,12 @@ Se você mudar qualquer campo depois de calcular, o resultado fica **desatualiza
 **Catálogos** (menu à esquerda) guarda as peças, os dados técnicos e os serviços da oficina, em abas: Bicos, Bombas, Injeções, Turbos, Combustíveis, Intercoolers, Sensores, Câmbios, Motores e montagens, e Serviços.
 
 - **As peças e os serviços começam vazios:** cadastre as peças a partir do manual ou do site do fabricante, e os serviços pela tabela da oficina. Combustíveis e motores já vêm cadastrados (os motores marcados "a verificar").
-- **Serviços:** o nome, as horas (o tempo padrão) e, se o serviço tiver preço próprio, o preço de referência. Sem preço, as horas são obrigatórias. A fonte já vem "Tabela da oficina". No orçamento, entram pelo "+ Serviço do catálogo…" (item 9).
+- **Serviços:** o nome, a categoria, as horas (o tempo padrão) e, se o serviço tiver preço próprio, o preço de referência. Sem preço, as horas são obrigatórias. A fonte já vem "Tabela da oficina". No orçamento, entram pelo "+ Serviço do catálogo…" (item 9). Cada serviço tem também:
+  - **Categoria** (obrigatória): Preparação, Som, Vidros e travas, Partida e carga, Iluminação, Diagnóstico elétrico, Injeção programável ou Outro. Os serviços cadastrados antes do 0.3.1 aparecem como Outro; troque na edição. Clique no título da coluna "Categoria" para ordenar a lista por ela;
+  - **Descrição no orçamento** (opcional, uma linha): o texto que entra na linha do orçamento e daí no PDF, no WhatsApp e no comprovante. Em branco, entra o nome;
+  - **Garantia própria (dias)** (opcional, de 0 a 3650): em branco, o serviço fica com a garantia da OS; 0 quer dizer sem garantia para aquele serviço (ex.: um diagnóstico). Ela aparece na entrega e no comprovante (itens 5.4 e 5.5);
+  - **Exige o veículo na oficina** (vem marcado): desmarque no serviço de bancada, feito sem o veículo, como a confecção de chicote.
+- **Serviços sugeridos…** (na aba Serviços, ao lado de "Cadastrar…"): uma lista de partida de auto elétrica e injeção programável (som, vidros e travas, partida e carga, iluminação, diagnóstico elétrico e injeção programável). Marque os que a oficina faz e preencha as **horas ou o preço** de cada um (digitar já marca a linha): a lista vem sem os dois, porque o Calibra não inventa tempo de serviço. "Adicionar ao catálogo" grava todos de uma vez; se faltar algo, a janela mostra o que e não grava nenhum. O que já existe no catálogo com o mesmo nome aparece como "já cadastrado". Depois, edite cada um como os outros (descrição, garantia própria).
 - **Todo item tem fonte** (obrigatória), data, a marca **"a verificar"** (para dado ainda não confirmado), preço de referência (vai para o orçamento) e observações.
 - **Editar cria uma versão nova**; "Versões…" compara as versões campo a campo, com a mudança em amarelo. Gravar sem mudar nada não cria versão.
 - **Arquivar** tira o item das escolhas, mas ele continua nos cálculos antigos. Nada é apagado.
@@ -244,7 +249,7 @@ O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a
 1. **Itens:**
    - no de preparação, as peças do cálculo vêm com o preço de referência do catálogo (bicos × número de cilindros, bomba, turbo, intercooler, sensor MAP e injeção); peça sem preço vem com o valor em branco;
    - "+ Serviço (mão de obra)" traz o valor da hora de Configurações; ajuste a quantidade de horas;
-   - "+ Serviço do catálogo…" escolhe um serviço da aba Serviços dos Catálogos: com preço próprio, entra 1 serviço pelo preço; sem preço, entram as horas × o valor da hora de Configurações (sem o valor da hora configurado, o valor fica em branco para preencher);
+   - "+ Serviço do catálogo…" escolhe um serviço da aba Serviços dos Catálogos: com preço próprio, entra 1 serviço pelo preço; sem preço, entram as horas × o valor da hora de Configurações (sem o valor da hora configurado, o valor fica em branco para preencher). O texto da linha é a descrição do serviço no catálogo (sem descrição, o nome), e dá para mudar aqui;
    - "+ Peça" acrescenta uma peça digitada.
 
    Os valores continuam editáveis, e os totais aparecem enquanto você digita.

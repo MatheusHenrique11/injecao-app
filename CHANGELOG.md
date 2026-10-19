@@ -4,6 +4,11 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 
 ## [Não lançado] — Fase 3B (auto elétrica)
 
+### Adicionado
+- **Serviços do catálogo com categoria, descrição, garantia própria e "exige o veículo na oficina":** a categoria (Som, Vidros e travas, Partida e carga, Iluminação, Diagnóstico elétrico, Injeção programável, Preparação ou Outro) organiza a lista; a descrição vira o texto da linha do orçamento; a garantia própria (em dias) vale no lugar da garantia da OS; o serviço de bancada (ex.: confecção de chicote) fica marcado como feito sem o veículo. Os serviços já cadastrados aparecem como Outro, sem perder nada.
+- **Serviços sugeridos…:** a lista de partida de auto elétrica e injeção programável (24 serviços), para marcar os que a oficina faz e preencher as horas ou o preço de cada um. Nada entra sem horas ou preço, e o que já está no catálogo não se repete.
+- **Garantia própria na entrega:** a janela de entrega avisa quais serviços têm a garantia própria, e a aba Entrega e pagamento e o comprovante de entrega mostram a de cada um, com o dia em que vence. Vale a garantia que o serviço tinha quando entrou no orçamento.
+
 ### Mudado
 - **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.
 - **Fotos e documentos copiados em segundo plano:** anexar na OS ou na ficha do veículo e abrir a Nova OS com as fotos não travam mais a tela; a janela de espera só aparece se a cópia passar de meio segundo.

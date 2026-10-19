@@ -669,3 +669,28 @@ Proposta do dono de 18/10/2026 (SPEC 1.2), com o plano aprovado em 19/10/2026. A
     - durante a cópia, o botão fica desligado; a janela de espera só aparece se passar de meio segundo, para não piscar na tela numa cópia rápida;
     - a cópia de um anexo lê a foto uma vez (o SHA-256 sai durante a cópia, com um nome provisório `.parcial` até o fim), e não duas;
     - nos testes de tela, os passos que copiam esperam a fila terminar; um teste novo segura a fila (como um backup comprido faria) e confere que a tela responde e que a foto de 5 MB entra quando a fila chega nela.
+
+### Bloco 3B.1: categorias e catálogo de serviços (19/10/2026)
+
+Plano aprovado em 19/10/2026, em 4 passos.
+
+229. **Campos novos do serviço do catálogo** (SPEC 6.6.1):
+    - **categoria:** obrigatória no serviço novo (a escolha começa vazia);
+    - **descrição no orçamento:** numa linha só, porque a linha do orçamento é de uma linha; em branco, entra o nome;
+    - **garantia própria:** de 0 a 3650 dias; em branco, vale a da OS; 0 quer dizer sem garantia para aquele serviço;
+    - **"exige o veículo na oficina":** vem marcado no serviço novo. Neste bloco ele só é gravado e mostrado; a regra na OS vem no 3B.6;
+    - **sem migração:** os campos ficam no JSON do serviço. O serviço gravado pelo 0.3.0 é lido como Outro, exigindo o veículo, sem descrição e com a garantia da OS, e nada é regravado. O teste nº 1 da fase lê o JSON gravado pelo código do 0.3.0 (arquivo de teste `servico-0.3.0.json`) e confere que abrir e salvar sem mudar não cria versão nova;
+    - **colunas:** a lista da aba Serviços e a janela de escolha do orçamento mostram Categoria, Horas e Garantia. Para ordenar por categoria, clica-se no título da coluna.
+230. **Serviços sugeridos…** (botão na aba Serviços, ao lado de "Cadastrar…"):
+    - **a lista:** os 24 da SPEC, agrupados por categoria; cada linha tem a caixa de marcar, as horas e o preço, e digitar já marca a linha;
+    - **conferência:** cada linha marcada precisa de horas ou preço (decisão 216), com horas maiores que zero e preço que não seja negativo. Os erros aparecem todos juntos, e a janela não fecha;
+    - **gravação:** tudo numa gravação só. Se um nome já existir no catálogo (sem diferença de acento, maiúscula ou pontuação, também entre os arquivados), nada é gravado; a janela já mostra esses como "já cadastrado";
+    - **o que cada um leva:** a fonte "Tabela da oficina", a categoria da lista, sem descrição, sem data e com a garantia da OS. Só a confecção de chicote dispensa o veículo. O pacote "chicote + instalação" é um kit e fica para o 3B.2.
+231. **A garantia de cada serviço:**
+    - **de onde vem:** da versão do serviço que está na revisão aprovada (a linha do orçamento guarda o item e a versão). Sem garantia própria, e na linha digitada, vale a da OS. Mudar o serviço no catálogo depois não muda a OS. Como a revisão aprovada e as versões do catálogo não mudam, não é preciso guardar uma cópia: o comprovante tirado de novo depois sai igual;
+    - **onde aparece:** a janela de entrega avisa quais serviços têm a garantia própria. A aba Entrega e pagamento e o comprovante mostram, embaixo da garantia da OS, a linha "Garantia própria", com cada serviço e o dia em que a garantia dele vence;
+    - **o que não muda:** a data da garantia guardada na OS (`garantia_ate`) continua sendo a da OS. Os lembretes da fase 5 decidem se precisam olhar serviço por serviço.
+232. **Mudança do plano no comprovante:**
+    - o plano previa uma seção "Por serviço", com uma tabela de todos os serviços (serviço, garantia e vencimento). No PDF de exemplo, numa OS de três serviços, a tabela empurrou a assinatura de quem recebe o veículo para uma segunda página;
+    - ficou a linha "Garantia própria", só com os serviços que têm a própria. O comprovante de quem não usa garantia própria fica igual ao do 0.3.0, e o de três serviços cabe numa página, com a assinatura (teste novo);
+    - o resumo do checklist por serviço (3B.3) terá o próprio desenho, no plano daquele bloco.

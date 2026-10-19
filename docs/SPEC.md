@@ -271,7 +271,7 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
   - **Itens e kits** entram no orçamento como linhas (6.6.4), sem estoque.
   - **Serviço sem o veículo na oficina:** cada serviço do catálogo diz se exige a entrada do veículo (`exigeEntradaDoVeiculo`). A regra "EM_EXECUCAO exige a entrada" (regra 1 acima) passa a valer assim: a OS pode ir a `EM_EXECUCAO` sem entrada se tiver ao menos um serviço que não a exige (ex.: confecção de chicote em bancada); nesse caso, os checklists dos serviços que exigem o veículo ficam bloqueados até a entrada ser registrada, e a OS só vai a `PRONTA` com a entrada registrada se algum serviço a exigir. Cliente e veículo continuam obrigatórios no cadastro da OS, mesmo que o veículo não chegue.
   - **Entrega sem veículo:** quando todos os serviços da OS dispensam a entrada, a entrega registra **quem retirou** (nome) no lugar do km de saída. O resto da entrega (garantia, pagamento) não muda.
-  - Documentos novos no menu Documentos da OS: **laudo de diagnóstico elétrico (A4)** e **ficha do chicote (A4)**. O comprovante de entrega passa a trazer, por serviço, a garantia e o resumo do checklist (itens feitos ÷ total).
+  - Documentos novos no menu Documentos da OS: **laudo de diagnóstico elétrico (A4)** e **ficha do chicote (A4)**. O comprovante de entrega passa a trazer a garantia dos serviços que têm a própria (6.6.1) e, por serviço, o resumo do checklist (itens feitos ÷ total). O comprovante continua cabendo numa página na OS comum, com a assinatura (itens 231 e 232).
 - **Documentos e mensagens** (bloco 3.3 — ver docs/decisoes.md, itens 195 a 198):
   - via do cliente (A4): a OS, o cliente e o veículo, o serviço pedido, a entrada com a vistoria item a item, o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Não sai com a entrada mudada na tela e não salva;
   - comprovante de entrega (A4, depois da entrega): a entrega, a garantia com a data em que vence, os itens e o total da revisão aprovada, os recebimentos e a assinatura de quem recebeu o veículo;
@@ -292,13 +292,13 @@ O serviço do catálogo (nome, horas e preço de referência opcional; sem preç
 
 | Campo | Regra |
 | --- | --- |
-| `categoria` | PREPARACAO, SOM, VIDROS_TRAVAS, PARTIDA_CARGA, ILUMINACAO, DIAGNOSTICO_ELETRICO, INJECAO_PROGRAMAVEL, OUTRO. Serviços já cadastrados viram OUTRO, e a categoria se troca na edição (nada é apagado). |
+| `categoria` | PREPARACAO, SOM, VIDROS_TRAVAS, PARTIDA_CARGA, ILUMINACAO, DIAGNOSTICO_ELETRICO, INJECAO_PROGRAMAVEL, OUTRO; obrigatória no serviço novo. Serviços já cadastrados viram OUTRO, e a categoria se troca na edição (nada é apagado). |
 | `descricaoPadrao` | texto que entra na linha do orçamento (e daí no PDF do orçamento e no comprovante de entrega); editável na OS. |
 | `checklistModeloId` | opcional: o checklist modelo do serviço (entra com os modelos de checklist, no bloco 3B.3). |
 | `exigeEntradaDoVeiculo` | sim ou não (padrão: sim); "não" para serviço de bancada, como a confecção de chicote (regra na 6.5). |
-| `garantiaDias` | opcional; sem valor, vale a garantia da OS. O comprovante de entrega mostra a garantia de cada serviço. |
+| `garantiaDias` | opcional, de 0 a 3650 (0 = sem garantia para aquele serviço); sem valor, vale a garantia da OS. Vale a da versão do serviço que está no orçamento aprovado. A janela de entrega, a aba Entrega e pagamento e o comprovante de entrega mostram, embaixo da garantia da OS, a de cada serviço que tem a própria, com o dia em que vence (alterado em 19/10/2026 — ver docs/decisoes.md, itens 231 e 232). |
 
-**Serviços sugeridos** (lista de partida, sem preço e sem horas). Um botão "Adicionar serviços sugeridos" abre a lista; **eu preencho as horas ou o preço de cada um antes de confirmar**, porque a regra do catálogo exige um dos dois e o app não inventa tempo de serviço:
+**Serviços sugeridos** (lista de partida, sem preço e sem horas). O botão "Serviços sugeridos…", na aba Serviços dos Catálogos, abre a lista; **eu preencho as horas ou o preço de cada um antes de confirmar**, porque a regra do catálogo exige um dos dois e o app não inventa tempo de serviço. Todos entram numa gravação só; o que já existe no catálogo com o mesmo nome não entra de novo (item 230):
 
 - **Som:** instalação de som completa; troca de alto-falantes; instalação de módulo de potência; instalação de subwoofer e caixa; instalação de multimídia ou central.
 - **Vidros e travas:** troca de motor de vidro elétrico; troca de regulador (máquina de vidro); instalação de kit de vidro elétrico; instalação de kit de trava elétrica; reparo de chave ou botoeira.
