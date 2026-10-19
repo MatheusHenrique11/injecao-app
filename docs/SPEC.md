@@ -1,14 +1,14 @@
 # SPEC — Calibra (nome provisório)
 
-App desktop offline da minha oficina: gestão do dia a dia (ordens de serviço, agenda e lembretes) e preparação (dimensionamento, orçamento, mapa base e acerto de injeção programável).
+App desktop offline da minha oficina: gestão do dia a dia (ordens de serviço, agenda e lembretes), auto elétrica e preparação (dimensionamento, orçamento, mapa base e acerto de injeção programável).
 
-Versão da spec: 1.1 (15/10/2026; a 1.0 é de 08/10/2026). Dono do produto: Matheus, mecânico de preparação, que valida todas as regras técnicas.
+Versão da spec: 1.2 (18/10/2026; a 1.1 é de 15/10/2026 e a 1.0 de 08/10/2026). Dono do produto: Matheus, mecânico de preparação e auto elétrica, que valida todas as regras técnicas.
 
 ---
 
 ## 0. Como trabalhar comigo
 
-1. Sou mecânico (turbo e injeção programável) e programo Java em nível básico a intermediário; já fiz projetos com Java 21 e Spring Boot. Quero entender e conseguir manter o código.
+1. Sou mecânico (turbo e injeção programável) e trabalho também com auto elétrica (som, vidros e travas elétricas, partida e alternador, iluminação e diagnóstico elétrico). Programo Java em nível básico a intermediário; já fiz projetos com Java 21 e Spring Boot. Quero entender e conseguir manter o código.
 2. Trabalhe **uma fase por vez** (seção 12). Em cada fase:
    1. leia só o que precisa e me mostre o plano em modo de plano;
    2. implemente em passos pequenos;
@@ -39,6 +39,8 @@ Também faz a **gestão da oficina**:
 
 O projeto de preparação passa a ser uma parte opcional da ordem de serviço.
 
+A oficina atende duas linhas de serviço, na mesma ordem de serviço: **preparação** (projeto, dimensionamento e mapa base) e **auto elétrica** (instalações e reparos elétricos, diagnóstico), com a **injeção programável como serviço**: confecção de chicote e instalação da injeção, contratados só um deles ou os dois. Na auto elétrica não há projeto de preparação: a OS usa o catálogo de serviços, os checklists de execução e o laudo de diagnóstico elétrico (seção 6.6). Reconstrução de chicote e modelagem de caixa de fusíveis entram em fase posterior (Fase 8).
+
 **Usuário:** só a minha oficina, num computador, sem login; os mecânicos entram só como nomes. O app é gratuito: sem assinatura, sem cobrança pelo software e sem venda ou licença para outras oficinas.
 **Plataforma:** Windows 10 e 11, 64 bits, notebook comum (i5, 8 GB de RAM). **Sem internet.**
 
@@ -52,11 +54,11 @@ O projeto de preparação passa a ser uma parte opcional da ordem de serviço.
 - motores rotativos, diesel ou 2 tempos;
 - venda ou licença para outras oficinas;
 - login e perfis de usuário;
-- controle de estoque e financeiro (caixa, contas a pagar e a receber), por enquanto;
+- controle de estoque e financeiro (caixa, contas a pagar e a receber), por enquanto. Itens e kits de material existem só para compor o orçamento: não há saldo, entrada nem saída de estoque;
 - emissão de nota fiscal: o app só guarda o PDF da nota emitida no site da prefeitura;
 - avisos automáticos ou acompanhamento pela internet: o app gera o texto para o WhatsApp e o PDF.
 
-Alterado em 15/10/2026 (gestão da oficina) — ver docs/decisoes.md, itens 162 a 167.
+Alterado em 15/10/2026 (gestão da oficina) — ver docs/decisoes.md, itens 162 a 167. Alterado em 18/10/2026 (auto elétrica) — ver docs/decisoes.md, itens 213 a 226.
 
 ---
 
@@ -159,6 +161,20 @@ Nome, telefone, e-mail (opcional), CPF ou CNPJ (opcional), consentimento registr
 - Todo salvamento grava no log de auditoria: campo, valor antigo, valor novo, data e hora. A aba Veículo mostra esse histórico.
 - Veículo com projetos não pode ser apagado, só arquivado.
 
+**Instalações do veículo (Fase 3B).** Lista de itens instalados ou modificados pela oficina ou informados pelo cliente, visível na ficha do veículo e editável com histórico (mesmo log de auditoria do veículo).
+
+| Campo | Regra |
+| --- | --- |
+| `tipo` | SOM, ALARME_RASTREADOR, ILUMINACAO, VIDRO_TRAVA, INJECAO_PROGRAMAVEL, OUTRA |
+| `descricao` | texto obrigatório (ex.: o que foi instalado e onde) |
+| `marca`, `modelo` | texto opcional |
+| `potenciaOuEspecificacao` | texto opcional; não é validado |
+| `dataInstalacao` | opcional |
+| `osId` | opcional: a OS de origem; quando existe, o item aparece na OS |
+| `observacoes` | texto |
+
+Serve de histórico para garantia e diagnóstico (o que já foi mexido no carro) e prepara o terreno do chicote (Fase 8). Veículo arquivado mantém as instalações. Alterado em 18/10/2026 — ver docs/decisoes.md, item 213.
+
 ### 6.3 Configuração do motor — editável, versionada, de 3 a 12 cilindros
 
 | Campo | Regra |
@@ -247,6 +263,15 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
   3. **O orçamento move a OS só antes da aprovação:** enviar leva a AGUARDANDO_APROVACAO, aprovar leva a APROVADA, e recusar ou abrir uma revisão volta para ABERTA. Depois de aprovada, uma revisão nova não muda o status da OS. O valor da OS é o total da última revisão aprovada.
   4. **Pagamento em partes:** a OS aceita vários recebimentos (ex.: sinal na aprovação e o resto na entrega). A situação (pendente, parcial, pago) é calculada contra o valor da OS. Recebimento errado não se apaga: é cancelado, com o motivo, e deixa de contar.
   - **Projeto e OS:** o orçamento feito pela aba do projeto vai para a OS atual dele, a mais nova que não foi entregue nem cancelada. Sem nenhuma, uma OS nova é aberta para o projeto, sem a entrada. A aba do projeto mostra só o orçamento da OS atual; o das OS anteriores fica nelas, só para ver (alterado em 18/10/2026 — ver docs/decisoes.md, item 209). Cliente anonimizado não ganha OS nova (item 207).
+- **Execução e laudos (Fase 3B, ver seção 6.6 e docs/decisoes.md, itens 217 a 225):**
+  - Ao passar para `EM_EXECUCAO`, a OS cria uma **cópia (instantâneo)** do checklist modelo de cada serviço do orçamento aprovado. Mudar o modelo depois não altera as cópias já criadas.
+  - Cada item da cópia tem situação `PENDENTE`, `FEITO` ou `NAO_SE_APLICA`, com observação, mecânico e data e hora de marcação. `NAO_SE_APLICA` exige justificativa escrita.
+  - Para a OS ir a `PRONTA`, todos os itens marcados **obrigatórios** precisam estar `FEITO` ou `NAO_SE_APLICA` com justificativa. Se não estiverem, o app mostra quais faltam e só avança com justificativa escrita, gravada na OS com data e hora (mesmo padrão do semáforo vermelho).
+  - A OS pode ter vários **laudos de diagnóstico elétrico** (6.6.3). Depois de `ENTREGUE`, checklists e laudos ficam só para leitura (continua valendo: depois de entregue, só pagamento e anexos mudam).
+  - **Itens e kits** entram no orçamento como linhas (6.6.4), sem estoque.
+  - **Serviço sem o veículo na oficina:** cada serviço do catálogo diz se exige a entrada do veículo (`exigeEntradaDoVeiculo`). A regra "EM_EXECUCAO exige a entrada" (regra 1 acima) passa a valer assim: a OS pode ir a `EM_EXECUCAO` sem entrada se tiver ao menos um serviço que não a exige (ex.: confecção de chicote em bancada); nesse caso, os checklists dos serviços que exigem o veículo ficam bloqueados até a entrada ser registrada, e a OS só vai a `PRONTA` com a entrada registrada se algum serviço a exigir. Cliente e veículo continuam obrigatórios no cadastro da OS, mesmo que o veículo não chegue.
+  - **Entrega sem veículo:** quando todos os serviços da OS dispensam a entrada, a entrega registra **quem retirou** (nome) no lugar do km de saída. O resto da entrega (garantia, pagamento) não muda.
+  - Documentos novos no menu Documentos da OS: **laudo de diagnóstico elétrico (A4)** e **ficha do chicote (A4)**. O comprovante de entrega passa a trazer, por serviço, a garantia e o resumo do checklist (itens feitos ÷ total).
 - **Documentos e mensagens** (bloco 3.3 — ver docs/decisoes.md, itens 195 a 198):
   - via do cliente (A4): a OS, o cliente e o veículo, o serviço pedido, a entrada com a vistoria item a item, o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Não sai com a entrada mudada na tela e não salva;
   - comprovante de entrega (A4, depois da entrega): a entrega, a garantia com a data em que vence, os itens e o total da revisão aprovada, os recebimentos e a assinatura de quem recebeu o veículo;
@@ -256,6 +281,98 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
 - **Catálogo de serviços** (bloco 3.3, item 194): nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias. No orçamento, o serviço com preço próprio entra uma vez pelo preço; sem preço, entram as horas × o valor da hora.
 - **Ficha do veículo** (bloco 3.3, item 199): o cliente, o veículo, as OS, os projetos e os anexos de todas as OS, com os documentos do próprio veículo (anexo sem OS).
 - **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos marcados como documento pessoal, os das OS dele e os dos veículos dele, e mantém fotos, laudos e notas. O arquivo só sai da pasta se nenhum outro anexo o usar (bloco 3.3, item 201); o que estiver aberto em outro programa sai na próxima abertura do app. Depois, a identificação dos veículos dele não volta, e ele não recebe OS nova nem documento pessoal novo (itens 206 e 207).
+
+### 6.6 Auto elétrica — Fase 3B
+
+Alterado em 18/10/2026 (SPEC 1.2) — ver docs/decisoes.md, itens 213 a 226.
+
+#### 6.6.1 Categorias e catálogo de serviços
+
+O serviço do catálogo (nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias) ganha:
+
+| Campo | Regra |
+| --- | --- |
+| `categoria` | PREPARACAO, SOM, VIDROS_TRAVAS, PARTIDA_CARGA, ILUMINACAO, DIAGNOSTICO_ELETRICO, INJECAO_PROGRAMAVEL, OUTRO. Serviços já cadastrados viram OUTRO, e a categoria se troca na edição (nada é apagado). |
+| `descricaoPadrao` | texto que entra na linha do orçamento (e daí no PDF do orçamento e no comprovante de entrega); editável na OS. |
+| `checklistModeloId` | opcional: o checklist modelo do serviço (entra com os modelos de checklist, no bloco 3B.3). |
+| `exigeEntradaDoVeiculo` | sim ou não (padrão: sim); "não" para serviço de bancada, como a confecção de chicote (regra na 6.5). |
+| `garantiaDias` | opcional; sem valor, vale a garantia da OS. O comprovante de entrega mostra a garantia de cada serviço. |
+
+**Serviços sugeridos** (lista de partida, sem preço e sem horas). Um botão "Adicionar serviços sugeridos" abre a lista; **eu preencho as horas ou o preço de cada um antes de confirmar**, porque a regra do catálogo exige um dos dois e o app não inventa tempo de serviço:
+
+- **Som:** instalação de som completa; troca de alto-falantes; instalação de módulo de potência; instalação de subwoofer e caixa; instalação de multimídia ou central.
+- **Vidros e travas:** troca de motor de vidro elétrico; troca de regulador (máquina de vidro); instalação de kit de vidro elétrico; instalação de kit de trava elétrica; reparo de chave ou botoeira.
+- **Partida e carga:** reparo ou troca de motor de partida; reparo ou troca de alternador; teste de bateria e do sistema de carga.
+- **Iluminação:** instalação de LED ou xenon em farol; instalação de farol auxiliar (milha); instalação de DRL ou setas sequenciais; troca ou adaptação de farol e projetor.
+- **Diagnóstico elétrico:** diagnóstico de falha elétrica; diagnóstico de injeção eletrônica com scanner; medição de consumo em repouso (fuga de corrente).
+- **Injeção programável** (ver 6.6.5): confecção de chicote para injeção programável (bancada, `exigeEntradaDoVeiculo = não`); instalação de injeção programável (`exigeEntradaDoVeiculo = sim`); revisão ou correção de chicote de injeção programável; diagnóstico de injeção programável (falhas, leitura de sensores e log). O **pacote** "chicote + instalação" é um kit de serviços (6.6.4), não um serviço novo.
+
+#### 6.6.2 Checklists
+
+- **Modelo:** cadastro em Configurações › Checklists (e atalho no serviço). Cada modelo tem nome e itens; cada item tem `texto`, `obrigatorio` (sim ou não), `aVerificar` (sim ou não) e ordem.
+- **Execução:** a cópia na OS (6.5). Marca quem fez e quando.
+- **Textos iniciais** (todos marcados `aVerificar = sim` até eu validar; sem números técnicos, só o que conferir):
+  - *Som:* medir a tensão da bateria antes de começar; conferir a carga do alternador; cabo de alimentação com fusível próximo à bateria; proteção do cabo na passagem de chapa; aterramento em ponto de metal limpo e firme; bitola do cabo compatível com a potência (campo para anotar a tabela usada); teste de ruído com o motor ligado; teste de volume e balanço com o cliente; fotos de antes e depois.
+  - *Vidro e trava elétrica:* testar motor e botoeira antes de desmontar; conferir fusível e relé do circuito; conferir chicote da porta (fios quebrados na dobra); testar curso completo e one-touch (quando houver); montagem de forro e vedações; teste final com o cliente.
+  - *Partida e alternador:* teste da bateria; conferir cabos e terminais (queda de tensão, campo para anotar a medição); medir a tensão de carga com o motor ligado (campo para anotar); conferir correia e polias; teste de partida a quente e a frio; registrar peça removida e peça instalada.
+  - *Iluminação:* conferir erro de canbus ou aviso no painel; relé dedicado quando a carga pedir; vedação do conjunto; regulagem de altura do farol; teste de todas as funções (baixo, alto, DRL, seta).
+  - *Confecção de chicote para injeção programável:* conferir o pinout da injeção no manual do fabricante (anotar a fonte); levantar sensores e atuadores do motor; definir comprimentos e rota no veículo; conferir conectores, terminais e vedação adequados ao ambiente; identificar cada fio conforme a ficha do chicote; proteção do chicote (conduíte, fita, abraçadeiras); fusíveis e relés dimensionados (campo para anotar); teste de continuidade de cada fio; teste de isolamento e de curto; conferir aterramentos de sinal e de potência separados (a verificar); fotos; ficha do chicote preenchida.
+  - *Instalação de injeção programável:* conferir o estado do chicote e dos sensores antes de começar; fixar a ECU em local protegido de calor e água; alimentação com fusível e relé principal; aterramentos em pontos limpos e firmes; conferir sensor de rotação e sensor de fase (sinal e folga); sensores instalados (MAP, temperaturas, TPS, banda larga, quando houver); bicos e bobinas ligados na ordem de ignição do motor; pressão de combustível conferida; vazamentos; primeira partida conforme o checklist da seção 7.5; registrar a injeção instalada (modelo e versão do firmware) nas instalações do veículo.
+  - *Diagnóstico elétrico:* anotar a queixa do cliente; ler códigos de falha; medir bateria em repouso e carga; conferir consumo em repouso quando a queixa for descarga; registrar testes feitos e causa encontrada (no laudo).
+
+#### 6.6.3 Laudo de diagnóstico elétrico
+
+Pertence à OS (vários por OS). Campos:
+
+| Campo | Regra |
+| --- | --- |
+| `queixa` | texto, nas palavras do cliente |
+| `dataHora`, `mecanico` | automáticos, editáveis até a entrega |
+| `medicoes` | lista editável: `nome`, `valor`, `unidade` (texto livre), `condicao` (REPOUSO, MOTOR_LIGADO, CARGA_ACIONADA, OUTRA). **O app não traz faixa "boa" ou "ruim" pré-definida**: faixas são campo opcional por medição, preenchido por mim (`aVerificar`). |
+| `codigosFalha` | lista: `codigo`, `descricao`, `situacao` (ATIVO, HISTORICO, APAGADO) |
+| `testesRealizados` | texto |
+| `causa` | texto |
+| `solucao` | texto |
+| `recomendacoes` | texto opcional |
+| `resultado` | RESOLVIDO, PARCIAL, NAO_RESOLVIDO |
+
+Aparece como PDF A4 (via do cliente e anexo da OS) e como seção na ficha do veículo. **LGPD:** laudos são dados técnicos e permanecem quando o cliente é anonimizado. Como `queixa` é texto livre, o app avisa ao salvar: "não escreva dados pessoais do cliente neste campo".
+
+#### 6.6.4 Itens e kits de material (só para orçamento)
+
+- **Item:** `nome`, `unidade` (un, m, kit...), `precoReferencia` opcional, `fonte` opcional. Sem saldo.
+- **Kit:** `nome` e lista de linhas, cada uma **item** ou **serviço** do catálogo, com `quantidade`. Um kit que contém serviços é um **pacote** (ex.: "chicote + instalação"). Ao incluir um kit no orçamento, ele **se expande em linhas editáveis** (dá para trocar a quantidade ou o preço de cada linha na OS, ou apagar uma linha, por exemplo, quando o cliente leva só o chicote).
+- **Fornecido pelo cliente:** qualquer linha de item pode ser marcada `fornecidoPeloCliente`. Ela aparece no orçamento com valor zero e a indicação "fornecido pelo cliente" (ex.: a ECU que o cliente já comprou).
+- No orçamento, item e kit entram ao lado dos serviços; a mão de obra continua pelas regras do catálogo de serviços (horas × valor da hora, ou preço próprio).
+
+#### 6.6.5 Injeção programável: chicote e instalação
+
+A oficina vende dois serviços **independentes**; o cliente pode contratar só um ou os dois:
+
+- **Confecção de chicote para injeção programável:** o chicote novo, feito na bancada para a injeção e o motor do cliente. Pode ser entregue ao cliente ou a outra oficina, sem o veículo ter passado pela oficina.
+- **Instalação de injeção programável:** ECU, sensores e atuadores no veículo, com chicote da oficina ou trazido pelo cliente.
+
+Regras:
+
+1. São dois serviços do catálogo, da categoria INJECAO_PROGRAMAVEL (6.6.1), com `exigeEntradaDoVeiculo` diferente (regra na 6.5). O pacote "chicote + instalação" é um kit (6.6.4).
+2. Se a OS tem os dois serviços, a bancada pode começar antes de o veículo chegar; a instalação só começa com a entrada registrada.
+3. **Injeção e peças do cliente:** a ECU e outros itens podem ser marcados `fornecidoPeloCliente` (6.6.4).
+4. **Vínculo com a preparação:** se a OS tem projeto de preparação com `injecaoEscolhida`, a ficha do chicote já vem com a injeção preenchida; sem projeto, a injeção vem do catálogo ou é texto livre. O mapa base e o acerto continuam nas Fases 4 e 6; estes serviços não os substituem, e o app continua não gravando mapa na injeção (seção 2).
+5. **Ficha do chicote** (uma por chicote, pertence à OS; PDF A4 e anexo da OS):
+
+| Campo | Regra |
+| --- | --- |
+| `injecao` | do catálogo (opcional) ou texto livre |
+| `motorVersaoId` | opcional: a versão da configuração do motor (6.3) |
+| `versaoChicote` | texto (ex.: v1); nova versão não apaga a anterior |
+| `fontePinout` | texto obrigatório: de onde veio o pinout (manual, modelo do fabricante) |
+| `pontos` | lista editável: `funcao` (ex.: bico do cilindro 1, bobina, TPS, MAP), `conector`, `pinoDaInjecao`, `observacao`, `aVerificar` |
+| `materiais` | texto livre (cabo, bitola, conectores, proteção); **o app não valida pinagem nem bitola** |
+| `testesBancada` | vem do checklist (continuidade, isolamento, curto), com resultado e quem fez |
+| `fotos`, `observacoes` | anexos e texto |
+| `situacao` | EM_CONFECCAO, TESTADO, ENTREGUE |
+
+A ficha é o ponto de partida da tabela de circuitos da Fase 8.
 
 ---
 
@@ -416,15 +533,16 @@ Os números do mapa do compressor e a linha do torque × câmbio foram alterados
 2. **Assistente de novo projeto:** Cliente → Veículo → Motor → Meta e uso → Injeção (opcional). O formulário do motor se adapta ao número de cilindros: ao mudar de 4 para 6, por exemplo, a ordem de ignição e os ângulos são sugeridos de novo e pedem confirmação. A partir de uma OS, o assistente já vem com o cliente e o veículo dela, começa no motor, e o projeto nasce ligado à OS.
 3. **Projeto (abas):** Resumo · Veículo (editável, com histórico) · Motor (editável, com versões e comparação entre elas) · Dimensionamento (cartões com semáforo e memória de cálculo) · Peças e orçamento · Mapa base · Sessões de acerto · Relatório. O cabeçalho mostra a OS do projeto, com o botão para abri-la, e o botão da ficha do veículo (fase 3).
 4. **Editor de tabela:** grade com cores por faixa; edição por célula ou seleção (somar, multiplicar em %, interpolar, suavizar); desfazer; comparação com outra versão em %; vista 3D que gira com o mouse; copiar e colar texto tabulado.
-5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, câmbios (tipo e torque máximo), motores e montagens (geometria, biela e taxa, com fonte, para preencher o motor), modelos de VE e de ignição, serviços (nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias; fase 3). Câmbios e motores e montagens: alterado em 14/10/2026 — ver docs/decisoes.md, itens 86 e 91. Serviços: alterado em 15/10/2026 e em 17/10/2026 — ver docs/decisoes.md, itens 166 e 194.
+5. **Catálogos (cadastrar, editar, arquivar; sempre com fonte e data):** bicos (vazão, pressão e fluido de teste, impedância, tempo morto por tensão e pressão), turbos (com digitalizador de mapa: carregar imagem, calibrar os eixos com dois pontos cada, clicar surge, choke, ilhas de eficiência e linhas de rotação), injeções (perfil da seção 9), bombas (curvas), combustíveis, intercoolers, sensores, câmbios (tipo e torque máximo), motores e montagens (geometria, biela e taxa, com fonte, para preencher o motor), modelos de VE e de ignição, serviços (nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias; fase 3; na Fase 3B, com categoria, descrição padrão, checklist modelo, "exige a entrada do veículo" e garantia, e o botão "Adicionar serviços sugeridos", seção 6.6.1), itens e kits de material (Fase 3B, seção 6.6.4; kits podem incluir serviços, formando pacotes). Câmbios e motores e montagens: alterado em 14/10/2026 — ver docs/decisoes.md, itens 86 e 91. Serviços: alterado em 15/10/2026, em 17/10/2026 e em 18/10/2026 — ver docs/decisoes.md, itens 166, 194 e 215.
 6. **Biblioteca:** busca por configuração (cilindros, cilindrada ±10%, aspiração, combustível, injeção, bicos, turbo, uso) e comparação entre mapa base e mapa final.
-7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), limiares do semáforo, padrões de cálculo, padrões do orçamento, a aba OS (fase 3: garantia padrão, itens da vistoria, texto da via do cliente e mecânicos com nome e ativo; ver docs/decisoes.md, itens 192 e 193), pasta de backup, restaurar backup. As unidades preferidas na tela passam para a fase 4, junto do mapa base; até lá, os resultados aparecem em várias unidades ao mesmo tempo (alterado em 14/10/2026 — ver docs/decisoes.md, itens 137 e 152; a fase do mapa base passou de 3 para 4 em 15/10/2026, item 165).
+7. **Configurações:** dados da oficina para os PDFs (nome, CNPJ, endereço, logo), limiares do semáforo, padrões de cálculo, padrões do orçamento, a aba OS (fase 3: garantia padrão, itens da vistoria, texto da via do cliente e mecânicos com nome e ativo; ver docs/decisoes.md, itens 192 e 193), a aba Checklists (Fase 3B: modelos e itens, seção 6.6.2), pasta de backup, restaurar backup. As unidades preferidas na tela passam para a fase 4, junto do mapa base; até lá, os resultados aparecem em várias unidades ao mesmo tempo (alterado em 14/10/2026 — ver docs/decisoes.md, itens 137 e 152; a fase do mapa base passou de 3 para 4 em 15/10/2026, item 165).
 8. **Painel (fase 3, tela inicial):** as OS em andamento por status (abertas, aguardando aprovação, aprovadas na fila, em execução, aguardando peças, prontas para retirar; o cartão abre a Oficina com o filtro), os veículos na oficina, as entregas previstas até hoje (com as atrasadas) e o último backup. Na fase 5, ganha os avisos dos lembretes. Alterado em 16/10/2026 — ver docs/decisoes.md, item 177.
 9. **Oficina (fase 3):**
    - lista de OS com busca por placa, cliente, embarcação ou número da OS e filtro por status;
    - botão "Nova OS": cliente e veículo existentes ou novos (a busca do cliente acha pela placa), serviço pedido e, se o veículo já chegou, a entrada com a vistoria e as fotos;
-   - **OS:** os passos do serviço ficam no cabeçalho (começar, aguardando peças, retomar, pronto, entregar, cancelar), com o próximo passo, a ficha do veículo e o menu Documentos (via do cliente, comprovante de entrega, imprimir e os textos para o WhatsApp); as abas são Entrada · Orçamento · Preparação (o projeto ligado, ou ligar ou criar um) · Entrega e pagamento · Anexos · Histórico. Alterado em 16/10/2026 e em 17/10/2026 — ver docs/decisoes.md, itens 184 e 196.
-10. **Ficha do veículo (fase 3):** o cliente e o veículo (editar, histórico e anonimizar), todas as OS e todos os projetos do veículo (também os arquivados) e os anexos de todas as OS, com os documentos do próprio veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto. Ver docs/decisoes.md, itens 199 a 201.
+   - **OS:** os passos do serviço ficam no cabeçalho (começar, aguardando peças, retomar, pronto, entregar, cancelar), com o próximo passo, a ficha do veículo e o menu Documentos (via do cliente, comprovante de entrega, imprimir e os textos para o WhatsApp; na Fase 3B, também o laudo elétrico e a ficha do chicote); as abas são Entrada · Orçamento · Preparação (o projeto ligado, ou ligar ou criar um) · Execução (Fase 3B) · Entrega e pagamento · Anexos · Histórico. Alterado em 16/10/2026 e em 17/10/2026 — ver docs/decisoes.md, itens 184 e 196.
+   - **Aba Execução (Fase 3B):** três áreas: *Checklists* (um bloco por serviço), *Laudos* (lista, com "Novo laudo") e *Chicotes* (as fichas do chicote, com "Nova ficha"). Em OS sem projeto de preparação, a aba Preparação continua mostrando só "ligar ou criar um projeto".
+10. **Ficha do veículo (fase 3):** o cliente e o veículo (editar, histórico e anonimizar), todas as OS e todos os projetos do veículo (também os arquivados) e os anexos de todas as OS, com os documentos do próprio veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto. Ver docs/decisoes.md, itens 199 a 201. Na Fase 3B, ganha a seção **Instalações** (6.2) e os laudos e as fichas de chicote de todas as OS do veículo.
 11. **Agenda (fase 5):** agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega.
 
 Fonte mínima de 13 px, tudo operável pelo teclado, tema claro.
@@ -497,6 +615,39 @@ Roteiro das fases 3 em diante alterado em 15/10/2026: a gestão da oficina entra
 - MSI 0.3.0.
 - Pronto quando: 3 carros reais passam pela OS no app instalado (entrada, orçamento aprovado, execução e entrega), um deles de preparação, ligado ao projeto.
 
+Em 18/10/2026 entraram a Fase 3B (auto elétrica), antes da Fase 4, e a Fase 8 (chicote e caixa de fusíveis), depois da 7 — ver docs/decisoes.md, itens 213, 214 e 226.
+
+**Fase 3B — Auto elétrica (entra depois da Fase 3 e antes da Fase 4)**
+
+Blocos, um por vez, com plano antes e evidência no fim de cada um:
+
+- **3B.0 — Base:** backup que guarda cada anexo uma vez só, na pasta de backup (os backups antigos continuam restaurando), e cópia de fotos e documentos em segundo plano. São os itens 1 e 2 da decisão 211, escolhidos para antes da elétrica em 19/10/2026 (item 226).
+- **3B.1 — Categorias e catálogo:** `categoria`, `descricaoPadrao`, `exigeEntradaDoVeiculo` e `garantiaDias` nos serviços (o `checklistModeloId` entra no 3B.3); a garantia por serviço no comprovante; botão de serviços sugeridos (incluindo injeção programável).
+- **3B.2 — Itens, kits e pacotes no orçamento:** catálogos de itens e kits (kits com itens e serviços); `fornecidoPeloCliente`; linhas no orçamento; PDF do orçamento e texto de WhatsApp com os itens.
+- **3B.3 — Checklists e aba Execução:** modelos, cópia ao entrar em `EM_EXECUCAO`, trava de `PRONTA`, resumo no comprovante de entrega.
+- **3B.4 — Laudo elétrico:** cadastro, PDF A4, seção na ficha do veículo, aviso de LGPD.
+- **3B.5 — Instalações na ficha do veículo:** lista com histórico; ligação opcional com a OS.
+- **3B.6 — Injeção programável:** serviços de chicote e de instalação, regra de OS sem entrada do veículo (6.5), "quem retirou" na entrega, ficha do chicote com PDF, checklists dos dois serviços.
+- **3B.7 — Fechamento:** histórico das correções da OS e nome dos arquivos na anonimização (itens 3 e 4 da decisão 211); `docs/manual.md`, `CHANGELOG.md`, `docs/decisoes.md` e MSI 0.3.1.
+
+Testes obrigatórios da fase:
+1. Banco com dados da Fase 3 mantém todos os serviços, OS e orçamentos (serviços antigos viram OUTRO).
+2. Entrar em `EM_EXECUCAO` cria uma cópia do checklist por serviço; mudar o modelo depois **não** altera a cópia.
+3. `PRONTA` bloqueada com item obrigatório pendente; liberada com justificativa gravada com data e hora.
+4. `NAO_SE_APLICA` sem justificativa é rejeitado.
+5. Kit no orçamento expande em linhas e o total confere; editar uma linha não altera o kit.
+6. Depois de `ENTREGUE`, checklist e laudo não editam; pagamento e anexos continuam editando.
+7. Anonimizar cliente mantém laudos e instalações e apaga só os dados pessoais.
+8. Teste de rede zero continua passando.
+9. OS só com chicote (serviço que não exige entrada) vai a `EM_EXECUCAO` sem entrada e é entregue com "quem retirou", sem km de saída.
+10. OS com chicote e instalação: a bancada começa sem entrada, o checklist da instalação fica bloqueado até a entrada, e `PRONTA` exige a entrada registrada.
+11. Pacote "chicote + instalação" expande em duas linhas; apagar a linha da instalação deixa um orçamento só de chicote com o total certo.
+12. Item `fornecidoPeloCliente` entra com valor zero e não soma no total.
+13. Nova versão do chicote não apaga a versão anterior.
+14. O backup novo guarda cada anexo uma vez; um backup antigo (com os anexos dentro do zip) e um novo restauram os mesmos dados.
+
+Pronto quando: 4 OS reais passam pelo app instalado (uma de som, uma de vidro ou trava, uma de partida ou alternador e uma de injeção programável, com chicote, instalação ou os dois), cada uma com checklist cumprido; ao menos uma com laudo em PDF e a de injeção com ficha do chicote em PDF.
+
 **Fase 4 — Mapa base** (era a fase 3)
 - Perfis de injeção, gerador de tabelas (seção 7.5), editor de tabela com cores e vista 3D, saída nível C para todas as injeções e nível B para uma marca, checklist de primeira partida.
 - Também: as unidades preferidas na tela (decisão 152) e o cálculo em segundo plano, com aviso de progresso na abertura (decisão 160).
@@ -521,6 +672,13 @@ Roteiro das fases 3 em diante alterado em 15/10/2026: a gestão da oficina entra
 **Fase 7 — Aprendizado e integrações** (era a fase 5)
 - Métricas de diferença entre base e final; reajuste dos modelos de VE e de ignição por família, como nova versão da base de conhecimento (cálculos antigos não mudam); nível A (.msq) opcional; mais marcas no nível B.
 - Pronto quando: a diferença média entre base e final fica abaixo de 10% nas células de plena carga.
+
+**Fase 8 — Chicote e caixa de fusíveis (depois da Fase 7; pode ser antecipada)**
+- Levantamento prévio em `docs/fase8/` (eu defino o que quero registrar: circuitos, cores, bitolas, fusíveis, relés), antes de qualquer código.
+- Tabela de **circuitos por veículo** (nome, origem, destino, bitola, cor, fusível, relé, `aVerificar`).
+- Ficha e modelagem de **caixa de fusíveis** (posições, amperagem, o que alimenta).
+- Reaproveita as instalações do veículo (6.2), a ficha do veículo e a ficha do chicote da Fase 3B (6.6.5), que vira ponto de partida da tabela de circuitos. A Fase 8 trata de **reconstruir ou modelar** chicote e caixa de fusíveis existentes; a confecção de chicote para injeção programável já fica pronta na Fase 3B.
+- Pronto quando: uma caixa de fusíveis e um chicote real estão documentados e consultáveis na ficha do veículo.
 
 ---
 

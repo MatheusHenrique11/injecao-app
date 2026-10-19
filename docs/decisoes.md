@@ -622,3 +622,33 @@ Plano aprovado em 18/10/2026. Resposta do dono: antes de ele abrir o 0.3.0 com o
     - **o histórico das correções da OS:** a abertura e a entrada corrigidas não guardam o valor antigo (o veículo e o cliente guardam). Proposta: um histórico como o do veículo;
     - **o nome do arquivo e a descrição dos anexos que ficam** (fotos, laudos) não mudam na anonimização: uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal continua com esse nome no banco. Proposta: trocar o nome original por "arquivo anonimizado" na anonimização.
 212. **Só documentado:** na atualização para a 0.3.0 (migração V6), a OS criada para um projeto que já tinha orçamento pega o status da última revisão. Se o cliente tinha aprovado a revisão 1 e havia uma revisão 2 em rascunho, a OS nasce "Aberta", e não "Aprovada": é preciso enviar e aprovar a revisão 2 antes de começar o serviço. Não afeta os dados deste PC (o banco real não tem orçamento), e mexer numa migração já publicada no MSI (o Flyway confere a impressão digital dela) não vale o risco.
+
+## 19/10/2026 — Fase 3B: auto elétrica (SPEC 1.2)
+
+Proposta do dono de 18/10/2026 (SPEC 1.2), com o plano aprovado em 19/10/2026. As decisões da proposta eram numeradas de 202 a 214; viraram 213 a 225 porque até a 212 já estavam usadas.
+
+213. **A auto elétrica entra como segunda linha de serviço da oficina, na mesma OS.** É o serviço que mais aparece hoje; a OS já resolve entrada, orçamento, execução e entrega.
+214. **A Fase 3B (auto elétrica) entra antes da Fase 4 (mapa base).** Há demanda imediata de elétrica; o mapa base não é afetado. A Fase 8 (chicote e caixa de fusíveis) fica depois da 7 e pode ser antecipada.
+215. **Categoria nos serviços do catálogo; os já cadastrados viram OUTRO.** Organiza o catálogo sem apagar dados. A proposta dizia "PREPARACAO ou OUTRO", sem regra para escolher entre os dois: ficou OUTRO, e a categoria se troca na edição (o banco real não tinha serviço cadastrado).
+216. **Serviços sugeridos vêm sem horas e sem preço; o dono preenche antes de confirmar.** A regra do catálogo exige horas ou preço, e o app não inventa tempo de serviço.
+217. **O checklist de execução é uma cópia (instantâneo) do modelo, criada ao entrar em EM_EXECUCAO.** Mudar o modelo não pode reescrever OS em andamento ou entregues.
+218. **Item obrigatório pendente trava PRONTA; o avanço só com justificativa escrita, com data e hora.** Mesmo padrão do semáforo vermelho (regra 2.4).
+219. **Laudo elétrico sem faixas "boas" ou "ruins" prontas; a faixa é campo opcional preenchido pelo dono.** Regra "não invente dado técnico". O laudo é dado técnico e fica na anonimização; a queixa, que é texto livre, tem aviso para não levar dado pessoal.
+220. **Itens e kits só compõem o orçamento; sem estoque.** Estoque e financeiro continuam fora do escopo.
+221. **Injeção programável vira categoria própria; confecção de chicote e instalação são dois serviços independentes.** O cliente pode contratar só um ou os dois.
+222. **Cada serviço diz se exige a entrada do veículo; a OS com serviço de bancada pode ir à execução sem a entrada.** O chicote é feito na bancada e pode ser entregue sem o carro ter passado pela oficina; nesse caso, a entrega registra quem retirou, no lugar do km de saída.
+223. **Kit pode conter serviços (pacote); no orçamento, ele se expande em linhas editáveis.** Vender "chicote + instalação" de uma vez sem prender o cliente ao combo.
+224. **Ficha do chicote com a fonte do pinout obrigatória; o app não valida pinagem nem bitola.** Regra "não invente dado técnico" (seção 0).
+225. **Linha de item pode ser "fornecido pelo cliente" (valor zero); garantia opcional por serviço.** O cliente que já tem a ECU; chicote e instalação podem ter garantias diferentes.
+226. **A ordem da Fase 3B e o que mudou da proposta** (plano aprovado em 19/10/2026):
+    - **bloco 3B.0, antes da elétrica,** com os itens 1 e 2 da decisão 211: o backup que guarda cada anexo uma vez e a cópia de fotos em segundo plano. Escolha do dono em 19/10/2026: com o uso real, cada backup levaria todas as fotos de novo, e a pasta de backups passaria de 10 GB em pouco tempo. Os itens 3 e 4 da decisão 211 entram no 3B.7, antes do MSI 0.3.1;
+    - **as 6 perguntas da proposta,** respondidas no plano olhando o código:
+      - itens e kits viram tipos do catálogo que já existe, sem tabela nova;
+      - os checklists têm tabelas próprias, porque a vistoria é só uma lista de nomes; o editor dela serve de modelo para a tela;
+      - o orçamento já aceita linhas digitadas e guarda de que item do catálogo cada linha veio;
+      - a regra "EM_EXECUCAO exige a entrada" mora num lugar só (`CasosOficina.mudarStatus`);
+      - o km de saída já é opcional, e "quem retirou" é um campo novo da entrega (3B.6);
+      - a garantia por serviço cabe no comprovante, numa tabela "Por serviço" (3B.1);
+    - **a "descrição padrão" do serviço é o texto da linha do orçamento.** A via do cliente não lista o orçamento, porque é assinada na chegada;
+    - **o vínculo do serviço com o checklist modelo entra no 3B.3,** junto com os modelos;
+    - **o texto da SPEC usa "oficina" onde a proposta dizia "escritório",** como no resto da SPEC e do app.
