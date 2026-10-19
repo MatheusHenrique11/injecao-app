@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,11 +49,14 @@ public final class Restauracao {
         this.backup = Objects.requireNonNull(backup, "backup");
     }
 
-    /** Lê e confere o backup inteiro (impressão digital e integridade) sem mexer nos dados atuais. */
+    /**
+     * Lê e confere o backup inteiro (impressão digital e integridade) sem mexer nos dados atuais. No formato 2, os
+     * anexos são conferidos na própria pasta {@code anexos-dos-backups}, sem copiar.
+     */
     public Manifesto conferir(Path zip) {
         Path pasta = pastaDeTrabalho();
         try {
-            return extrairEConferir(zip, pasta);
+            return extrairEConferir(zip, pasta, false);
         } finally {
             Arquivos.apagarArvore(pasta);
         }
@@ -64,7 +71,7 @@ public final class Restauracao {
     public InfoBackup restaurar(Path zip) {
         Path pasta = pastaDeTrabalho();
         try {
-            Manifesto manifesto = extrairEConferir(zip, pasta);
+            Manifesto manifesto = extrairEConferir(zip, pasta, true);
             String atual = backup.banco().versaoDoEsquema();
             if (maisNova(manifesto.versaoBanco(), atual)) {
                 throw new BackupInvalidoException("Este backup é de uma versão mais nova do Calibra ("
@@ -85,7 +92,7 @@ public final class Restauracao {
     public void voltar(Path zip) {
         Path pasta = pastaDeTrabalho();
         try {
-            extrairEConferir(zip, pasta);
+            extrairEConferir(zip, pasta, true);
             trocar(pasta);
             LOG.warning(() -> "Dados voltaram ao backup " + zip);
         } finally {
@@ -102,8 +109,12 @@ public final class Restauracao {
         }
     }
 
-    /** Extrai o banco e os anexos na pasta e confere tudo; não mexe nos dados atuais. */
-    private static Manifesto extrairEConferir(Path zip, Path pasta) {
+    /**
+     * Extrai o banco e os anexos na pasta e confere tudo; não mexe nos dados atuais.
+     *
+     * @param trazerAnexos no formato 2, copiar os anexos para a pasta de trabalho (false = só conferir)
+     */
+    private static Manifesto extrairEConferir(Path zip, Path pasta, boolean trazerAnexos) {
         if (!Files.isRegularFile(zip)) {
             throw new BackupInvalidoException("Arquivo de backup não encontrado: " + zip);
         }
@@ -124,7 +135,11 @@ public final class Restauracao {
             if (!Arquivos.sha256(banco).equals(manifesto.sha256Banco())) {
                 throw new BackupInvalidoException("O backup está corrompido: o banco não confere com o manifesto.");
             }
-            extrairAnexos(arquivo, pasta.resolve("anexos"));
+            if (manifesto.formato() <= Manifesto.FORMATO_ANEXOS_NO_ZIP) {
+                extrairAnexos(arquivo, pasta.resolve("anexos"));
+            } else {
+                trazerAnexos(manifesto, AnexosDosBackups.doBackup(zip), trazerAnexos ? pasta.resolve("anexos") : null);
+            }
             conferirBanco(banco, manifesto);
             return manifesto;
         } catch (ZipException erro) {
@@ -163,6 +178,64 @@ public final class Restauracao {
             try (InputStream dados = arquivo.getInputStream(entrada)) {
                 Files.copy(dados, alvo);
             }
+        }
+    }
+
+    /**
+     * Os anexos do formato 2, da pasta {@code anexos-dos-backups} ao lado do zip, cada um conferido pelo SHA-256.
+     * Primeiro confere se todos estão lá (sem copiar nada); depois copia e confere o que foi copiado.
+     *
+     * @param destino a pasta de anexos de trabalho; null = só conferir os arquivos da pasta, sem copiar
+     */
+    private static void trazerAnexos(Manifesto manifesto, AnexosDosBackups guardados, Path destino)
+            throws IOException {
+        record Copia(AnexoNoBackup anexo, Path guardado, Path alvo) {
+        }
+        Path raiz = destino != null ? destino : guardados.pasta().resolve("conferencia");
+        List<Copia> copias = new ArrayList<>();
+        int faltando = 0;
+        for (AnexoNoBackup anexo : manifesto.arquivos()) {
+            Path alvo = dentroDaPasta(raiz, anexo.caminho());
+            Path guardado = guardados.arquivo(anexo.sha256());
+            if (Files.isRegularFile(guardado)) {
+                copias.add(new Copia(anexo, guardado, alvo));
+            } else {
+                faltando++;
+            }
+        }
+        if (faltando > 0) {
+            throw new BackupInvalidoException((faltando == 1 ? "Falta 1 anexo" : "Faltam " + faltando + " anexos")
+                    + " deste backup na pasta " + guardados.pasta() + ". Ela fica ao lado do arquivo do backup: se "
+                    + "você copiou o backup para outro lugar, copie também a pasta " + AnexosDosBackups.PASTA + ".");
+        }
+        if (destino != null) {
+            Files.createDirectories(destino);
+        }
+        for (Copia copia : copias) {
+            Path conferido = copia.guardado();
+            if (destino != null) {
+                Files.createDirectories(copia.alvo().getParent());
+                Files.copy(copia.guardado(), copia.alvo(), StandardCopyOption.REPLACE_EXISTING);
+                conferido = copia.alvo();
+            }
+            if (!Arquivos.sha256(conferido).equals(copia.anexo().sha256())) {
+                throw new BackupInvalidoException("O backup está corrompido: o anexo " + copia.anexo().caminho()
+                        + " não confere com o manifesto.");
+            }
+        }
+    }
+
+    /** O caminho do anexo dentro da pasta de anexos; um caminho que sai dela (ex.: "../fora.txt") é recusado. */
+    private static Path dentroDaPasta(Path raiz, String caminho) {
+        try {
+            Path base = raiz.toAbsolutePath().normalize();
+            Path alvo = base.resolve(caminho).normalize();
+            if (!alvo.startsWith(base) || alvo.equals(base)) {
+                throw new BackupInvalidoException("O backup tem um anexo com caminho inválido: " + caminho);
+            }
+            return alvo;
+        } catch (InvalidPathException erro) {
+            throw new BackupInvalidoException("O backup tem um anexo com caminho inválido: " + caminho, erro);
         }
     }
 

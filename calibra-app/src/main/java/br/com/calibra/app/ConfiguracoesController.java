@@ -46,6 +46,7 @@ import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.backup.Backup;
 import br.com.calibra.dados.backup.BackupInvalidoException;
@@ -126,6 +127,7 @@ public class ConfiguracoesController {
     @FXML private Label backupPasta;
     @FXML private Label backupAvisoPasta;
     @FXML private Label backupUltimo;
+    @FXML private Label backupAnexos;
     @FXML private Button botaoEscolherPasta;
     @FXML private Button botaoPastaPadrao;
     @FXML private Button botaoBackupAgora;
@@ -407,7 +409,7 @@ public class ConfiguracoesController {
 
     // ===================== Backup =====================
 
-    /** Mostra a pasta, o aviso de pen drive desligado e o último backup. */
+    /** Mostra a pasta, o aviso de pen drive desligado, o último backup e o espaço dos anexos guardados. */
     void atualizarBackup() {
         if (servicoBackup == null) {
             return;
@@ -420,6 +422,8 @@ public class ConfiguracoesController {
         backupAvisoPasta.setManaged(!aviso.isEmpty());
         botaoPastaPadrao.setDisable(servicoBackup.configuracaoAtual().usaPastaPadrao());
         backupUltimo.setText(servicoBackup.ultimo().map(ServicoBackup::descrever).orElse("nenhum nesta pasta"));
+        long anexos = servicoBackup.tamanhoDosAnexos();
+        backupAnexos.setText(anexos == 0 ? "nenhum" : NumeroBr.tamanhoArquivo(anexos) + ", cada arquivo uma vez só");
     }
 
     @FXML

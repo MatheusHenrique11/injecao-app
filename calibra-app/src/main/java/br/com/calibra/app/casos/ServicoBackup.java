@@ -146,6 +146,11 @@ public final class ServicoBackup {
         return Backup.maisRecente(pasta());
     }
 
+    /** O espaço que as fotos e os documentos dos backups ocupam na pasta atual (cada arquivo uma vez), em bytes. */
+    public long tamanhoDosAnexos() {
+        return Backup.tamanhoDosAnexos(pasta());
+    }
+
     /**
      * Backups que dá para restaurar: os da pasta atual e os da pasta padrão (onde ficam os backups feitos
      * antes de atualizar o banco ou de restaurar), do mais novo para o mais antigo.

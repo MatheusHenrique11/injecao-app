@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,11 +14,13 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.IntFunction;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -35,7 +36,9 @@ import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.json.Json;
 
 /**
- * Backup do Calibra (SPEC 10): um zip com o banco, a pasta de anexos e um manifesto.
+ * Backup do Calibra (SPEC 10). Desde a fase 3B (formato 2), um zip com o banco e um manifesto que lista os anexos; os
+ * anexos ficam uma vez só na pasta {@code anexos-dos-backups}, ao lado dos zips ({@link AnexosDosBackups}). O zip
+ * antigo (formato 1, com os anexos dentro) continua restaurando.
  *
  * <p>O banco é copiado com {@code VACUUM INTO}, que tira uma foto consistente mesmo com o app aberto.
  * O zip é montado com outro nome e só é renomeado no fim, então nunca fica um backup pela metade com
@@ -77,7 +80,11 @@ public final class Backup {
     }
 
     /**
-     * Faz um backup completo na pasta e apaga os mais antigos, mantendo os {@link #MANTER} mais recentes.
+     * Faz um backup completo na pasta e apaga os mais antigos, mantendo os {@link #MANTER} mais recentes; depois tira
+     * da pasta {@code anexos-dos-backups} o que nenhum backup usa mais.
+     *
+     * <p>Os anexos são guardados antes da cópia do banco: um anexo removido no meio do backup fica de fora, e o banco,
+     * copiado depois, também não o tem; um removido depois de guardado só sobra no backup, sem uso.
      *
      * @throws ErroDados se não conseguir gravar (pasta sem permissão, disco cheio, pen drive removido)
      */
@@ -87,22 +94,33 @@ public final class Backup {
             Files.createDirectories(pasta);
             Files.createDirectories(pastas.temporaria());
             LocalDateTime agora = LocalDateTime.now(relogio).truncatedTo(ChronoUnit.SECONDS);
+            List<AnexoNoBackup> arquivos = guardarAnexos(AnexosDosBackups.na(pasta));
             String versaoBanco = banco.versaoDoEsquema();
             copia = copiarBanco();
-            String sha256Banco = Arquivos.sha256(copia);
-            long tamanhoBanco = Files.size(copia);
+            Manifesto manifesto = new Manifesto(Manifesto.FORMATO, versaoApp, versaoBanco, agora, motivo,
+                    Arquivos.sha256(copia), Files.size(copia), arquivos.size(), arquivos);
             Path destino = nomeLivre(pasta, agora);
             Path parcial = destino.resolveSibling(destino.getFileName() + PARCIAL);
-            Manifesto manifesto = escreverZip(parcial, copia, anexosDoBackup(), levados -> new Manifesto(
-                    Manifesto.FORMATO, versaoApp, versaoBanco, agora, motivo, sha256Banco, tamanhoBanco, levados));
+            escreverZip(parcial, copia, manifesto);
             Arquivos.mover(parcial, destino);
             manterMaisRecentes(pasta, MANTER, destino);
+            limparAnexosSemUso(pasta);
             LOG.info(() -> "Backup feito (" + motivo.rotulo() + "): " + destino);
             return new InfoBackup(destino, manifesto, Files.size(destino));
         } catch (IOException | SQLException erro) {
             throw new ErroDados("Não foi possível fazer o backup em " + pasta + ": " + erro.getMessage(), erro);
         } finally {
             apagarCopia(copia);
+        }
+    }
+
+    /** O espaço que os anexos dos backups ocupam na pasta (a pasta {@code anexos-dos-backups}), em bytes. */
+    public static long tamanhoDosAnexos(Path pasta) {
+        try {
+            return AnexosDosBackups.na(pasta).tamanho();
+        } catch (IOException erro) {
+            LOG.log(Level.WARNING, "Não foi possível medir os anexos dos backups em " + pasta, erro);
+            return 0;
         }
     }
 
@@ -203,53 +221,63 @@ public final class Backup {
                 .toList();
     }
 
-    /** Monta o zip: o banco, os anexos e, por último, o manifesto, que conta os anexos que de fato foram junto. */
-    private Manifesto escreverZip(Path destino, Path copiaBanco, List<Path> anexos, IntFunction<Manifesto> manifesto)
-            throws IOException {
-        try (OutputStream saida = new BufferedOutputStream(Files.newOutputStream(destino));
-                ZipOutputStream zip = new ZipOutputStream(saida, StandardCharsets.UTF_8)) {
-            adicionar(zip, ENTRADA_BANCO, copiaBanco);
-            int levados = 0;
-            for (Path anexo : anexos) {
-                String relativo = pastas.anexos().relativize(anexo).toString().replace('\\', '/');
-                if (adicionarSeExistir(zip, PREFIXO_ANEXOS + relativo, anexo)) {
-                    levados++;
-                }
+    /**
+     * Guarda os anexos na pasta {@code anexos-dos-backups} (o que já está lá não é copiado de novo). Um anexo removido
+     * no meio (a tela segue aberta durante o backup automático) fica de fora, em vez de derrubar o backup inteiro.
+     */
+    private List<AnexoNoBackup> guardarAnexos(AnexosDosBackups guardados) throws IOException {
+        List<AnexoNoBackup> lista = new ArrayList<>();
+        for (Path anexo : anexosDoBackup()) {
+            String caminho = pastas.anexos().relativize(anexo).toString().replace('\\', '/');
+            Optional<AnexosDosBackups.Guardado> guardado = guardados.guardar(anexo);
+            if (guardado.isPresent()) {
+                lista.add(new AnexoNoBackup(caminho, guardado.get().sha256(), guardado.get().tamanho()));
+            } else {
+                LOG.info(() -> "Anexo removido durante o backup, ficou de fora: " + anexo);
             }
-            Manifesto pronto = manifesto.apply(levados);
-            zip.putNextEntry(new ZipEntry(ENTRADA_MANIFESTO));
-            zip.write(Json.escreverFormatado(pronto).getBytes(StandardCharsets.UTF_8));
-            zip.closeEntry();
-            return pronto;
         }
+        return lista;
     }
 
-    private static void adicionar(ZipOutputStream zip, String nome, Path arquivo) throws IOException {
-        zip.putNextEntry(new ZipEntry(nome));
-        Files.copy(arquivo, zip);
-        zip.closeEntry();
+    /** Monta o zip: o banco e o manifesto, com a lista dos anexos guardados. */
+    private static void escreverZip(Path destino, Path copiaBanco, Manifesto manifesto) throws IOException {
+        try (OutputStream saida = new BufferedOutputStream(Files.newOutputStream(destino));
+                ZipOutputStream zip = new ZipOutputStream(saida, StandardCharsets.UTF_8)) {
+            zip.putNextEntry(new ZipEntry(ENTRADA_BANCO));
+            Files.copy(copiaBanco, zip);
+            zip.closeEntry();
+            zip.putNextEntry(new ZipEntry(ENTRADA_MANIFESTO));
+            zip.write(Json.escreverFormatado(manifesto).getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
     }
 
     /**
-     * Põe o arquivo no zip, se ele ainda existir. Um anexo removido entre a lista e a cópia (a tela segue aberta
-     * durante o backup automático) fica de fora, em vez de derrubar o backup inteiro.
-     *
-     * @return false se o arquivo sumiu
+     * Tira da pasta {@code anexos-dos-backups} o que nenhum backup da pasta usa mais e as cópias pela metade. Se algum
+     * backup da pasta não puder ser lido, não apaga nada (ele pode usar um desses arquivos) e deixa para o próximo
+     * backup. Um erro aqui só vai para o log: o backup já está feito.
      */
-    static boolean adicionarSeExistir(ZipOutputStream zip, String nome, Path arquivo) throws IOException {
-        InputStream dados;
+    static void limparAnexosSemUso(Path pasta) {
+        AnexosDosBackups guardados = AnexosDosBackups.na(pasta);
         try {
-            dados = Files.newInputStream(arquivo);
-        } catch (NoSuchFileException sumiu) {
-            LOG.info(() -> "Anexo removido durante o backup, ficou de fora: " + arquivo);
-            return false;
+            Set<String> emUso = new HashSet<>();
+            for (Path arquivo : arquivosDeBackup(pasta)) {
+                Optional<InfoBackup> info = lerInfo(arquivo);
+                if (info.isEmpty()) {
+                    LOG.warning(() -> "Limpeza de " + guardados.pasta() + " adiada: o backup " + arquivo
+                            + " não pôde ser lido.");
+                    return;
+                }
+                info.get().manifesto().arquivos().forEach(anexo -> emUso.add(anexo.sha256()));
+            }
+            int apagados = guardados.limpar(emUso);
+            if (apagados > 0) {
+                LOG.info(() -> "Anexos que nenhum backup usa mais, apagados de " + guardados.pasta() + ": " + apagados
+                        + ".");
+            }
+        } catch (IOException | RuntimeException erro) {
+            LOG.log(Level.WARNING, "Não foi possível limpar " + guardados.pasta(), erro);
         }
-        try (dados) {
-            zip.putNextEntry(new ZipEntry(nome));
-            dados.transferTo(zip);
-            zip.closeEntry();
-        }
-        return true;
     }
 
     private static void apagarCopia(Path copia) {

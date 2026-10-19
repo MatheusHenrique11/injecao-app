@@ -273,10 +273,14 @@
 
         <Label styleClass="titulo-secao" text="Backups"/>
         <Label styleClass="dica" wrapText="true"
-               text="Automático: uma vez por dia, e ao fechar o app se algo mudou desde o último backup. Ficam os 30 mais recentes em cada pasta. O backup leva o banco de dados e os anexos (logo, imagens)."/>
+               text="Automático: uma vez por dia, e ao fechar o app se algo mudou desde o último backup. Ficam os 30 mais recentes em cada pasta. Cada backup é um arquivo com o banco de dados; as fotos e os documentos ficam uma vez só na pasta anexos-dos-backups, ao lado deles. Para levar os backups para outro lugar, copie a pasta inteira."/>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
           <Label text="Último backup:"/>
           <Label fx:id="backupUltimo" styleClass="negrito"/>
+        </HBox>
+        <HBox spacing="10.0" alignment="CENTER_LEFT">
+          <Label text="Anexos guardados nesta pasta:"/>
+          <Label fx:id="backupAnexos" styleClass="negrito"/>
         </HBox>
         <HBox spacing="10.0">
           <Button fx:id="botaoBackupAgora" text="Fazer backup agora" onAction="#fazerBackupAgora"/>

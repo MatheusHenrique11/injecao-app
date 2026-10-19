@@ -3,7 +3,6 @@ package br.com.calibra.dados.backup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,11 +10,16 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,8 +34,9 @@ class BackupTest {
     @TempDir
     Path pasta;
 
+    /** Formato 2 (fase 3B): o zip leva o banco e o manifesto; os anexos ficam uma vez na pasta anexos-dos-backups. */
     @Test
-    void zipTemBancoAnexosEManifesto() throws Exception {
+    void zipTemBancoEManifestoEOsAnexosFicamNaPasta() throws Exception {
         BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
         base.configuracao.gravar(Chave.OFICINA, new DadosOficina("Oficina", "", "", "", "", "logo.png"));
         Files.writeString(base.pastas.anexos().resolve("logo.png"), "imagem");
@@ -43,24 +48,52 @@ class BackupTest {
         // O relógio de teste anda 1 s por leitura: 18:30:00 foi a gravação da oficina; 18:30:01, o backup.
         assertEquals("calibra-backup-2026-10-11-183001.zip", info.arquivo().getFileName().toString());
         Manifesto m = info.manifesto();
-        assertEquals(Manifesto.FORMATO, m.formato());
+        assertEquals(2, m.formato(), "formato 2: os anexos ficam fora do zip");
         assertEquals(BaseDeTeste.VERSAO_APP, m.versaoApp());
         assertEquals(BaseDeTeste.VERSAO_BANCO, m.versaoBanco());
         assertEquals(LocalDateTime.of(2026, 10, 11, 18, 30, 1), m.criadoEm());
         assertEquals(MotivoBackup.MANUAL, m.motivo());
         assertEquals(2, m.anexos());
+        assertEquals(List.of(new AnexoNoBackup("logo.png", sha256("imagem"), 6),
+                new AnexoNoBackup("turbos/mapa.png", sha256("mapa"), 4)), m.arquivos());
         try (ZipFile zip = new ZipFile(info.arquivo().toFile())) {
-            assertNotNull(zip.getEntry("calibra.db"));
-            assertNotNull(zip.getEntry("manifesto.json"));
-            assertEquals("imagem", ler(zip, "anexos/logo.png"));
-            assertEquals("mapa", ler(zip, "anexos/turbos/mapa.png"));
+            assertEquals(List.of("calibra.db", "manifesto.json"), nomes(zip), "nenhum anexo dentro do zip");
             assertTrue(ler(zip, "manifesto.json").contains("\"versaoBanco\" : \"" + BaseDeTeste.VERSAO_BANCO + "\""),
                     "manifesto legível");
         }
+        Path guardados = pasta.resolve("backups").resolve("anexos-dos-backups");
+        assertEquals("imagem", Files.readString(guardados.resolve(sha256("imagem"))));
+        assertEquals("mapa", Files.readString(guardados.resolve(sha256("mapa"))));
+        assertEquals(2, quantos(guardados), "um arquivo por conteúdo, sem cópia pela metade");
         assertFalse(Files.exists(info.arquivo().resolveSibling(info.arquivo().getFileName() + ".parcial")));
         try (var restos = Files.list(base.pastas.temporaria())) {
             assertEquals(0, restos.count(), "a cópia temporária do banco foi apagada");
         }
+    }
+
+    /**
+     * Uma foto que não mudou não é copiada de novo: o segundo backup não mexe na pasta, e o zip dele leva o banco, não a
+     * foto (com o formato 1, cada zip levava a foto inteira).
+     */
+    @Test
+    void segundoBackupNaoCopiaOsAnexosDeNovo() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        byte[] foto = new byte[300_000];
+        new Random(7).nextBytes(foto);
+        Files.write(base.pastas.anexos().resolve("foto.jpg"), foto);
+        Path destino = pasta.resolve("backups");
+        InfoBackup primeiro = base.backup.fazer(destino, MotivoBackup.MANUAL);
+        Path guardado = destino.resolve("anexos-dos-backups").resolve(primeiro.manifesto().arquivos().getFirst()
+                .sha256());
+        Files.setLastModifiedTime(guardado, FileTime.fromMillis(0));
+
+        InfoBackup segundo = base.backup.fazer(destino, MotivoBackup.MANUAL);
+
+        assertEquals(primeiro.manifesto().arquivos(), segundo.manifesto().arquivos());
+        assertEquals(FileTime.fromMillis(0), Files.getLastModifiedTime(guardado), "não foi copiada de novo");
+        assertEquals(1, quantos(destino.resolve("anexos-dos-backups")));
+        assertTrue(segundo.tamanhoBytes() < 150_000, "o zip leva o banco, não a foto: " + segundo.tamanhoBytes());
+        assertEquals(300_000, Backup.tamanhoDosAnexos(destino));
     }
 
     /**
@@ -76,21 +109,58 @@ class BackupTest {
 
         InfoBackup info = base.backup.fazer(pasta.resolve("backups"), MotivoBackup.MANUAL);
 
+        assertEquals(List.of("veiculos/1/0123456789abcdef.jpg"),
+                info.manifesto().arquivos().stream().map(AnexoNoBackup::caminho).toList(), "sem a cópia pela metade");
         assertEquals(1, info.manifesto().anexos(), "o manifesto conta só o que foi junto");
-        try (ZipFile zip = new ZipFile(info.arquivo().toFile())) {
-            assertEquals("foto", ler(zip, "anexos/veiculos/1/0123456789abcdef.jpg"));
-            assertNull(zip.getEntry("anexos/veiculos/1/fedcba9876543210.jpg.parcial"));
+        AnexosDosBackups guardados = AnexosDosBackups.na(pasta.resolve("backups"));
+        assertEquals(Optional.empty(), guardados.guardar(veiculo.resolve("sumiu.jpg")),
+                "o que sumiu no meio fica de fora, sem erro");
+    }
+
+    /**
+     * Depois de ficar com os 30 mais recentes, sai da pasta anexos-dos-backups o que nenhum backup restante usa (e a
+     * cópia pela metade); o que algum backup usa fica.
+     */
+    @Test
+    void limpezaTiraOQueNenhumBackupUsa() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        Path destino = pasta.resolve("backups");
+        Path antiga = Files.writeString(base.pastas.anexos().resolve("antiga.jpg"), "foto antiga");
+        base.backup.fazer(destino, MotivoBackup.AUTOMATICO);
+        Files.delete(antiga);
+        Files.writeString(base.pastas.anexos().resolve("nova.jpg"), "foto nova");
+        Path guardados = destino.resolve("anexos-dos-backups");
+        Files.writeString(guardados.resolve("copia-123.parcial"), "pela metade");
+
+        base.backup.fazer(destino, MotivoBackup.AUTOMATICO);
+        assertTrue(Files.exists(guardados.resolve(sha256("foto antiga"))), "o primeiro backup ainda usa a foto");
+        assertFalse(Files.exists(guardados.resolve("copia-123.parcial")), "a cópia pela metade sai");
+        for (int i = 1; i < Backup.MANTER; i++) {
+            base.backup.fazer(destino, MotivoBackup.AUTOMATICO);
         }
 
-        Path zipDeTeste = pasta.resolve("teste.zip");
-        try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(zipDeTeste))) {
-            assertFalse(Backup.adicionarSeExistir(zip, "anexos/sumiu.jpg", veiculo.resolve("sumiu.jpg")));
-            assertTrue(Backup.adicionarSeExistir(zip, "anexos/foto.jpg", veiculo.resolve("0123456789abcdef.jpg")));
-        }
-        try (ZipFile zip = new ZipFile(zipDeTeste.toFile())) {
-            assertNull(zip.getEntry("anexos/sumiu.jpg"), "o que sumiu não deixa entrada vazia no zip");
-            assertEquals("foto", ler(zip, "anexos/foto.jpg"));
-        }
+        assertEquals(Backup.MANTER, Backup.listar(destino).size(), "o primeiro backup saiu");
+        assertFalse(Files.exists(guardados.resolve(sha256("foto antiga"))), "nenhum backup restante usa a foto");
+        assertTrue(Files.exists(guardados.resolve(sha256("foto nova"))));
+    }
+
+    /** Com um backup ilegível na pasta, a limpeza não apaga nada: ele pode usar algum arquivo dela. */
+    @Test
+    void limpezaEsperaQuandoUmBackupNaoPodeSerLido() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        Path destino = pasta.resolve("backups");
+        base.backup.fazer(destino, MotivoBackup.MANUAL);
+        Path guardados = Files.createDirectories(destino.resolve("anexos-dos-backups"));
+        String semUso = "f".repeat(64);
+        Files.writeString(guardados.resolve(semUso), "de um backup que não dá para ler");
+        Path ilegivel = Files.writeString(destino.resolve("calibra-backup-2026-01-01-000000.zip"), "não é zip");
+
+        base.backup.fazer(destino, MotivoBackup.MANUAL);
+        assertTrue(Files.exists(guardados.resolve(semUso)), "com um backup ilegível, nada sai");
+
+        Files.delete(ilegivel);
+        base.backup.fazer(destino, MotivoBackup.MANUAL);
+        assertFalse(Files.exists(guardados.resolve(semUso)), "sem ele, a limpeza volta");
     }
 
     @Test
@@ -175,6 +245,21 @@ class BackupTest {
         ErroDados erro = assertThrows(ErroDados.class,
                 () -> base.backup.fazer(arquivoNoLugarDaPasta, MotivoBackup.MANUAL));
         assertTrue(erro.getMessage().startsWith("Não foi possível fazer o backup"), erro.getMessage());
+    }
+
+    static String sha256(String texto) throws Exception {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(texto.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static long quantos(Path pasta) throws Exception {
+        try (Stream<Path> itens = Files.list(pasta)) {
+            return itens.count();
+        }
+    }
+
+    private static List<String> nomes(ZipFile zip) {
+        return zip.stream().map(ZipEntry::getName).sorted().toList();
     }
 
     private static String ler(ZipFile zip, String nome) throws Exception {
