@@ -56,7 +56,9 @@ import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.ItemOrcamento;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
@@ -300,6 +302,63 @@ class CasosOficinaTest {
         assertEquals(esperado, oficina.buscar(os).garantias(), "a tela da OS recebe a mesma lista");
         assertEquals(esperado, oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "").garantias(),
                 "e o comprovante de entrega");
+    }
+
+    /**
+     * Testes nº 5 e nº 11 da Fase 3B (SPEC 6.6.4). O pacote "chicote + instalação" vira duas linhas no orçamento da OS,
+     * e o total confere; sem a linha da instalação, fica um orçamento só de chicote, com o total certo. Num kit com
+     * item, mudar a quantidade de uma linha no orçamento muda o orçamento, e o kit continua igual.
+     */
+    @Test
+    void kitEPacoteNoOrcamentoDaOs() {
+        Dinheiro hora = Dinheiro.ler("180,00");
+        ServicoPadrao chicote = new ServicoPadrao("Confecção de chicote para injeção programável", null,
+                "Tabela da oficina", null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null);
+        ItemCatalogo<ServicoPadrao> chicoteNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, chicote,
+                new InfoCatalogo(chicote.nome(), "Tabela da oficina", null, false, Dinheiro.ler("1.800,00"), ""));
+        ServicoPadrao instalacao = new ServicoPadrao("Instalação de injeção programável", 8.0, "Tabela da oficina",
+                null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null);
+        ItemCatalogo<ServicoPadrao> instalacaoNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, instalacao,
+                info(instalacao));
+        ItemCatalogo<Kit> pacote = catalogo.criar(TipoCatalogo.KIT, new Kit("Chicote + instalação", List.of(
+                new Kit.Linha(Kit.TipoLinha.SERVICO, chicoteNoCatalogo.id(), "", BigDecimal.ONE),
+                new Kit.Linha(Kit.TipoLinha.SERVICO, instalacaoNoCatalogo.id(), "", BigDecimal.ONE)),
+                "Tabela da oficina", null), new InfoCatalogo("Chicote + instalação", "Tabela da oficina", null, false,
+                null, ""));
+
+        List<ItemOrcamento> linhas = catalogo.linhasDoKit(pacote.id(), hora).itens();
+        assertEquals(List.of("Confecção de chicote para injeção programável", "Instalação de injeção programável"),
+                linhas.stream().map(ItemOrcamento::descricao).toList(), "o pacote vira duas linhas");
+        assertEquals(Dinheiro.ler("3.240,00"), orcamento(linhas).total(), "R$ 1.800 + 8 h × R$ 180");
+        long os = abrirComEntrada("Ana Costa", "ABC1D23");
+        OrcamentoSalvo soChicote = orcamentos.criarNaOs(os, orcamento(List.of(linhas.getFirst())));
+        assertEquals(Dinheiro.ler("1.800,00"), soChicote.conteudo().total(), "sem a instalação, só o chicote");
+        assertEquals(chicoteNoCatalogo.id(), soChicote.conteudo().itens().getFirst().catalogoItemId());
+
+        ItemCatalogo<ItemMaterial> rele = catalogo.criar(TipoCatalogo.ITEM, new ItemMaterial("Relé 12 V 40 A", "un",
+                "Tabela da oficina", null), new InfoCatalogo("Relé 12 V 40 A", "Tabela da oficina", null, false,
+                Dinheiro.ler("18,50"), ""));
+        Kit alimentacao = new Kit("Alimentação da bomba", List.of(new Kit.Linha(Kit.TipoLinha.ITEM, rele.id(),
+                "Relé 12 V 40 A", new BigDecimal("2")), new Kit.Linha(Kit.TipoLinha.SERVICO,
+                instalacaoNoCatalogo.id(), "Instalação de injeção programável", new BigDecimal("0.5"))),
+                "Tabela da oficina", null);
+        ItemCatalogo<Kit> kit = catalogo.criar(TipoCatalogo.KIT, alimentacao, new InfoCatalogo("Alimentação da bomba",
+                "Tabela da oficina", null, false, null, ""));
+        List<ItemOrcamento> doKit = catalogo.linhasDoKit(kit.id(), hora).itens();
+        assertEquals(Dinheiro.ler("757,00"), orcamento(doKit).total(), "2 × R$ 18,50 + 0,5 × 8 h × R$ 180");
+        ItemOrcamento rele3 = new ItemOrcamento(doKit.getFirst().tipo(), doKit.getFirst().descricao(),
+                new BigDecimal("3"), doKit.getFirst().unidade(), doKit.getFirst().valorUnitario(),
+                doKit.getFirst().catalogoItemId(), doKit.getFirst().catalogoVersao(), false);
+        long outra = abrirComEntrada("Bruno Dias", "BCD2E34");
+        OrcamentoSalvo mudado = orcamentos.criarNaOs(outra, orcamento(List.of(rele3, doKit.get(1))));
+        assertEquals(Dinheiro.ler("775,50"), mudado.conteudo().total(), "3 relés na OS");
+        ItemCatalogo<Kit> kitDepois = catalogo.buscar(TipoCatalogo.KIT, kit.id()).orElseThrow();
+        assertEquals(1, kitDepois.versao(), "o kit não ganhou versão");
+        assertEquals(kit.dados(), kitDepois.dados(), "e continua com 2 relés");
+    }
+
+    private static Orcamento orcamento(List<ItemOrcamento> itens) {
+        return new Orcamento(itens, Desconto.NENHUM, 1, "", 15, "", "");
     }
 
     private static ServicoPadrao servico(String nome, Integer garantiaDias) {

@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -15,6 +17,7 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.fxml.FXML;
 import javafx.geometry.HPos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -41,7 +44,9 @@ import br.com.calibra.app.casos.LogoOficina;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.ItemOrcamento;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
@@ -80,6 +85,8 @@ public class OrcamentoController {
     @FXML private Button botaoAdicionarPeca;
     @FXML private Button botaoAdicionarServico;
     @FXML private Button botaoServicoDoCatalogo;
+    @FXML private Button botaoItemDoCatalogo;
+    @FXML private Button botaoKitDoCatalogo;
     @FXML private Button botaoPecasDoCalculo;
     @FXML private ComboBox<TipoDesconto> tipoDesconto;
     @FXML private TextField desconto;
@@ -132,10 +139,15 @@ public class OrcamentoController {
         private final TextField quantidade = new TextField();
         private final TextField unidade = new TextField();
         private final TextField valor = new TextField();
+        /** A peça fornecida pelo cliente (Fase 3B): valor zero, fora do total. Só nas linhas de peça. */
+        private final CheckBox doCliente = new CheckBox("do cliente");
         private final Label totalLinha = new Label();
         private final Button remover = new Button("Remover");
         private final Long catalogoItemId;
         private final Integer catalogoVersao;
+        /** O valor de antes de marcar "do cliente", que volta ao desmarcar. */
+        private String valorAntes;
+        private boolean editavel = true;
 
         LinhaTela(Linha linha) {
             catalogoItemId = linha.catalogoItemId();
@@ -146,36 +158,68 @@ public class OrcamentoController {
             quantidade.setText(linha.quantidade());
             unidade.setText(linha.unidade());
             valor.setText(linha.valor());
+            doCliente.setSelected(linha.fornecido() && linha.tipo() == TipoItem.PECA);
             quantidade.setPrefColumnCount(5);
             unidade.setPrefColumnCount(4);
             valor.setPrefColumnCount(8);
             totalLinha.setMinWidth(110);
+            doCliente.setTooltip(new Tooltip("Fornecido pelo cliente (ex.: a ECU que ele já comprou): a peça entra com "
+                    + "valor zero e não soma no total."));
             if (catalogoItemId != null) {
                 descricao.setTooltip(new Tooltip(linha.tipo() == TipoItem.SERVICO
                         ? "Serviço do catálogo (versão " + catalogoVersao + ")."
                         : "Peça do catálogo (versão " + catalogoVersao + "). O preço vem do preço de referência dela."));
             }
-            tipo.valueProperty().addListener((obs, antes, depois) -> aoMudarCampo());
+            tipo.valueProperty().addListener((obs, antes, depois) -> {
+                if (depois != TipoItem.PECA) {
+                    doCliente.setSelected(false);
+                }
+                ajustarDoCliente();
+                aoMudarCampo();
+            });
             for (TextField campo : List.of(descricao, quantidade, unidade, valor)) {
                 campo.textProperty().addListener((obs, antes, depois) -> aoMudarCampo());
             }
+            doCliente.selectedProperty().addListener((obs, antes, marcado) -> {
+                if (marcado) {
+                    valorAntes = valor.getText();
+                    valor.setText("0,00");
+                } else if (valorAntes != null) {
+                    valor.setText(valorAntes);
+                    valorAntes = null;
+                }
+                ajustarDoCliente();
+                aoMudarCampo();
+            });
             remover.setOnAction(evento -> {
                 linhas.remove(this);
                 montarGrade();
                 aoMudarCampo();
             });
+            ajustarDoCliente();
         }
 
         Linha linha() {
             return new Linha(tipo.getValue(), descricao.getText(), quantidade.getText(), unidade.getText(),
-                    valor.getText(), catalogoItemId, catalogoVersao);
+                    valor.getText(), catalogoItemId, catalogoVersao,
+                    doCliente.isSelected() && tipo.getValue() == TipoItem.PECA);
         }
 
-        void habilitar(boolean editavel) {
-            for (Control controle : List.of(tipo, descricao, quantidade, unidade, valor)) {
+        void habilitar(boolean editavelAgora) {
+            editavel = editavelAgora;
+            for (Control controle : List.of(tipo, descricao, quantidade, unidade)) {
                 controle.setDisable(!editavel);
             }
             remover.setVisible(editavel);
+            ajustarDoCliente();
+        }
+
+        /** A caixa só aparece na peça; marcada, o valor fica travado em zero. */
+        private void ajustarDoCliente() {
+            boolean peca = tipo.getValue() == TipoItem.PECA;
+            doCliente.setVisible(peca);
+            doCliente.setDisable(!editavel);
+            valor.setDisable(!editavel || doCliente.isSelected());
         }
     }
 
@@ -196,7 +240,7 @@ public class OrcamentoController {
         coluna(colunaResposta, OrcamentoController::resposta);
         gradeItens.getColumnConstraints().setAll(new ColumnConstraints(110), coluna(280, true),
                 new ColumnConstraints(80), new ColumnConstraints(70), new ColumnConstraints(150),
-                new ColumnConstraints(120), new ColumnConstraints(90));
+                new ColumnConstraints(100), new ColumnConstraints(120), new ColumnConstraints(90));
     }
 
     private static ColumnConstraints coluna(double minima, boolean cresce) {
@@ -277,7 +321,7 @@ public class OrcamentoController {
 
     private void montarGrade() {
         gradeItens.getChildren().clear();
-        String[] titulos = {"Tipo", "Descrição", "Qtd.", "Un.", "Valor unitário (R$)", "Total", ""};
+        String[] titulos = {"Tipo", "Descrição", "Qtd.", "Un.", "Valor unitário (R$)", "", "Total", ""};
         for (int i = 0; i < titulos.length; i++) {
             Label titulo = new Label(titulos[i]);
             titulo.getStyleClass().add("negrito");
@@ -286,13 +330,13 @@ public class OrcamentoController {
         for (int i = 0; i < linhas.size(); i++) {
             LinhaTela linha = linhas.get(i);
             gradeItens.addRow(i + 1, linha.tipo, linha.descricao, linha.quantidade, linha.unidade, linha.valor,
-                    linha.totalLinha, linha.remover);
+                    linha.doCliente, linha.totalLinha, linha.remover);
             GridPane.setHalignment(linha.totalLinha, HPos.RIGHT);
         }
         if (linhas.isEmpty()) {
-            Label vazio = new Label("Nenhum item. Use \"+ Peça\" ou \"+ Serviço\".");
+            Label vazio = new Label("Nenhum item. Use os botões abaixo: peça, serviço, item ou kit.");
             vazio.getStyleClass().add("dica");
-            gradeItens.add(vazio, 0, 1, 7, 1);
+            gradeItens.add(vazio, 0, 1, titulos.length, 1);
         }
         linhas.forEach(linha -> linha.habilitar(editavel()));
     }
@@ -354,10 +398,13 @@ public class OrcamentoController {
         situacao.setText(o == null ? (trava == null ? "não gravado" : "—") : o.status().rotulo());
         explicacao.setText(explicacao(o));
         boolean comCalculo = comCalculo();
-        dicaItens.setText(comCalculo ? "As peças vêm do último cálculo salvo, com o preço de referência do catálogo "
+        String doCliente = " Na peça que o cliente traz (ex.: a ECU que ele já comprou), marque \"do cliente\": ela "
+                + "entra com valor zero.";
+        dicaItens.setText((comCalculo ? "As peças vêm do último cálculo salvo, com o preço de referência do catálogo "
                 + "(peça sem preço vem com o valor em branco). Some os serviços, como a mão de obra em horas. Valores "
                 + "em reais com vírgula (ex.: 1.234,56)." : "Monte os itens: as peças e os serviços, como a mão de "
-                + "obra em horas. Valores em reais com vírgula (ex.: 1.234,56).");
+                + "obra em horas, ou os itens e os kits do catálogo. Valores em reais com vírgula (ex.: 1.234,56).")
+                + doCliente);
         botaoPecasDoCalculo.setVisible(comCalculo);
         botaoPecasDoCalculo.setManaged(comCalculo);
         boolean desatualizado = atual != null && atual.desatualizado() && o.status() != StatusOrcamento.SUBSTITUIDO;
@@ -405,6 +452,8 @@ public class OrcamentoController {
         botaoAdicionarPeca.setDisable(!editavel);
         botaoAdicionarServico.setDisable(!editavel);
         botaoServicoDoCatalogo.setDisable(!editavel);
+        botaoItemDoCatalogo.setDisable(!editavel);
+        botaoKitDoCatalogo.setDisable(!editavel);
         botaoPecasDoCalculo.setDisable(!editavel);
         boolean documento = atual != null;
         botaoPdf.setDisable(!documento);
@@ -449,6 +498,47 @@ public class OrcamentoController {
                 item.info().precoReferencia(), recursos.padroes().get().valorHora(), item.id(), item.versao())));
     }
 
+    /** Um item do catálogo de Itens (Fase 3B), escolhido na lista. */
+    @FXML
+    private void adicionarItemDoCatalogo() {
+        new JanelaEscolhaCatalogo<>(janela(), recursos.catalogo(), TipoCatalogo.ITEM, "Item do catálogo",
+                "O item entra como peça: 1 × a unidade dele, pelo preço de referência (sem preço, o valor fica em "
+                        + "branco para preencher). Tudo continua editável aqui no orçamento.",
+                item -> true, null).escolher().ifPresent(this::adicionarItemEscolhido);
+    }
+
+    /** 1 × a unidade do item, pelo preço de referência (em branco, se não houver). */
+    void adicionarItemEscolhido(ItemCatalogo<ItemMaterial> item) {
+        adicionar(Linha.de(ItemOrcamento.doItem(item.info().nome(), item.dados().unidade(),
+                item.info().precoReferencia(), item.id(), item.versao())));
+    }
+
+    /** Um kit do catálogo (Fase 3B), escolhido na lista: ele vira linhas soltas e editáveis. */
+    @FXML
+    private void adicionarKitDoCatalogo() {
+        new JanelaEscolhaCatalogo<>(janela(), recursos.catalogo(), TipoCatalogo.KIT, "Kit do catálogo",
+                "O kit vira uma linha para cada item e serviço dele, com o preço de agora do catálogo (o serviço pela "
+                        + "regra dele: preço próprio, ou horas × o valor da hora). Depois, mude ou apague cada linha à "
+                        + "vontade: o kit no catálogo não muda.",
+                item -> true, null).escolher().ifPresent(this::adicionarKitEscolhido);
+    }
+
+    /** As linhas do kit, no fim da lista; o item ou o serviço arquivado entra com um aviso para conferir. */
+    void adicionarKitEscolhido(ItemCatalogo<Kit> kit) {
+        CasosCatalogo.LinhasDoKit doKit = recursos.catalogo().linhasDoKit(kit.id(),
+                recursos.padroes().get().valorHora());
+        doKit.itens().forEach(item -> linhas.add(new LinhaTela(Linha.de(item))));
+        montarGrade();
+        aoMudarCampo();
+        if (doKit.avisos().isEmpty()) {
+            int quantas = doKit.itens().size();
+            mostrarOk("Kit " + kit.info().nome() + ": " + quantas + (quantas == 1 ? " linha" : " linhas")
+                    + ". Confira os valores e salve.");
+        } else {
+            mostrarAvisos(doKit.avisos());
+        }
+    }
+
     private LinhaTela adicionar(Linha linha) {
         LinhaTela nova = new LinhaTela(linha);
         linhas.add(nova);
@@ -457,12 +547,18 @@ public class OrcamentoController {
         return nova;
     }
 
-    /** As peças voltam a ser as do último cálculo (com os preços do catálogo); os serviços ficam. */
+    /**
+     * As peças voltam a ser as do último cálculo (com os preços do catálogo); os serviços e as linhas do catálogo de
+     * Itens (cabos, relés...: não saem do cálculo) ficam.
+     */
     @FXML
     private void trazerPecasDoCalculo() {
         try {
             List<ItemOrcamento> doCalculo = fonte.sugestao(recursos.padroes().get()).itens();
-            linhas.removeIf(linha -> linha.tipo.getValue() == TipoItem.PECA);
+            Set<Long> itensDoCatalogo = recursos.catalogo().doTipo(TipoCatalogo.ITEM, linhas.stream()
+                    .map(linha -> linha.catalogoItemId).filter(Objects::nonNull).toList());
+            linhas.removeIf(linha -> linha.tipo.getValue() == TipoItem.PECA
+                    && !itensDoCatalogo.contains(linha.catalogoItemId));
             List<LinhaTela> pecas = new ArrayList<>();
             FormularioOrcamento.escrever(new Orcamento(doCalculo, null, 0, "", 1, "", "")).linhas()
                     .forEach(linha -> pecas.add(new LinhaTela(linha)));
@@ -650,6 +746,21 @@ public class OrcamentoController {
         return mensagens.getChildren().stream().map(no -> ((Label) no).getText()).toList();
     }
 
+    /** Marca ou desmarca "do cliente" numa linha, como a pessoa faria (para os testes). */
+    void marcarDoCliente(int indice, boolean marcado) {
+        linhas.get(indice).doCliente.setSelected(marcado);
+    }
+
+    /** O botão "Remover" de uma linha (para os testes). */
+    void removerLinha(int indice) {
+        linhas.get(indice).remover.fire();
+    }
+
+    /** O valor da linha está travado (a peça do cliente). */
+    boolean valorTravado(int indice) {
+        return linhas.get(indice).valor.isDisabled();
+    }
+
     // ===================== Utilidades =====================
 
     private static String resposta(SituacaoOrcamento s) {
@@ -684,5 +795,16 @@ public class OrcamentoController {
         rotulo.getStyleClass().add("ok");
         rotulo.setWrapText(true);
         mensagens.getChildren().setAll(rotulo);
+    }
+
+    /** O que conferir, sem impedir nada (ex.: um item arquivado que entrou pelo kit). */
+    private void mostrarAvisos(List<String> avisos) {
+        mensagens.getChildren().clear();
+        for (String aviso : avisos) {
+            Label rotulo = new Label("• " + aviso);
+            rotulo.getStyleClass().add("aviso-amarelo");
+            rotulo.setWrapText(true);
+            mensagens.getChildren().add(rotulo);
+        }
     }
 }

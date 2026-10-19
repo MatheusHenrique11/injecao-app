@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,16 @@ import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.orcamento.CategoriaServico;
+import br.com.calibra.core.orcamento.Desconto;
+import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.Kit;
+import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.ServicosSugeridos;
 import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
+import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.dados.BancoDados;
@@ -171,6 +177,49 @@ class CasosCatalogoTest {
         assertThrows(EntradaInvalidaException.class, () -> casos.criar(TipoCatalogo.KIT,
                 ExemplosCatalogo.kit(99_999, servico.id()).dados(), exemplo.info()), "id que não existe");
         assertEquals(1, casos.listar(TipoCatalogo.KIT, "", true).size(), "nada mais foi gravado");
+    }
+
+    /**
+     * O kit no orçamento (Fase 3B): uma linha para cada item e serviço, com a versão de agora do catálogo e a
+     * quantidade do kit; o serviço pela regra dele (horas × o valor da hora, ou o preço próprio); o arquivado entra com
+     * aviso.
+     */
+    @Test
+    void linhasDoKitParaOOrcamento() {
+        ItemCatalogo<ItemMaterial> rele = casos.criar(TipoCatalogo.ITEM, ExemplosCatalogo.item().dados(),
+                ExemplosCatalogo.item().info());
+        Exemplo<ServicoPadrao> hora = ExemplosCatalogo.servicoPorHora();
+        ItemCatalogo<ServicoPadrao> limpeza = casos.criar(TipoCatalogo.SERVICO, hora.dados(), hora.info());
+        Exemplo<ServicoPadrao> preco = ExemplosCatalogo.servicoComPreco();
+        ItemCatalogo<ServicoPadrao> diagnostico = casos.criar(TipoCatalogo.SERVICO, preco.dados(), preco.info());
+        Kit dados = new Kit("Alimentação teste", List.of(
+                new Kit.Linha(Kit.TipoLinha.ITEM, rele.id(), "", new BigDecimal("2")),
+                new Kit.Linha(Kit.TipoLinha.SERVICO, limpeza.id(), "", new BigDecimal("2")),
+                new Kit.Linha(Kit.TipoLinha.SERVICO, diagnostico.id(), "", BigDecimal.ONE)), "Tabela da oficina", null);
+        ItemCatalogo<Kit> kit = casos.criar(TipoCatalogo.KIT, dados, new InfoCatalogo("Alimentação teste",
+                "Tabela da oficina", null, false, null, ""));
+
+        CasosCatalogo.LinhasDoKit linhas = casos.linhasDoKit(kit.id(), Dinheiro.ler("180,00"));
+        assertEquals(List.of(), linhas.avisos());
+        assertEquals(List.of(
+                new ItemOrcamento(TipoItem.PECA, "Relé teste 12 V 40 A", new BigDecimal("2"), "un",
+                        Dinheiro.ler("18,50"), rele.id(), 1, false),
+                new ItemOrcamento(TipoItem.SERVICO, "Limpeza de bicos teste", new BigDecimal("3"), "h",
+                        Dinheiro.ler("180,00"), limpeza.id(), 1, false),
+                new ItemOrcamento(TipoItem.SERVICO, "Diagnóstico com scanner e relatório (teste)", BigDecimal.ONE,
+                        "serviço", Dinheiro.ler("250,00"), diagnostico.id(), 1, false)), linhas.itens(),
+                "2 relés; 2 × 1,5 h = 3 h; o diagnóstico pelo preço, com a descrição dele");
+        assertEquals(Dinheiro.ler("827,00"), new Orcamento(linhas.itens(), Desconto.NENHUM, 1, "", 15, "", "").total(),
+                "2 × R$ 18,50 + 3 h × R$ 180 + R$ 250");
+
+        casos.arquivar(rele.id(), true);
+        CasosCatalogo.LinhasDoKit semValorHora = casos.linhasDoKit(kit.id(), null);
+        assertEquals(List.of("Kit Alimentação teste: o item \"Relé teste 12 V 40 A\" está arquivado no catálogo; "
+                + "confira a linha."), semValorHora.avisos());
+        assertEquals(3, semValorHora.itens().size(), "o arquivado entra mesmo assim");
+        assertNull(semValorHora.itens().get(1).valorUnitario(), "sem o valor da hora, o serviço por hora fica em branco");
+
+        assertEquals(Set.of(rele.id()), casos.doTipo(TipoCatalogo.ITEM, List.of(rele.id(), limpeza.id(), 99_999L)));
     }
 
     /** Serviços sugeridos (SPEC 6.6.1): todos numa gravação só, cada um na versão 1, com a categoria da lista. */

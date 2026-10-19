@@ -99,7 +99,9 @@ import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.ItemOrcamento;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
@@ -506,11 +508,11 @@ class OficinaUiTest {
             TelaDeTeste.naTelaDoJavaFx(() -> {
                 OrcamentoController orcamento = principal.osAberta().orcamento();
                 assertEquals(List.of(new Linha(TipoItem.SERVICO, "Limpeza de bicos teste", "1,5", "h", "180,00",
-                        porHora.get().id(), 1)), orcamento.linhas(),
+                        porHora.get().id(), 1, false)), orcamento.linhas(),
                         "sem preço: as horas × o valor da hora; sem descrição, o nome na linha");
                 orcamento.adicionarServicoEscolhido(comPreco.get());
                 assertEquals(new Linha(TipoItem.SERVICO, "Diagnóstico com scanner e relatório (teste)", "1", "serviço",
-                        "250,00", comPreco.get().id(), 1), orcamento.linhas().get(1),
+                        "250,00", comPreco.get().id(), 1, false), orcamento.linhas().get(1),
                         "com preço: 1 serviço pelo preço; a descrição do serviço na linha");
                 assertEquals(Dinheiro.ler("520,00").formatar(), this.<Label>daAba("totalServicos").getText(),
                         "1,5 h × R$ 180 + R$ 250");
@@ -520,6 +522,92 @@ class OficinaUiTest {
                         gravados.stream().map(ItemOrcamento::catalogoItemId).toList(), "a linha guarda o item");
                 assertEquals(List.of(1, 1), gravados.stream().map(ItemOrcamento::catalogoVersao).toList());
                 salvar(cena, "oficina-20-servico-do-catalogo.png");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.4): "+ Kit do catálogo…" põe uma linha para cada item e serviço do kit; a ECU que o cliente
+     * traz, marcada "do cliente", fica com valor zero e travada; sem a linha da instalação, o orçamento fica com o
+     * chicote e a ECU do cliente, e grava assim.
+     */
+    @Test
+    void kitEPecaDoClienteNoOrcamento() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+                ItemCatalogo<ItemMaterial> ecu = catalogo.criar(TipoCatalogo.ITEM, new ItemMaterial(
+                        "ECU programável teste", "un", "Tabela da oficina", null), new InfoCatalogo(
+                        "ECU programável teste", "Tabela da oficina", null, false, Dinheiro.ler("4.900,00"), ""));
+                ServicoPadrao chicote = new ServicoPadrao("Confecção de chicote teste", null, "Tabela da oficina",
+                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null);
+                ItemCatalogo<ServicoPadrao> chicoteNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, chicote,
+                        new InfoCatalogo(chicote.nome(), "Tabela da oficina", null, false, Dinheiro.ler("1.800,00"),
+                                ""));
+                ServicoPadrao instalacao = new ServicoPadrao("Instalação de injeção teste", 8.0, "Tabela da oficina",
+                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null);
+                ItemCatalogo<ServicoPadrao> instalacaoNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, instalacao,
+                        new InfoCatalogo(instalacao.nome(), "Tabela da oficina", null, false, null, ""));
+                catalogo.criar(TipoCatalogo.KIT, new Kit("Injeção completa teste", List.of(
+                        new Kit.Linha(Kit.TipoLinha.ITEM, ecu.id(), "", BigDecimal.ONE),
+                        new Kit.Linha(Kit.TipoLinha.SERVICO, chicoteNoCatalogo.id(), "", BigDecimal.ONE),
+                        new Kit.Linha(Kit.TipoLinha.SERVICO, instalacaoNoCatalogo.id(), "", BigDecimal.ONE)),
+                        "Tabela da oficina", null), new InfoCatalogo("Injeção completa teste", "Tabela da oficina",
+                        null, false, null, ""));
+                contexto.configuracao().gravar(Chave.ORCAMENTO, new PadroesOrcamento(Desconto.NENHUM, 10, "", 15, "",
+                        Dinheiro.ler("180,00")));
+                ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23", "Injeção programável", null,
+                        LocalDateTime.now().minusHours(1).withNano(0))).osId();
+            });
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                TabPane abasOs = achar(cena, "abas");
+                abasOs.getSelectionModel().select(aba(abasOs, "abaOrcamento"));
+            });
+
+            TelaDeTeste.semEsperar(() -> this.<Button>daAba("botaoKitDoCatalogo").fire(), falha);
+            Stage escolha = TelaDeTeste.esperarJanela("Kit do catálogo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(escolha);
+                ((TableView<?>) painel.lookup("#escolhaCatalogo")).getSelectionModel().selectFirst();
+                TelaDeTeste.apertar(painel, "Usar este");
+            });
+            TelaDeTeste.esperar(() -> !escolha.isShowing(), "a escolha do kit fechar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                OrcamentoController orcamento = principal.osAberta().orcamento();
+                assertEquals(List.of("ECU programável teste", "Confecção de chicote teste",
+                        "Instalação de injeção teste"), orcamento.linhas().stream().map(Linha::descricao).toList(),
+                        "uma linha para cada item e serviço do kit");
+                assertEquals(List.of("Kit Injeção completa teste: 3 linhas. Confira os valores e salve."),
+                        orcamento.mensagens());
+                assertEquals(Dinheiro.ler("4.900,00").formatar(), this.<Label>daAba("totalPecas").getText());
+                assertEquals(Dinheiro.ler("3.240,00").formatar(), this.<Label>daAba("totalServicos").getText(),
+                        "R$ 1.800 + 8 h × R$ 180");
+
+                orcamento.marcarDoCliente(0, true);
+                assertTrue(orcamento.linhas().getFirst().fornecido());
+                assertEquals("0,00", orcamento.linhas().getFirst().valor());
+                assertTrue(orcamento.valorTravado(0), "o valor da peça do cliente trava");
+                assertEquals(Dinheiro.ZERO.formatar(), this.<Label>daAba("totalPecas").getText());
+                orcamento.removerLinha(2);
+                assertEquals(Dinheiro.ler("1.800,00").formatar(), this.<Label>daAba("totalServicos").getText(),
+                        "sem a instalação, só o chicote");
+                salvar(cena, "oficina-25-kit-e-peca-do-cliente.png");
+
+                this.<Button>daAba("botaoSalvar").fire();
+                Orcamento gravado = orcamento.atual().orElseThrow().orcamento().conteudo();
+                assertEquals(2, gravado.itens().size());
+                assertTrue(gravado.itens().getFirst().fornecidoPeloCliente(), "a ECU fica marcada como do cliente");
+                assertEquals(Dinheiro.ler("1.800,00"), gravado.total());
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {

@@ -4,17 +4,22 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import br.com.calibra.app.catalogo.Combustiveis;
 import br.com.calibra.app.catalogo.FormasCatalogo;
 import br.com.calibra.app.catalogo.FormularioSugeridos;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.dados.BancoDados;
@@ -22,6 +27,7 @@ import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.ResumoItem;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.catalogo.VersaoCatalogo;
 
@@ -33,6 +39,19 @@ public final class CasosCatalogo {
 
     /** Resultado de salvar: o item e se uma versão nova foi gravada (sem mudança, nada é gravado). */
     public record Gravacao<T>(ItemCatalogo<T> item, boolean versaoNova) {
+    }
+
+    /**
+     * As linhas de um kit para o orçamento e o que conferir nelas.
+     *
+     * @param avisos o item ou o serviço arquivado no catálogo (a linha entra mesmo assim)
+     */
+    public record LinhasDoKit(List<ItemOrcamento> itens, List<String> avisos) {
+
+        public LinhasDoKit {
+            itens = List.copyOf(itens);
+            avisos = List.copyOf(avisos);
+        }
     }
 
     private final BancoDados banco;
@@ -62,6 +81,55 @@ public final class CasosCatalogo {
     /** Todas as versões do item, da mais nova para a mais antiga. */
     public <T> List<VersaoCatalogo<T>> versoes(TipoCatalogo<T> tipo, long id) {
         return banco.ler(c -> catalogo.versoes(c, tipo, id));
+    }
+
+    /**
+     * As linhas de um kit para o orçamento (SPEC 6.6.4, Fase 3B): uma para cada item e serviço dele, com a versão de
+     * agora do catálogo e a quantidade do kit. O item entra como peça, pelo preço de referência; o serviço, pela regra
+     * dele (preço próprio, ou horas × o valor da hora). O que estiver arquivado no catálogo entra mesmo assim, com um
+     * aviso para conferir. O kit não muda.
+     *
+     * @param valorHora o valor da hora de Configurações; null = não configurado (o serviço por hora fica sem valor)
+     */
+    public LinhasDoKit linhasDoKit(long kitId, Dinheiro valorHora) {
+        return banco.ler(c -> {
+            ItemCatalogo<Kit> kit = catalogo.buscar(c, TipoCatalogo.KIT, kitId).orElseThrow(
+                    () -> new OperacaoRecusadaException("Kit #" + kitId + " não encontrado."));
+            String nomeDoKit = kit.info().nome();
+            List<ItemOrcamento> itens = new ArrayList<>();
+            List<String> avisos = new ArrayList<>();
+            for (Kit.Linha linha : kit.dados().linhas()) {
+                Optional<? extends ItemCatalogo<?>> noCatalogo;
+                if (linha.tipo() == Kit.TipoLinha.ITEM) {
+                    Optional<ItemCatalogo<ItemMaterial>> item = catalogo.buscar(c, TipoCatalogo.ITEM, linha.itemId());
+                    item.ifPresent(i -> itens.add(ItemOrcamento.doItem(i.info().nome(), i.dados().unidade(),
+                            i.info().precoReferencia(), i.id(), i.versao()).multiplicarQuantidade(linha.quantidade())));
+                    noCatalogo = item;
+                } else {
+                    Optional<ItemCatalogo<ServicoPadrao>> servico = catalogo.buscar(c, TipoCatalogo.SERVICO,
+                            linha.itemId());
+                    servico.ifPresent(s -> itens.add(ItemOrcamento.doServico(s.dados().textoNoOrcamento(),
+                            s.dados().horas(), s.info().precoReferencia(), valorHora, s.id(), s.versao())
+                            .multiplicarQuantidade(linha.quantidade())));
+                    noCatalogo = servico;
+                }
+                if (noCatalogo.isEmpty()) {
+                    avisos.add("Kit " + nomeDoKit + ": o " + linha.tipo().rotulo() + " \"" + linha.nome()
+                            + "\" não está mais no catálogo e ficou de fora.");
+                } else if (noCatalogo.get().arquivado()) {
+                    avisos.add("Kit " + nomeDoKit + ": o " + linha.tipo().rotulo() + " \""
+                            + noCatalogo.get().info().nome() + "\" está arquivado no catálogo; confira a linha.");
+                }
+            }
+            return new LinhasDoKit(itens, avisos);
+        });
+    }
+
+    /** Quais destes ids são do tipo (ex.: as linhas do orçamento que vieram do catálogo de Itens). */
+    public Set<Long> doTipo(TipoCatalogo<?> tipo, Collection<Long> ids) {
+        return banco.ler(c -> catalogo.resumos(c, ids).values().stream()
+                .filter(resumo -> resumo.tipo().equals(tipo.codigo())).map(ResumoItem::id)
+                .collect(Collectors.toSet()));
     }
 
     /** Os combustíveis que podem ser escolhidos, em ordem de nome. */

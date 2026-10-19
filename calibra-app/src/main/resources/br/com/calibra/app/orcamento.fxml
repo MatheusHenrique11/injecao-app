@@ -35,6 +35,8 @@
       <Button fx:id="botaoAdicionarPeca" text="+ Peça" onAction="#adicionarPeca"/>
       <Button fx:id="botaoAdicionarServico" text="+ Serviço (mão de obra)" onAction="#adicionarServico"/>
       <Button fx:id="botaoServicoDoCatalogo" text="+ Serviço do catálogo…" onAction="#adicionarServicoDoCatalogo"/>
+      <Button fx:id="botaoItemDoCatalogo" text="+ Item do catálogo…" onAction="#adicionarItemDoCatalogo"/>
+      <Button fx:id="botaoKitDoCatalogo" text="+ Kit do catálogo…" onAction="#adicionarKitDoCatalogo"/>
       <Button fx:id="botaoPecasDoCalculo" text="Trazer as peças do cálculo de novo" onAction="#trazerPecasDoCalculo"/>
     </HBox>
 

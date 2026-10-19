@@ -41,9 +41,10 @@ public final class FormularioOrcamento {
      * Uma linha da tela.
      *
      * @param catalogoItemId de onde a peça ou o serviço veio no catálogo; null se digitada
+     * @param fornecido a peça fornecida pelo cliente (Fase 3B): entra com valor zero, seja qual for o valor da tela
      */
     public record Linha(TipoItem tipo, String descricao, String quantidade, String unidade, String valor,
-            Long catalogoItemId, Integer catalogoVersao) {
+            Long catalogoItemId, Integer catalogoVersao, boolean fornecido) {
 
         public Linha {
             descricao = limpo(descricao);
@@ -54,15 +55,15 @@ public final class FormularioOrcamento {
 
         /** Linha nova digitada, sem origem no catálogo. */
         public static Linha digitada(TipoItem tipo, String descricao, String quantidade, String unidade, String valor) {
-            return new Linha(tipo, descricao, quantidade, unidade, valor, null, null);
+            return new Linha(tipo, descricao, quantidade, unidade, valor, null, null, false);
         }
 
-        /** A linha de um item já montado (ex.: o serviço do catálogo, bloco 3.3). */
+        /** A linha de um item já montado (ex.: o serviço do catálogo, bloco 3.3; as linhas de um kit, Fase 3B). */
         public static Linha de(ItemOrcamento item) {
             return new Linha(item.tipo(), item.descricao(),
                     item.quantidade() == null ? "" : NumeroBr.formatar(item.quantidade().doubleValue(), 0, 3),
                     item.unidade(), item.valorUnitario() == null ? "" : item.valorUnitario().formatarSemSimbolo(),
-                    item.catalogoItemId(), item.catalogoVersao());
+                    item.catalogoItemId(), item.catalogoVersao(), item.fornecidoPeloCliente());
         }
     }
 
@@ -152,6 +153,9 @@ public final class FormularioOrcamento {
      * fecham.
      */
     public static Optional<Dinheiro> totalDaLinha(Linha linha) {
+        if (linha.fornecido()) {
+            return Optional.of(Dinheiro.ZERO);
+        }
         try {
             return Optional.of(Dinheiro.ler(linha.valor()).vezes(NumeroBr.lerDecimal(linha.quantidade())));
         } catch (NumberFormatException erro) {
@@ -175,7 +179,9 @@ public final class FormularioOrcamento {
             }
         }
         Dinheiro valor = null;
-        if (linha.valor().isEmpty()) {
+        if (linha.fornecido()) {
+            valor = Dinheiro.ZERO;
+        } else if (linha.valor().isEmpty()) {
             erros.add(onde + "informe o valor.");
         } else {
             try {
@@ -185,7 +191,7 @@ public final class FormularioOrcamento {
             }
         }
         return new ItemOrcamento(linha.tipo(), linha.descricao(), quantidade, linha.unidade(), valor,
-                linha.catalogoItemId(), linha.catalogoVersao(), false);
+                linha.catalogoItemId(), linha.catalogoVersao(), linha.fornecido());
     }
 
     // ===================== Padrões =====================

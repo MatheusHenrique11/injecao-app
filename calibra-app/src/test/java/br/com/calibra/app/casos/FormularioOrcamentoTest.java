@@ -29,7 +29,7 @@ class FormularioOrcamentoTest {
     }
 
     private static Linha bicos(String quantidade, String valor) {
-        return new Linha(TipoItem.PECA, "Bico teste 1050", quantidade, "un", valor, 7L, 2);
+        return new Linha(TipoItem.PECA, "Bico teste 1050", quantidade, "un", valor, 7L, 2, false);
     }
 
     @Test
@@ -69,6 +69,25 @@ class FormularioOrcamentoTest {
         assertEquals(TipoDesconto.PERCENTUAL, textos.tipoDesconto());
         assertEquals("7,5", textos.desconto());
         assertEquals(original, FormularioOrcamento.ler(textos).orcamento());
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.4): a peça do cliente entra com valor zero, seja qual for o valor da tela (o campo fica travado
+     * em 0,00), e volta marcada depois de gravada.
+     */
+    @Test
+    void pecaDoClienteEntraComValorZero() {
+        Linha ecu = new Linha(TipoItem.PECA, "ECU FuelTech FT450", "1", "un", "", 11L, 1, true);
+        assertEquals(Optional.of(Dinheiro.ZERO), FormularioOrcamento.totalDaLinha(ecu), "sem valor digitado: zero");
+        FormularioOrcamento.Leitura leitura = FormularioOrcamento.ler(textos(List.of(ecu,
+                Linha.digitada(TipoItem.SERVICO, "Instalação", "8", "h", "180")), TipoDesconto.NENHUM, ""));
+        assertEquals(List.of(), leitura.erros());
+        Orcamento o = leitura.orcamento();
+        assertTrue(o.itens().getFirst().fornecidoPeloCliente());
+        assertEquals(Dinheiro.ler("1.440,00"), o.total(), "só a instalação");
+        Linha voltou = FormularioOrcamento.escrever(o).linhas().getFirst();
+        assertTrue(voltou.fornecido());
+        assertEquals("0,00", voltou.valor());
     }
 
     @Test
