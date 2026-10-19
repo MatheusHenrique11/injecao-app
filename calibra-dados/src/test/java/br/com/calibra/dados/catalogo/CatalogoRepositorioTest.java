@@ -2,12 +2,19 @@ package br.com.calibra.dados.catalogo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -18,14 +25,22 @@ import org.junit.jupiter.api.io.TempDir;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
+import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.TempoMorto;
+import br.com.calibra.core.util.TextoBusca;
 import br.com.calibra.dados.BaseDeTeste;
 import br.com.calibra.dados.ErroDados;
+import br.com.calibra.dados.Sql;
+import br.com.calibra.dados.json.Json;
 
 /** Catálogo no banco (SPEC 8.5): versões, histórico, arquivar, busca e a trava contra alterar versão. */
 class CatalogoRepositorioTest {
+
+    /** Dois serviços como o 0.3.0 grava (gerados pelo código daquela versão antes da Fase 3B). */
+    private static final String SERVICOS_030 = "/br/com/calibra/dados/json/servico-0.3.0.json";
 
     @TempDir
     Path pasta;
@@ -145,6 +160,77 @@ class CatalogoRepositorioTest {
         Map<Long, ResumoItem> resumos = base.banco.ler(c -> catalogo.resumos(c, List.of(v1.id(), 99_999L)));
         assertEquals(1, resumos.size(), "id que não existe fica de fora");
         assertEquals(new ResumoItem(v1.id(), "BICO", "Bico teste 1050", 2, false), resumos.get(v1.id()));
+    }
+
+    /**
+     * Teste nº 1 da Fase 3B: o serviço gravado pelo 0.3.0 (o JSON de {@code servico-0.3.0.json}, sem os campos da auto
+     * elétrica) continua sendo lido: Outro, exige o veículo, sem descrição e com a garantia da OS. Nada é regravado.
+     */
+    @Test
+    void servicoGravadoPeloApp030ContinuaLegivel() throws IOException {
+        List<String> gravados = new ArrayList<>();
+        try (InputStream dados = CatalogoRepositorioTest.class.getResourceAsStream(SERVICOS_030)) {
+            assertNotNull(dados, "falta o arquivo " + SERVICOS_030);
+            Json.arvore(new String(dados.readAllBytes(), StandardCharsets.UTF_8)).forEach(no -> gravados.add(
+                    Json.escrever(no)));
+        }
+        assertFalse(gravados.getFirst().contains("categoria"), "o arquivo é do 0.3.0: sem os campos novos");
+        long limpeza = inserirComoNo030(gravados.get(0), "Limpeza de bicos", "2026-10-17");
+        long diagnostico = inserirComoNo030(gravados.get(1), "Diagnóstico com scanner", null);
+
+        List<ItemCatalogo<ServicoPadrao>> lista = base.banco.ler(c -> catalogo.listar(c, TipoCatalogo.SERVICO, "",
+                false));
+        assertEquals(List.of(diagnostico, limpeza), lista.stream().map(ItemCatalogo::id).toList(), "ordem de nome");
+        ServicoPadrao horas = base.banco.ler(c -> catalogo.buscar(c, TipoCatalogo.SERVICO, limpeza)).orElseThrow()
+                .dados();
+        assertEquals(new ServicoPadrao("Limpeza de bicos", 1.5, "Tabela da oficina", LocalDate.of(2026, 10, 17),
+                CategoriaServico.OUTRO, "", true, null), horas);
+        ServicoPadrao semHoras = base.banco.ler(c -> catalogo.versao(c, TipoCatalogo.SERVICO, diagnostico, 1))
+                .orElseThrow().dados();
+        assertEquals(CategoriaServico.OUTRO, semHoras.categoria());
+        assertTrue(semHoras.exigeEntradaDoVeiculo());
+        assertNull(semHoras.garantiaDias(), "a garantia da OS");
+        assertEquals("Diagnóstico com scanner", semHoras.textoNoOrcamento(), "sem descrição, entra o nome");
+        assertEquals(gravados.get(1), base.banco.ler(c -> {
+            try (PreparedStatement consulta = c.prepareStatement(
+                    "SELECT dados_json FROM catalogo_versao WHERE item_id = ?")) {
+                consulta.setLong(1, diagnostico);
+                try (ResultSet linha = consulta.executeQuery()) {
+                    return linha.next() ? linha.getString(1) : null;
+                }
+            }
+        }), "ler não regrava nada");
+    }
+
+    /**
+     * Um serviço como o 0.3.0 gravava: o JSON sem os campos novos, direto nas duas tabelas.
+     *
+     * @param data a data da informação, como no JSON; null sem data
+     */
+    private long inserirComoNo030(String json, String nome, String data) {
+        return base.banco.transacao(c -> {
+            try (PreparedStatement item = c.prepareStatement("INSERT INTO catalogo_item (tipo, versao_atual, nome, "
+                    + "fonte, data, a_verificar, observacoes, dados_json, busca, criado_em, atualizado_em) VALUES "
+                    + "('SERVICO', 1, ?, 'Tabela da oficina', ?, 0, '', ?, ?, '2026-10-18T20:52', "
+                    + "'2026-10-18T20:52')")) {
+                item.setString(1, nome);
+                item.setString(2, data);
+                item.setString(3, json);
+                item.setString(4, TextoBusca.juntar(nome, "Tabela da oficina"));
+                item.executeUpdate();
+            }
+            long id = Sql.ultimoId(c);
+            try (PreparedStatement versao = c.prepareStatement("INSERT INTO catalogo_versao (item_id, versao, nome, "
+                    + "fonte, data, a_verificar, observacoes, dados_json, criada_em) VALUES "
+                    + "(?, 1, ?, 'Tabela da oficina', ?, 0, '', ?, '2026-10-18T20:52')")) {
+                versao.setLong(1, id);
+                versao.setString(2, nome);
+                versao.setString(3, data);
+                versao.setString(4, json);
+                versao.executeUpdate();
+            }
+            return id;
+        });
     }
 
     private List<String> nomes(String termo, boolean incluirArquivados) {

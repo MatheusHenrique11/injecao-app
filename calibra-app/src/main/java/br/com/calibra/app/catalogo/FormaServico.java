@@ -2,6 +2,7 @@ package br.com.calibra.app.catalogo;
 
 import java.util.List;
 
+import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
@@ -43,7 +44,9 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
         if (leitura.temErros()) {
             return null;
         }
-        return new ServicoPadrao(info.nome(), horas, info.fonte(), info.data());
+        // A categoria, a descrição, o "exige o veículo" e a garantia entram no formulário no passo seguinte do bloco
+        // 3B.1; até lá, o serviço fica com os valores de quem não tem esses campos (como os gravados pelo 0.3.0).
+        return new ServicoPadrao(info.nome(), horas, info.fonte(), info.data(), CategoriaServico.OUTRO, "", true, null);
     }
 
     @Override

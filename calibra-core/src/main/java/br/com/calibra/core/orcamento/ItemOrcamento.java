@@ -38,20 +38,23 @@ public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantida
      * "1 serviço" pelo preço; sem preço, entram as horas × o valor da hora de Configurações. Sem o valor da hora, o
      * valor fica em branco, para a pessoa preencher (como a peça sem preço de referência).
      *
+     * @param descricao o texto da linha: a descrição padrão do serviço ou, sem ela, o nome
+     *        ({@link ServicoPadrao#textoNoOrcamento()})
      * @param horas o tempo padrão do serviço; null = não informado
      * @param preco o preço de referência do item do catálogo; null = sem preço
      * @param valorHora o valor da hora de mão de obra de Configurações; null = não configurado
      */
-    public static ItemOrcamento doServico(String nome, Double horas, Dinheiro preco, Dinheiro valorHora, long itemId,
-            int versao) {
+    public static ItemOrcamento doServico(String descricao, Double horas, Dinheiro preco, Dinheiro valorHora,
+            long itemId, int versao) {
         if (preco != null) {
-            return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.ONE, "serviço", preco, itemId, versao);
+            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", preco, itemId, versao);
         }
         if (horas == null) {
             // O catálogo não grava serviço sem preço e sem horas; se vier assim, a pessoa preenche o valor.
-            return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.ONE, "serviço", null, itemId, versao);
+            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", null, itemId, versao);
         }
-        return new ItemOrcamento(TipoItem.SERVICO, nome, BigDecimal.valueOf(horas), "h", valorHora, itemId, versao);
+        return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.valueOf(horas), "h", valorHora, itemId,
+                versao);
     }
 
     /** Quantidade × valor unitário, arredondado no centavo. */

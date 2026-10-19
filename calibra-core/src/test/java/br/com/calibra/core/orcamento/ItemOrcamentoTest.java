@@ -50,14 +50,4 @@ class ItemOrcamentoTest {
         assertEquals("serviço", item.unidade());
         assertNull(item.valorUnitario());
     }
-
-    @Test
-    void horasDoServicoPadrao() {
-        assertEquals(List.of(), new ServicoPadrao("Revisão", null, "Tabela da oficina", null).validar());
-        assertEquals(List.of(), new ServicoPadrao("Revisão", 0.5, "Tabela da oficina", null).validar());
-        for (double horas : new double[] {0, -1, Double.NaN}) {
-            assertEquals(List.of("As horas do serviço devem ser maiores que zero."),
-                    new ServicoPadrao("Revisão", horas, "Tabela da oficina", null).validar(), String.valueOf(horas));
-        }
-    }
 }

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,11 +23,14 @@ import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
+import br.com.calibra.core.orcamento.CategoriaServico;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.dados.BancoDados;
 import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.PastasDados;
+import br.com.calibra.dados.Sql;
 import br.com.calibra.dados.backup.Backup;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
@@ -36,17 +40,22 @@ import br.com.calibra.dados.catalogo.VersaoCatalogo;
 /** Casos de uso dos catálogos, com o banco de verdade numa pasta temporária. Dados fictícios. */
 class CasosCatalogoTest {
 
+    /** Um serviço como o 0.3.0 grava (o mesmo formato de {@code servico-0.3.0.json}, no calibra-dados). */
+    private static final String SERVICO_030 =
+            "{\"nome\":\"Limpeza de bicos\",\"horas\":1.5,\"fonte\":\"Tabela da oficina\",\"data\":\"2026-10-17\"}";
+
     @TempDir
     Path raiz;
 
     private final RelogioAjustavel relogio = new RelogioAjustavel(LocalDateTime.of(2026, 10, 12, 9, 0));
+    private BancoDados banco;
     private CasosCatalogo casos;
 
     @BeforeEach
     void abrirBanco() throws IOException {
         PastasDados pastas = new PastasDados(raiz);
         pastas.criar();
-        BancoDados banco = new BancoDados(pastas.banco());
+        banco = new BancoDados(pastas.banco());
         Migracoes.migrar(banco, new Backup(pastas, banco, "0.2.0-teste", relogio));
         casos = new CasosCatalogo(banco, relogio);
     }
@@ -92,6 +101,38 @@ class CasosCatalogoTest {
         for (TipoCatalogo<?> tipo : TipoCatalogo.todos()) {
             reabrirSemMudar(tipo);
         }
+    }
+
+    /**
+     * Teste nº 1 da Fase 3B: o serviço gravado pelo 0.3.0 (JSON sem os campos da auto elétrica) aparece como Outro e,
+     * aberto e salvo sem mexer, não ganha versão nova.
+     */
+    @Test
+    void servicoDo030PassaPelaTelaSemMudar() {
+        long id = banco.transacao(c -> {
+            try (PreparedStatement item = c.prepareStatement("INSERT INTO catalogo_item (tipo, versao_atual, nome, "
+                    + "fonte, data, a_verificar, observacoes, dados_json, busca, criado_em, atualizado_em) VALUES "
+                    + "('SERVICO', 1, 'Limpeza de bicos', 'Tabela da oficina', '2026-10-17', 0, '', ?, "
+                    + "'limpeza de bicos tabela da oficina', '2026-10-18T20:52', '2026-10-18T20:52')")) {
+                item.setString(1, SERVICO_030);
+                item.executeUpdate();
+            }
+            long novo = Sql.ultimoId(c);
+            try (PreparedStatement versao = c.prepareStatement("INSERT INTO catalogo_versao (item_id, versao, nome, "
+                    + "fonte, data, a_verificar, observacoes, dados_json, criada_em) VALUES (?, 1, 'Limpeza de bicos', "
+                    + "'Tabela da oficina', '2026-10-17', 0, '', ?, '2026-10-18T20:52')")) {
+                versao.setLong(1, novo);
+                versao.setString(2, SERVICO_030);
+                versao.executeUpdate();
+            }
+            return novo;
+        });
+        ServicoPadrao lido = casos.buscar(TipoCatalogo.SERVICO, id).orElseThrow().dados();
+        assertEquals(CategoriaServico.OUTRO, lido.categoria());
+        assertTrue(lido.exigeEntradaDoVeiculo());
+
+        reabrirSemMudar(TipoCatalogo.SERVICO);
+        assertEquals(1, casos.versoes(TipoCatalogo.SERVICO, id).size());
     }
 
     private <T> void reabrirSemMudar(TipoCatalogo<T> tipo) {
