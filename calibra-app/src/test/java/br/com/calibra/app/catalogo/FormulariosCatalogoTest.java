@@ -19,6 +19,7 @@ import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Injecao;
@@ -220,27 +221,73 @@ class FormulariosCatalogoTest {
         assertEquals("0,7", FormasCatalogo.de(TipoCatalogo.BICO).novo().texto(FormaBico.DENSIDADE));
     }
 
-    /** Serviço (bloco 3.3): sem preço, as horas são obrigatórias; o novo já vem com a fonte da oficina. */
+    /**
+     * Serviço (bloco 3.3): sem preço, as horas são obrigatórias; o novo já vem com a fonte da oficina e exigindo o
+     * veículo, e a categoria é obrigatória (Fase 3B).
+     */
     @Test
     void servicoPrecisaDasHorasOuDoPreco() {
         FormularioCatalogo<ServicoPadrao> servicos = FormasCatalogo.de(TipoCatalogo.SERVICO);
         assertEquals("Tabela da oficina", servicos.novo().texto(FormularioCatalogo.FONTE));
-        ValoresForm semNada = servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste");
+        assertEquals("true", servicos.novo().texto(FormaServico.EXIGE_VEICULO), "o serviço novo exige o veículo");
+        assertEquals("", servicos.novo().texto(FormaServico.CATEGORIA), "a categoria se escolhe");
+        ValoresForm semNada = novoServico(servicos);
         assertEquals(List.of("Informe as horas ou o preço de referência do serviço."), servicos.ler(semNada).erros());
 
-        Leitura<ServicoPadrao> soPreco = servicos.ler(servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste")
-                .texto(FormularioCatalogo.PRECO, "120,00"));
+        Leitura<ServicoPadrao> soPreco = servicos.ler(novoServico(servicos).texto(FormularioCatalogo.PRECO, "120,00"));
         assertEquals(List.of(), soPreco.erros());
         assertNull(soPreco.dados().horas());
         assertEquals(12_000, soPreco.info().precoReferencia().centavos());
 
-        assertEquals(List.of("As horas do serviço devem ser maiores que zero."), servicos.ler(servicos.novo()
-                .texto(FormularioCatalogo.NOME, "Alinhamento teste").texto(FormaServico.HORAS, "0")).erros());
-        assertEquals(1, servicos.ler(servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste")
-                .texto(FormaServico.HORAS, "1.5")).erros().size(), "erro de digitação: só a mensagem do campo");
+        assertEquals(List.of("As horas do serviço devem ser maiores que zero."), servicos.ler(novoServico(servicos)
+                .texto(FormaServico.HORAS, "0")).erros());
+        assertEquals(1, servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "1.5")).erros().size(),
+                "erro de digitação: só a mensagem do campo");
+        assertEquals(List.of("Escolha \"Categoria\"."), servicos.ler(servicos.novo()
+                .texto(FormularioCatalogo.NOME, "Alinhamento teste").texto(FormaServico.HORAS, "1")).erros());
+    }
 
-        assertEquals(List.of("1,5 h"), servicos.resumo(ExemplosCatalogo.servicoPorHora().dados()));
-        assertEquals(List.of("—"), servicos.resumo(ExemplosCatalogo.servicoComPreco().dados()));
+    /** Os campos da Fase 3B (SPEC 6.6.1): categoria, descrição no orçamento, garantia própria e o veículo. */
+    @Test
+    void servicoComCategoriaDescricaoGarantiaEVeiculo() {
+        FormularioCatalogo<ServicoPadrao> servicos = FormasCatalogo.de(TipoCatalogo.SERVICO);
+        Leitura<ServicoPadrao> chicote = servicos.ler(novoServico(servicos)
+                .texto(FormularioCatalogo.NOME, "Confecção de chicote teste")
+                .texto(FormaServico.CATEGORIA, "INJECAO_PROGRAMAVEL")
+                .texto(FormaServico.DESCRICAO, "  Chicote novo para a injeção do cliente  ")
+                .texto(FormaServico.HORAS, "12")
+                .texto(FormaServico.GARANTIA, "365")
+                .texto(FormaServico.EXIGE_VEICULO, "false"));
+        assertEquals(List.of(), chicote.erros());
+        assertEquals(new ServicoPadrao("Confecção de chicote teste", 12.0, "Tabela da oficina", null,
+                CategoriaServico.INJECAO_PROGRAMAVEL, "Chicote novo para a injeção do cliente", false, 365),
+                chicote.dados());
+
+        Leitura<ServicoPadrao> semGarantia = servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "1")
+                .texto(FormaServico.GARANTIA, ""));
+        assertNull(semGarantia.dados().garantiaDias(), "em branco: a garantia da OS");
+        assertEquals(0, servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "1")
+                .texto(FormaServico.GARANTIA, "0")).dados().garantiaDias(), "0 = sem garantia");
+        assertEquals(List.of("A garantia do serviço vai de 0 (sem garantia) a 3650 dias; em branco, vale a garantia da "
+                + "OS."), servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "1")
+                        .texto(FormaServico.GARANTIA, "3651")).erros());
+        assertEquals(List.of("\"Garantia própria (dias)\": use um número inteiro."), servicos.ler(novoServico(servicos)
+                .texto(FormaServico.HORAS, "1").texto(FormaServico.GARANTIA, "90,5")).erros());
+
+        assertEquals(List.of("Categoria", "Horas", "Garantia"), servicos.colunas());
+        assertEquals(List.of("Preparação", "1,5 h", "180 dias"), servicos.resumo(ExemplosCatalogo.servicoPorHora()
+                .dados()));
+        assertEquals(List.of("Diagnóstico elétrico", "—", "da OS"), servicos.resumo(ExemplosCatalogo.servicoComPreco()
+                .dados()));
+        assertEquals(List.of("Injeção programável", "12 h", "365 dias"), servicos.resumo(chicote.dados()));
+        assertEquals("sem garantia", FormaServico.garantia(0));
+        assertEquals("1 dia", FormaServico.garantia(1));
+    }
+
+    /** Um serviço novo com o nome e a categoria preenchidos (o resto, cada teste preenche). */
+    private static ValoresForm novoServico(FormularioCatalogo<ServicoPadrao> servicos) {
+        return servicos.novo().texto(FormularioCatalogo.NOME, "Alinhamento teste")
+                .texto(FormaServico.CATEGORIA, "OUTRO");
     }
 
     @Test

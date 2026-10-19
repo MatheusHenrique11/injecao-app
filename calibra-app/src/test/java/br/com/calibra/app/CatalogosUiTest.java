@@ -5,20 +5,27 @@ import static br.com.calibra.app.TelaDeTeste.contemTexto;
 import static br.com.calibra.app.TelaDeTeste.salvar;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
@@ -32,14 +39,18 @@ import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.orcamento.ServicoPadrao;
+import br.com.calibra.core.orcamento.ServicosSugeridos;
+import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Teste de interface do bloco 2.3 (opcional, fora do verify padrão): cadastra um bico com a tabela de tempo morto,
- * edita (v2), compara as versões, abre um combustível e arquiva o bico. Salva imagens da cena em target/. Dados
- * fictícios.
+ * edita (v2), compara as versões, abre um combustível e arquiva o bico; e, na Fase 3B, os serviços sugeridos e os
+ * campos novos do serviço. Salva imagens da cena em target/. Dados fictícios.
  */
 @Tag("ui")
 class CatalogosUiTest {
@@ -65,6 +76,97 @@ class CatalogosUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.1): o botão "Serviços sugeridos…" abre a lista; a linha marcada sem horas nem preço segura a
+     * janela aberta com o erro; com as horas ou o preço, os serviços entram com a categoria, e ao abrir de novo
+     * aparecem como "já cadastrado". O formulário do serviço mostra os campos novos.
+     */
+    @Test
+    void servicosSugeridosEOsCamposNovosDoServico() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaSERVICO"));
+                Button sugeridos = achar(cena, "servicosSugeridos");
+                List<Node> barra = sugeridos.getParent().getChildrenUnmodifiable();
+                assertEquals(barra.indexOf(achar(cena, "novoSERVICO")) + 1, barra.indexOf(sugeridos),
+                        "ao lado de \"Cadastrar…\"");
+                assertTrue(servicos().tabela().getItems().isEmpty());
+            });
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "servicosSugeridos").fire(), falha);
+            Stage janela = TelaDeTeste.esperarJanela("Serviços sugeridos", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(janela);
+                TextField falantes = (TextField) painel.lookup("#sugeridoHoras" + indice("Troca de alto-falantes"));
+                falantes.setText("1,5");
+                assertTrue(((CheckBox) painel.lookup("#sugeridoMarcar" + indice("Troca de alto-falantes")))
+                        .isSelected(), "digitar as horas já marca a linha");
+                ((TextField) painel.lookup("#sugeridoHoras" + indice("Reparo ou troca de alternador"))).setText("2");
+                ((TextField) painel.lookup("#sugeridoPreco" + indice("Confecção de chicote para injeção programável")))
+                        .setText("1.800,00");
+                ((CheckBox) painel.lookup("#sugeridoMarcar" + indice("Instalação de som completa"))).setSelected(true);
+                TelaDeTeste.apertar(painel, "Adicionar ao catálogo");
+                assertTrue(janela.isShowing(), "com erro, a janela fica aberta");
+                assertEquals("Instalação de som completa: informe as horas ou o preço.",
+                        ((Label) painel.lookup("#erroSugeridos")).getText());
+                assertTrue(casos.ativos(TipoCatalogo.SERVICO).isEmpty(), "com erro, nada é gravado");
+                salvar(janela.getScene(), "captura-catalogo-servicos-sugeridos-erro.png");
+
+                ((CheckBox) painel.lookup("#sugeridoMarcar" + indice("Instalação de som completa"))).setSelected(false);
+                TelaDeTeste.apertar(painel, "Adicionar ao catálogo");
+            });
+            TelaDeTeste.esperar(() -> !janela.isShowing(), "a janela fechar depois de gravar");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertTrue(contemTexto(cena.getRoot(), "3 serviços adicionados ao catálogo."), "a mensagem na aba");
+                TableView<ItemCatalogo<ServicoPadrao>> tabela = servicos().tabela();
+                assertEquals(List.of("Confecção de chicote para injeção programável", "Reparo ou troca de alternador",
+                        "Troca de alto-falantes"), tabela.getItems().stream().map(i -> i.info().nome()).toList());
+                assertEquals(List.of("Injeção programável", "Partida e carga", "Som"), coluna(tabela, "Categoria"));
+                assertEquals(List.of("—", "2 h", "1,5 h"), coluna(tabela, "Horas"));
+                assertEquals(List.of("da OS", "da OS", "da OS"), coluna(tabela, "Garantia"));
+                salvar(cena, "captura-catalogo-servicos.png");
+
+                JanelaServicosSugeridos deNovo = new JanelaServicosSugeridos(null, casos);
+                assertTrue(deNovo.linha("Troca de alto-falantes").cadastrado());
+                assertTrue(deNovo.linha("Troca de alto-falantes").marcar().isDisabled(), "já cadastrado não se marca");
+                assertFalse(deNovo.linha("Instalação de som completa").cadastrado());
+                fotografar(deNovo.dialogo(), "captura-catalogo-servicos-sugeridos.png");
+
+                ItemCatalogo<ServicoPadrao> chicote = tabela.getItems().getFirst();
+                JanelaItemCatalogo<ServicoPadrao> edicao = servicos().janelaEditar(chicote);
+                assertFalse(((CheckBox) edicao.tela().controle("exigeEntradaDoVeiculo")).isSelected(),
+                        "a confecção de chicote é de bancada");
+                texto(edicao.tela(), "descricaoPadrao").setText("Chicote novo para a injeção do cliente");
+                texto(edicao.tela(), "garantiaDias").setText("365");
+                fotografar(edicao.dialogo(), "captura-catalogo-servico-edicao.png");
+                assertTrue(edicao.gravar(), edicao.erros()::toString);
+                assertEquals("Gravado: Confecção de chicote para injeção programável (v2).", edicao.mensagem());
+                ServicoPadrao gravado = casos.buscar(TipoCatalogo.SERVICO, chicote.id()).orElseThrow().dados();
+                assertEquals("Chicote novo para a injeção do cliente", gravado.textoNoOrcamento());
+                assertEquals(365, gravado.garantiaDias());
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    private static int indice(String nome) {
+        List<Sugestao> todos = ServicosSugeridos.todos();
+        return todos.indexOf(todos.stream().filter(s -> s.nome().equals(nome)).findFirst().orElseThrow());
+    }
+
+    private static List<String> coluna(TableView<ItemCatalogo<ServicoPadrao>> tabela, String titulo) {
+        TableColumn<ItemCatalogo<ServicoPadrao>, ?> coluna = tabela.getColumns().stream()
+                .filter(c -> c.getText().equals(titulo)).findFirst().orElseThrow();
+        return tabela.getItems().stream().map(item -> String.valueOf(coluna.getCellData(item))).toList();
     }
 
     private void abrir() throws Exception {
@@ -174,6 +276,10 @@ class CatalogosUiTest {
 
     private PainelCatalogo<Bico> bicos() {
         return achar(cena, "painelBICO");
+    }
+
+    private PainelCatalogo<ServicoPadrao> servicos() {
+        return achar(cena, "painelSERVICO");
     }
 
     private static TextField texto(FormularioTela tela, String chave) {

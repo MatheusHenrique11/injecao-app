@@ -20,11 +20,15 @@ import br.com.calibra.app.catalogo.ExemplosCatalogo;
 import br.com.calibra.app.catalogo.ExemplosCatalogo.Exemplo;
 import br.com.calibra.app.catalogo.FormasCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo;
+import br.com.calibra.app.catalogo.FormularioSugeridos;
+import br.com.calibra.app.catalogo.FormularioSugeridos.Linha;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.ServicoPadrao;
+import br.com.calibra.core.orcamento.ServicosSugeridos;
+import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.dados.BancoDados;
@@ -133,6 +137,80 @@ class CasosCatalogoTest {
 
         reabrirSemMudar(TipoCatalogo.SERVICO);
         assertEquals(1, casos.versoes(TipoCatalogo.SERVICO, id).size());
+    }
+
+    /** Serviços sugeridos (SPEC 6.6.1): todos numa gravação só, cada um na versão 1, com a categoria da lista. */
+    @Test
+    void servicosSugeridosEntramTodosDeUmaVez() {
+        List<ItemCatalogo<ServicoPadrao>> gravados = casos.adicionarServicosSugeridos(sugeridos(
+                new Linha(sugestao("Reparo ou troca de alternador"), true, "2", ""),
+                new Linha(sugestao("Confecção de chicote para injeção programável"), true, "", "1.800,00")));
+        assertEquals(2, gravados.size());
+        List<ItemCatalogo<ServicoPadrao>> lista = casos.ativos(TipoCatalogo.SERVICO);
+        assertEquals(List.of("Confecção de chicote para injeção programável", "Reparo ou troca de alternador"),
+                lista.stream().map(item -> item.info().nome()).toList());
+        assertEquals(List.of(CategoriaServico.INJECAO_PROGRAMAVEL, CategoriaServico.PARTIDA_CARGA),
+                lista.stream().map(item -> item.dados().categoria()).toList());
+        assertEquals(List.of(1, 1), lista.stream().map(ItemCatalogo::versao).toList());
+        assertFalse(lista.getFirst().dados().exigeEntradaDoVeiculo(), "o chicote é de bancada");
+    }
+
+    /**
+     * O mesmo nome (sem diferença de acento ou maiúscula, também arquivado) não entra de novo, e nada da lista é
+     * gravado: nem os outros.
+     */
+    @Test
+    void sugeridoComNomeQueJaExisteNaoGravaNada() {
+        Exemplo<ServicoPadrao> exemplo = ExemplosCatalogo.servicoPorHora();
+        ServicoPadrao parecido = new ServicoPadrao("TROCA DE REGULADOR (MAQUINA DE VIDRO)", 1.0, "Tabela da oficina",
+                null, CategoriaServico.VIDROS_TRAVAS, "", true, null);
+        ItemCatalogo<ServicoPadrao> antigo = casos.criar(TipoCatalogo.SERVICO, parecido, new InfoCatalogo(
+                parecido.nome(), "Tabela da oficina", null, false, null, ""));
+        casos.arquivar(antigo.id(), true);
+
+        EntradaInvalidaException repetido = assertThrows(EntradaInvalidaException.class,
+                () -> casos.adicionarServicosSugeridos(sugeridos(
+                        new Linha(sugestao("Troca de motor de vidro elétrico"), true, "1,5", ""),
+                        new Linha(sugestao("Troca de regulador (máquina de vidro)"), true, "2", ""))));
+        assertEquals(List.of("Já existe um serviço chamado \"Troca de regulador (máquina de vidro)\" no catálogo."),
+                repetido.erros());
+        assertEquals(List.of(antigo.id()), casos.listar(TipoCatalogo.SERVICO, "", true).stream().map(ItemCatalogo::id)
+                .toList(), "nada foi gravado");
+
+        EntradaInvalidaException duasVezes = assertThrows(EntradaInvalidaException.class,
+                () -> casos.adicionarServicosSugeridos(List.of(novo(exemplo), novo(exemplo))));
+        assertEquals(List.of("Já existe um serviço chamado \"Limpeza de bicos teste\" no catálogo."),
+                duasVezes.erros(), "o mesmo nome duas vezes na lista");
+        assertEquals(1, casos.listar(TipoCatalogo.SERVICO, "", true).size());
+    }
+
+    @Test
+    void sugeridoForaDasRegrasNaoGrava() {
+        ServicoPadrao semHoras = new ServicoPadrao("Teste de bateria e do sistema de carga", 0.0, "Tabela da oficina",
+                null, CategoriaServico.PARTIDA_CARGA, "", true, null);
+        EntradaInvalidaException erro = assertThrows(EntradaInvalidaException.class,
+                () -> casos.adicionarServicosSugeridos(List.of(new FormularioSugeridos.Novo(semHoras,
+                        new InfoCatalogo(semHoras.nome(), "Tabela da oficina", null, false, null, "")))));
+        assertEquals(List.of("Teste de bateria e do sistema de carga: As horas do serviço devem ser maiores que zero."),
+                erro.erros());
+        assertEquals(List.of("Marque ao menos um serviço e preencha as horas ou o preço dele."),
+                assertThrows(EntradaInvalidaException.class, () -> casos.adicionarServicosSugeridos(List.of()))
+                        .erros());
+        assertTrue(casos.listar(TipoCatalogo.SERVICO, "", true).isEmpty());
+    }
+
+    private static Sugestao sugestao(String nome) {
+        return ServicosSugeridos.todos().stream().filter(s -> s.nome().equals(nome)).findFirst().orElseThrow();
+    }
+
+    private static List<FormularioSugeridos.Novo> sugeridos(Linha... linhas) {
+        FormularioSugeridos.Leitura leitura = FormularioSugeridos.ler(List.of(linhas));
+        assertEquals(List.of(), leitura.erros());
+        return leitura.servicos();
+    }
+
+    private static FormularioSugeridos.Novo novo(Exemplo<ServicoPadrao> exemplo) {
+        return new FormularioSugeridos.Novo(exemplo.dados(), exemplo.info());
     }
 
     private <T> void reabrirSemMudar(TipoCatalogo<T> tipo) {

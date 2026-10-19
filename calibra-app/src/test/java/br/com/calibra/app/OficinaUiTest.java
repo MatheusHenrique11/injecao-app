@@ -501,10 +501,12 @@ class OficinaUiTest {
             TelaDeTeste.naTelaDoJavaFx(() -> {
                 OrcamentoController orcamento = principal.osAberta().orcamento();
                 assertEquals(List.of(new Linha(TipoItem.SERVICO, "Limpeza de bicos teste", "1,5", "h", "180,00",
-                        porHora.get().id(), 1)), orcamento.linhas(), "sem preço: as horas × o valor da hora");
+                        porHora.get().id(), 1)), orcamento.linhas(),
+                        "sem preço: as horas × o valor da hora; sem descrição, o nome na linha");
                 orcamento.adicionarServicoEscolhido(comPreco.get());
-                assertEquals(new Linha(TipoItem.SERVICO, "Diagnóstico teste", "1", "serviço", "250,00",
-                        comPreco.get().id(), 1), orcamento.linhas().get(1), "com preço: 1 serviço pelo preço");
+                assertEquals(new Linha(TipoItem.SERVICO, "Diagnóstico com scanner e relatório (teste)", "1", "serviço",
+                        "250,00", comPreco.get().id(), 1), orcamento.linhas().get(1),
+                        "com preço: 1 serviço pelo preço; a descrição do serviço na linha");
                 assertEquals(Dinheiro.ler("520,00").formatar(), this.<Label>daAba("totalServicos").getText(),
                         "1,5 h × R$ 180 + R$ 250");
                 this.<Button>daAba("botaoSalvar").fire();

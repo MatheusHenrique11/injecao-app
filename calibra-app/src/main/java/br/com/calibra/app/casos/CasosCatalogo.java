@@ -1,14 +1,19 @@
 package br.com.calibra.app.casos;
 
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import br.com.calibra.app.catalogo.Combustiveis;
 import br.com.calibra.app.catalogo.FormasCatalogo;
+import br.com.calibra.app.catalogo.FormularioSugeridos;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.dados.BancoDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
@@ -124,6 +129,46 @@ public final class CasosCatalogo {
                         + "guardam o código " + antigo.codigo() + "). Para outro código, use Duplicar.");
             }
             return new Gravacao<>(catalogo.novaVersao(c, tipo, id, dados, info), true);
+        });
+    }
+
+    /**
+     * Os serviços sugeridos escolhidos (SPEC 6.6.1), todos numa gravação só. Se um deles não passar nas regras do
+     * catálogo, ou se já existir um serviço com o mesmo nome (sem diferença de acento ou maiúscula, também os
+     * arquivados), nada é gravado.
+     *
+     * @throws EntradaInvalidaException com todos os problemas
+     */
+    public List<ItemCatalogo<ServicoPadrao>> adicionarServicosSugeridos(List<FormularioSugeridos.Novo> novos) {
+        List<String> erros = new ArrayList<>();
+        if (novos.isEmpty()) {
+            erros.add("Marque ao menos um serviço e preencha as horas ou o preço dele.");
+        }
+        for (FormularioSugeridos.Novo novo : novos) {
+            FormasCatalogo.de(TipoCatalogo.SERVICO).validar(novo.dados(), novo.info())
+                    .forEach(erro -> erros.add(novo.info().nome() + ": " + erro));
+        }
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return banco.transacao(c -> {
+            Set<String> nomes = new HashSet<>();
+            catalogo.listar(c, TipoCatalogo.SERVICO, "", true)
+                    .forEach(item -> nomes.add(FormularioSugeridos.chave(item.info().nome())));
+            List<String> repetidos = new ArrayList<>();
+            for (FormularioSugeridos.Novo novo : novos) {
+                if (!nomes.add(FormularioSugeridos.chave(novo.info().nome()))) {
+                    repetidos.add("Já existe um serviço chamado \"" + novo.info().nome() + "\" no catálogo.");
+                }
+            }
+            if (!repetidos.isEmpty()) {
+                throw new EntradaInvalidaException(repetidos);
+            }
+            List<ItemCatalogo<ServicoPadrao>> gravados = new ArrayList<>();
+            for (FormularioSugeridos.Novo novo : novos) {
+                gravados.add(catalogo.inserir(c, TipoCatalogo.SERVICO, novo.dados(), novo.info(), null));
+            }
+            return gravados;
         });
     }
 

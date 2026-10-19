@@ -136,17 +136,23 @@ public final class ExemplosCatalogo {
                 calibracao, FONTE, DATA), info("Turbo teste 60"));
     }
 
-    /** Serviço sem preço próprio: entra no orçamento pelas horas × o valor da hora. */
+    /**
+     * Serviço sem preço próprio: entra no orçamento pelas horas × o valor da hora, com o nome na linha (sem
+     * descrição), e tem garantia própria de 180 dias.
+     */
     public static Exemplo<ServicoPadrao> servicoPorHora() {
         return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Limpeza de bicos teste", 1.5, FONTE, DATA,
-                CategoriaServico.OUTRO, "", true, null),
+                CategoriaServico.PREPARACAO, "", true, 180),
                 new InfoCatalogo("Limpeza de bicos teste", FONTE, DATA, false, null, "Dados fictícios."));
     }
 
-    /** Serviço com preço próprio (e sem horas): entra no orçamento como 1 serviço pelo preço. */
+    /**
+     * Serviço com preço próprio (e sem horas): entra no orçamento como 1 serviço pelo preço, com a descrição na linha,
+     * e fica com a garantia da OS.
+     */
     public static Exemplo<ServicoPadrao> servicoComPreco() {
         return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Diagnóstico teste", null, FONTE, DATA,
-                CategoriaServico.OUTRO, "", true, null),
+                CategoriaServico.DIAGNOSTICO_ELETRICO, "Diagnóstico com scanner e relatório (teste)", true, null),
                 new InfoCatalogo("Diagnóstico teste", FONTE, DATA, false, new Dinheiro(25_000), "Dados fictícios."));
     }
 

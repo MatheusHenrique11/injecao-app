@@ -435,13 +435,17 @@ public class OrcamentoController {
     private void adicionarServicoDoCatalogo() {
         new JanelaEscolhaCatalogo<>(janela(), recursos.catalogo(), TipoCatalogo.SERVICO, "Serviço do catálogo",
                 "Com preço de referência, o serviço entra uma vez pelo preço; sem preço, entram as horas × o valor da "
-                        + "hora de Configurações. Os valores continuam editáveis aqui no orçamento.",
+                        + "hora de Configurações. A linha leva a descrição do serviço (sem descrição, o nome). Tudo "
+                        + "continua editável aqui no orçamento.",
                 item -> true, null).escolher().ifPresent(this::adicionarServicoEscolhido);
     }
 
-    /** Com preço próprio, 1 serviço pelo preço; sem preço, as horas × o valor da hora (em branco, se não houver). */
+    /**
+     * Com preço próprio, 1 serviço pelo preço; sem preço, as horas × o valor da hora (em branco, se não houver). O texto
+     * da linha é a descrição padrão do serviço ou, sem ela, o nome.
+     */
     void adicionarServicoEscolhido(ItemCatalogo<ServicoPadrao> item) {
-        adicionar(Linha.de(ItemOrcamento.doServico(item.info().nome(), item.dados().horas(),
+        adicionar(Linha.de(ItemOrcamento.doServico(item.dados().textoNoOrcamento(), item.dados().horas(),
                 item.info().precoReferencia(), recursos.padroes().get().valorHora(), item.id(), item.versao())));
     }
 

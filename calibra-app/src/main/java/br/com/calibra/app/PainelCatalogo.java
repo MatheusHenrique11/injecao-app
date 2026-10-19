@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.geometry.Pos;
@@ -49,6 +50,7 @@ final class PainelCatalogo<T> extends VBox {
     private final CheckBox mostrarArquivados = new CheckBox("Mostrar arquivados");
     private final TableView<ItemCatalogo<T>> tabela = new TableView<>();
     private final Label vazio = new Label();
+    private final Button cadastrar = new Button("Cadastrar…");
     private final Button editar = new Button("Editar…");
     private final Button duplicar = new Button("Duplicar…");
     private final Button arquivar = new Button("Arquivar");
@@ -70,16 +72,15 @@ final class PainelCatalogo<T> extends VBox {
 
         busca.setPromptText("Buscar por nome, fonte ou observações");
         HBox.setHgrow(busca, Priority.ALWAYS);
-        Button novo = new Button("Cadastrar…");
-        novo.setId("novo" + codigo);
-        novo.setOnAction(evento -> novo());
+        cadastrar.setId("novo" + codigo);
+        cadastrar.setOnAction(evento -> novo());
         editar.setOnAction(evento -> editar());
         duplicar.setOnAction(evento -> duplicar());
         arquivar.setOnAction(evento -> arquivarOuReativar());
         versoes.setOnAction(evento -> versoes());
         Region espaco = new Region();
         HBox.setHgrow(espaco, Priority.SOMETIMES);
-        barra.getChildren().setAll(busca, mostrarArquivados, espaco, novo, editar, duplicar, arquivar, versoes);
+        barra.getChildren().setAll(busca, mostrarArquivados, espaco, cadastrar, editar, duplicar, arquivar, versoes);
         barra.setAlignment(Pos.CENTER_LEFT);
 
         montarTabela();
@@ -325,6 +326,20 @@ final class PainelCatalogo<T> extends VBox {
         acoesDoItem.add(botao);
         barra.getChildren().add(botao);
         atualizarBotoes();
+    }
+
+    /**
+     * Botão a mais ao lado de "Cadastrar…", que não depende do item escolhido (ex.: "Serviços sugeridos…" nos
+     * serviços). Se a ação devolver uma mensagem, a lista é lida de novo e a mensagem aparece embaixo dela.
+     */
+    void adicionarAcaoGeral(String texto, String id, Supplier<Optional<String>> acao) {
+        Button botao = new Button(texto);
+        botao.setId(id);
+        botao.setOnAction(evento -> acao.get().ifPresent(feito -> {
+            atualizar();
+            mensagem.setText(feito);
+        }));
+        barra.getChildren().add(barra.getChildren().indexOf(cadastrar) + 1, botao);
     }
 
     private void selecionar(long id) {

@@ -6,6 +6,7 @@ import java.util.List;
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.ImagensTurbo;
@@ -30,8 +31,9 @@ public class CatalogosController {
             abas.getTabs().add(aba);
         }
         painel(TipoCatalogo.TURBO).adicionarAcao("Mapa do compressor…", "mapaDoCompressor",
-                item -> new JanelaDigitalizador(abas.getScene() == null ? null : abas.getScene().getWindow(), casos,
-                        imagens, item).mostrar());
+                item -> new JanelaDigitalizador(janela(), casos, imagens, item).mostrar());
+        painel(TipoCatalogo.SERVICO).adicionarAcaoGeral("Serviços sugeridos…", "servicosSugeridos",
+                () -> new JanelaServicosSugeridos(janela(), casos).mostrar());
     }
 
     /** Lê as listas de novo (ao voltar para a tela). */
@@ -56,5 +58,9 @@ public class CatalogosController {
 
     private static <T> PainelCatalogo<T> painel(CasosCatalogo casos, FormularioCatalogo<T> formulario) {
         return new PainelCatalogo<>(casos, formulario);
+    }
+
+    private Window janela() {
+        return abas.getScene() == null ? null : abas.getScene().getWindow();
     }
 }
