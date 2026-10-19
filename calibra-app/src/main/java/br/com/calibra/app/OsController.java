@@ -50,6 +50,7 @@ import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
+import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.oficina.AnexoSalvo;
@@ -324,24 +325,35 @@ public class OsController {
 
     @FXML
     private void entregar() {
-        JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
-                recursos.padroes().get().garantiaDias()).ifPresent(this::entregar);
+        if (tudoSalvo(Momento.ENTREGA)) {
+            JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
+                    recursos.padroes().get().garantiaDias()).ifPresent(this::entregar);
+        }
     }
 
+    /** A entrega; com a aba Entrada mudada e não salva, avisa e não entrega (depois, a OS não muda mais). */
     void entregar(Entrega entrega) {
-        executarComAvisos(() -> recursos.oficina().entregar(osId, entrega).avisos(),
-                "Veículo entregue. A OS não muda mais; os recebimentos e os anexos continuam valendo.");
+        if (tudoSalvo(Momento.ENTREGA) && executarComAvisos(() -> recursos.oficina().entregar(osId, entrega)
+                .avisos(), "Veículo entregue. A OS não muda mais; os recebimentos e os anexos continuam valendo.")) {
+            preencherFormularios();
+        }
     }
 
     @FXML
     private void cancelarOs() {
+        if (!tudoSalvo(Momento.CANCELAMENTO)) {
+            return;
+        }
         JanelasOs.motivo(janela(), "Cancelar a OS", "Por que a OS " + numero() + " vai ser cancelada? Ela fica no "
                 + "histórico, com o motivo, e não muda mais.", "ex.: o cliente desistiu do serviço", true)
                 .ifPresent(this::cancelarOs);
     }
 
     void cancelarOs(String motivo) {
-        executar(() -> recursos.oficina().cancelar(osId, motivo), "OS cancelada.");
+        if (tudoSalvo(Momento.CANCELAMENTO) && executar(() -> recursos.oficina().cancelar(osId, motivo),
+                "OS cancelada.")) {
+            preencherFormularios();
+        }
     }
 
     @FXML
@@ -474,8 +486,10 @@ public class OsController {
         SituacaoDoPagamento pagamento = aberta.pagamento();
         valorOs.setText(pagamento.valor() == null ? "sem orçamento aprovado" : pagamento.valor().formatar());
         recebido.setText(pagamento.recebido().formatar());
+        Dinheiro aMais = pagamento.aMais();
         falta.setText(pagamento.falta() == null ? "—" : pagamento.falta().formatar() + " ("
-                + pagamento.situacao().rotulo() + ")");
+                + pagamento.situacao().rotulo() + ")" + (aMais.centavos() > 0 ? " · recebido a mais: "
+                        + aMais.formatar() + " (confira se nenhum recebimento foi lançado duas vezes)" : ""));
         recebimentos.getItems().setAll(pagamento.recebimentos());
         botaoRegistrarRecebimento.setDisable(os.status() == StatusOs.CANCELADA);
     }
@@ -579,14 +593,14 @@ public class OsController {
 
     @FXML
     private void viaPdf() {
-        if (tudoSalvo()) {
+        if (tudoSalvo(Momento.DOCUMENTO)) {
             gerarPdf("Via do cliente", "via-do-cliente", RelatorioOs::viaDoCliente);
         }
     }
 
     @FXML
     private void viaImprimir() {
-        if (tudoSalvo()) {
+        if (tudoSalvo(Momento.DOCUMENTO)) {
             imprimir("Via do cliente", RelatorioOs::viaDoCliente);
         }
     }
@@ -603,7 +617,7 @@ public class OsController {
 
     @FXML
     private void copiarTextoAberta() {
-        if (tudoSalvo()) {
+        if (tudoSalvo(Momento.DOCUMENTO)) {
             copiar(TextoWhatsAppOs.osAberta(documento()));
         }
     }
@@ -641,23 +655,45 @@ public class OsController {
                 recursos.padroes().get().textoVia());
     }
 
+    /** Quando a aba Entrada precisa estar salva, com o começo e o fim do aviso. */
+    private enum Momento {
+        DOCUMENTO("Antes do documento", "O documento usa o que está gravado."),
+        ENTREGA("Antes de entregar", "Depois da entrega, a OS não muda mais."),
+        CANCELAMENTO("Antes de cancelar", "Depois do cancelamento, a OS não muda mais.");
+
+        private final String antes;
+        private final String porque;
+
+        Momento(String antes, String porque) {
+            this.antes = antes;
+            this.porque = porque;
+        }
+    }
+
     /**
      * Os documentos usam o que está gravado: com a abertura ou a entrada mudadas na tela e não salvas, a via sairia
-     * sem elas. Nesse caso, avisa o que salvar e não gera.
+     * sem elas. Na entrega e no cancelamento, a mudança se perderia (depois, a OS não muda mais). Nesses casos, avisa
+     * o que salvar e não continua.
      */
-    private boolean tudoSalvo() {
+    private boolean tudoSalvo(Momento momento) {
         List<String> pendentes = pendentes();
         if (pendentes.isEmpty()) {
             return true;
         }
-        mostrarErros(List.of("Antes do documento, salve o que mudou na aba Entrada: " + String.join(" e ", pendentes)
-                + ". O documento usa o que está gravado."));
+        mostrarErros(List.of(momento.antes + ", salve o que mudou na aba Entrada: " + String.join(" e ", pendentes)
+                + ". " + momento.porque));
         return false;
     }
 
-    /** O que mudou na aba Entrada e não foi salvo, com o botão que salva; vazio = a tela está igual ao gravado. */
+    /**
+     * O que mudou na aba Entrada e não foi salvo, com o botão que salva; vazio = a tela está igual ao gravado. Com a OS
+     * entregue ou cancelada, vazio: não há mais o que salvar, e os documentos usam o gravado.
+     */
     List<String> pendentes() {
         OrdemServicoSalva os = aberta.os();
+        if (os.status().finalizada()) {
+            return List.of();
+        }
         List<String> pendentes = new ArrayList<>();
         if (!servicoPedido.getText().strip().equals(os.servicoPedido())
                 || !Objects.equals(caixaMecanico.escolhido(), os.mecanicoId())

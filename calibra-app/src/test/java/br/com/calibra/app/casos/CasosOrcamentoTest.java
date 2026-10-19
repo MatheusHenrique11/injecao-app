@@ -1,6 +1,7 @@
 package br.com.calibra.app.casos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,6 +27,9 @@ import br.com.calibra.app.catalogo.PecasEscolhidas;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.EntradaDimensionamento;
+import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.Garantia;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
@@ -181,6 +185,38 @@ class CasosOrcamentoTest {
         assertEquals(StatusOs.APROVADA, statusDaOs(revisao), "nem a OS: depois da aprovação, a revisão não a move");
         assertEquals(List.of(revisao.id(), criado.id()),
                 orcamentos.orcamentos(projeto).stream().map(s -> s.orcamento().id()).toList());
+    }
+
+    /**
+     * Revisão pelo agente: depois da entrega da primeira OS do projeto, a aba do projeto fica sem orçamento, e o
+     * próximo abre a segunda OS (a segunda etapa da preparação). O orçamento antigo fica na OS dele, só para ver.
+     */
+    @Test
+    void segundaEtapaDepoisDaEntrega() {
+        calcularComBicoDoCatalogo();
+        OrcamentoSalvo primeiro = orcamentos.criar(projeto, completo());
+        long os1 = primeiro.osId();
+        orcamentos.marcarEnviado(primeiro.id());
+        relogio.andar(Duration.ofHours(1));
+        orcamentos.aprovar(primeiro.id(), LocalDateTime.now(relogio), MeioAprovacao.PESSOALMENTE, "");
+        oficina.registrarEntrada(os1, new EntradaVeiculo(LocalDateTime.now(relogio), 250_000.0, null, null));
+        oficina.mudarStatus(os1, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(os1, StatusOs.PRONTA, "");
+        relogio.andar(Duration.ofHours(1));
+        oficina.entregar(os1, new Entrega(LocalDateTime.now(relogio), 250_010.0, new Garantia(90)));
+
+        assertEquals(List.of(), orcamentos.orcamentos(projeto), "a OS da primeira etapa foi entregue");
+        assertEquals("A OS OS-2026-0001 está \"Entregue\": o orçamento dela não muda mais.",
+                orcamentos.trava(os1).orElseThrow());
+        assertEquals(List.of(primeiro.id()), orcamentos.orcamentosDaOs(os1).stream().map(s -> s.orcamento().id())
+                .toList(), "o orçamento antigo fica na OS dele");
+
+        OrcamentoSalvo segundo = orcamentos.criar(projeto, completo());
+        assertNotEquals(os1, segundo.osId(), "a segunda etapa abre outra OS");
+        assertEquals("ORC-2026-0002", segundo.numero().comRevisao());
+        assertEquals(List.of(segundo.id()), orcamentos.orcamentos(projeto).stream().map(s -> s.orcamento().id())
+                .toList());
+        assertTrue(orcamentos.trava(segundo.osId()).isEmpty());
     }
 
     @Test

@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -102,25 +103,54 @@ public final class CasosOrcamento {
 
     // ===================== Consultas =====================
 
-    /** As revisões do projeto, da mais nova para a mais antiga, com o que mudou desde cada uma. */
+    /**
+     * As revisões do orçamento da OS atual do projeto (a que está em andamento), da mais nova para a mais antiga, com
+     * o que mudou desde cada uma. Sem OS em andamento, vazio: o próximo orçamento abre uma OS nova (a segunda etapa
+     * da preparação, depois da entrega da primeira). Os orçamentos das OS antigas ficam nelas.
+     */
     public List<SituacaoOrcamento> orcamentos(long projetoId) {
-        List<CasosProjeto.SituacaoCalculo> situacoes = projetos.calculos(projetoId);
-        Map<Long, CasosProjeto.SituacaoCalculo> porId = situacoes.stream()
-                .collect(Collectors.toMap(s -> s.calculo().id(), Function.identity()));
-        Long maisNovo = situacoes.isEmpty() ? null : situacoes.getFirst().calculo().id();
+        return comMotivos(banco.ler(c -> {
+            Optional<OrdemServicoSalva> atual = ordens.atualDoProjeto(c, projetoId);
+            return atual.isEmpty() ? List.<OrcamentoSalvo>of() : orcamentos.daOs(c, atual.get().id());
+        }));
+    }
+
+    /**
+     * Cada revisão com o que mudou desde ela: um cálculo mais novo no projeto, ou o cálculo dela desatualizado (motor,
+     * núcleo ou catálogo). A revisão sem cálculo (a da OS comum) não fica desatualizada.
+     */
+    private List<SituacaoOrcamento> comMotivos(List<OrcamentoSalvo> revisoes) {
+        Map<Long, List<CasosProjeto.SituacaoCalculo>> calculosDoProjeto = new HashMap<>();
         List<SituacaoOrcamento> lista = new ArrayList<>();
-        for (OrcamentoSalvo orcamento : banco.ler(c -> orcamentos.doProjeto(c, projetoId))) {
+        for (OrcamentoSalvo orcamento : revisoes) {
             List<String> motivos = new ArrayList<>();
-            if (!Objects.equals(orcamento.calculo().calculoId(), maisNovo)) {
-                motivos.add("há um cálculo salvo mais novo que o deste orçamento");
-            }
-            CasosProjeto.SituacaoCalculo calculo = porId.get(orcamento.calculo().calculoId());
-            if (calculo != null) {
-                motivos.addAll(calculo.motivos());
+            if (orcamento.dePreparacao()) {
+                CalculoDoOrcamento usado = orcamento.calculo();
+                List<CasosProjeto.SituacaoCalculo> situacoes = calculosDoProjeto.computeIfAbsent(usado.projetoId(),
+                        projetos::calculos);
+                Long maisNovo = situacoes.isEmpty() ? null : situacoes.getFirst().calculo().id();
+                if (!Objects.equals(usado.calculoId(), maisNovo)) {
+                    motivos.add("há um cálculo salvo mais novo que o deste orçamento");
+                }
+                situacoes.stream().filter(s -> s.calculo().id() == usado.calculoId()).findFirst()
+                        .ifPresent(s -> motivos.addAll(s.motivos()));
             }
             lista.add(new SituacaoOrcamento(orcamento, motivos));
         }
         return lista;
+    }
+
+    /**
+     * Por que o orçamento da OS não muda mais: a OS foi entregue ou cancelada (o editor só mostra). Vazio com a OS em
+     * andamento.
+     */
+    public Optional<String> trava(long osId) {
+        OrdemServicoSalva os = exigirOs(osId);
+        return os.status().finalizada() ? Optional.of(textoTrava(os)) : Optional.empty();
+    }
+
+    private static String textoTrava(OrdemServicoSalva os) {
+        return "A OS " + os.numero().texto() + " está \"" + os.status().rotulo() + "\": o orçamento dela não muda mais.";
     }
 
     public Optional<OrcamentoSalvo> buscar(long orcamentoId) {
@@ -274,8 +304,7 @@ public final class CasosOrcamento {
 
     /** As revisões do orçamento da OS, da mais nova para a mais antiga; só o de preparação fica desatualizado. */
     public List<SituacaoOrcamento> orcamentosDaOs(long osId) {
-        return banco.ler(c -> orcamentos.daOs(c, osId)).stream()
-                .map(orcamento -> new SituacaoOrcamento(orcamento, motivos(orcamento))).toList();
+        return comMotivos(banco.ler(c -> orcamentos.daOs(c, osId)));
     }
 
     private OrcamentoSalvo inserirPrimeiro(Connection conexao, long osId, Long projetoId, CalculoSalvo calculo,
@@ -430,11 +459,7 @@ public final class CasosOrcamento {
 
     /** O que mudou desde o orçamento de preparação; o da OS comum não depende de cálculo. */
     private List<String> motivos(OrcamentoSalvo orcamento) {
-        if (!orcamento.dePreparacao()) {
-            return List.of();
-        }
-        return orcamentos(orcamento.calculo().projetoId()).stream().filter(s -> s.orcamento().id() == orcamento.id())
-                .findFirst().map(SituacaoOrcamento::motivos).orElse(List.of());
+        return comMotivos(List.of(orcamento)).getFirst().motivos();
     }
 
     private OrdemServicoSalva exigirOs(long osId) {
@@ -447,8 +472,7 @@ public final class CasosOrcamento {
         OrdemServicoSalva os = ordens.buscar(conexao, osId).orElseThrow(
                 () -> new OperacaoRecusadaException("OS #" + osId + " não encontrada."));
         if (os.status().finalizada()) {
-            throw new OperacaoRecusadaException("A OS " + os.numero().texto() + " está \"" + os.status().rotulo()
-                    + "\": o orçamento dela não muda mais.");
+            throw new OperacaoRecusadaException(textoTrava(os));
         }
     }
 

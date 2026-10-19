@@ -154,7 +154,10 @@ public final class RelatorioOs {
         RelatorioOrcamento.totais(pdf, o);
     }
 
-    /** Os recebimentos (o cancelado aparece marcado e não conta), o valor, o recebido, o que falta e a situação. */
+    /**
+     * Os recebimentos (o cancelado aparece marcado e não conta), o valor, o recebido, o que falta (ou o que foi
+     * recebido a mais) e a situação.
+     */
     private static void pagamento(EscritorPdf pdf, DadosOs dados) throws IOException {
         pdf.secao("Pagamento");
         if (dados.recebimentos().isEmpty()) {
@@ -176,6 +179,9 @@ public final class RelatorioOs {
             pdf.total("Valor da OS", dados.valor().formatar(), false);
             pdf.total("Recebido", dados.recebido().formatar(), false);
             pdf.total("Falta", dados.falta().formatar(), false);
+            if (dados.aMais().centavos() > 0) {
+                pdf.total("Recebido a mais", dados.aMais().formatar(), false);
+            }
             pdf.total("Situação", dados.situacao().rotulo(), true);
         }
     }

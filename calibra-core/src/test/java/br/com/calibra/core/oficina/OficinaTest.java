@@ -55,6 +55,9 @@ class OficinaTest {
         assertEquals(LocalDate.of(2027, 1, 14), new Garantia(90).vence(LocalDate.of(2026, 10, 16)));
         assertEquals(LocalDate.of(2026, 10, 16), Garantia.SEM_GARANTIA.vence(LocalDate.of(2026, 10, 16)));
         assertEquals(List.of("A garantia não pode ser negativa (0 = sem garantia)."), new Garantia(-1).validar());
+        assertEquals(List.of(), new Garantia(3650).validar(), "10 anos ainda vale");
+        assertEquals(List.of("A garantia vai até 3650 dias (10 anos): confira o número digitado."),
+                new Garantia(9000).validar(), "revisão final: 9000 no lugar de 90 ficaria gravado para sempre");
     }
 
     @Test
@@ -92,6 +95,9 @@ class OficinaTest {
         assertEquals(SituacaoPagamento.PAGO, SituacaoPagamento.de(valor, Dinheiro.ler("2.025,00")));
         assertEquals(SituacaoPagamento.PAGO, SituacaoPagamento.de(valor, Dinheiro.ler("2.100,00")));
         assertEquals(Dinheiro.ZERO, SituacaoPagamento.falta(valor, Dinheiro.ler("2.100,00")), "falta nunca é negativa");
+        assertEquals(Dinheiro.ler("75,00"), SituacaoPagamento.aMais(valor, Dinheiro.ler("2.100,00")),
+                "o recebido a mais aparece (revisão final)");
+        assertEquals(Dinheiro.ZERO, SituacaoPagamento.aMais(valor, Dinheiro.ler("1.012,50")));
         assertEquals(SituacaoPagamento.PAGO, SituacaoPagamento.de(Dinheiro.ZERO, Dinheiro.ZERO), "serviço sem valor");
     }
 

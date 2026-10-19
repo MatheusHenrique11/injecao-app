@@ -172,6 +172,7 @@ public class NovaOsController {
                     .map(foto -> new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false)).toList();
             Gravado gravado = casos.abrir(nova, fotos);
             mostrarAvisos(gravado.avisos());
+            navegacao.fecharNovaOs();
             navegacao.abrirOs(gravado.osId());
         } catch (EntradaInvalidaException erro) {
             mostrarErros(erro.erros());
@@ -188,6 +189,7 @@ public class NovaOsController {
         alerta.setTitle("Cancelar a Nova OS");
         alerta.setHeaderText("Cancelar a Nova OS?");
         if (alerta.showAndWait().filter(ButtonType.YES::equals).isPresent()) {
+            navegacao.fecharNovaOs();
             navegacao.voltarParaOficina();
         }
     }

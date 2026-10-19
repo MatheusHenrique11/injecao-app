@@ -46,6 +46,8 @@ public class EntradaFormController {
     private final List<String> itens = new ArrayList<>();
     private final List<TextField> observacoes = new ArrayList<>();
     private final TextField objetos = new TextField();
+    /** O km da entrada gravada: salvar sem mexer no campo devolve 1.250,25, e não o 1.250,3 que a tela mostra. */
+    private Double usoGravado;
 
     @FXML
     private void initialize() {
@@ -64,6 +66,7 @@ public class EntradaFormController {
     void limpar(LocalDateTime agora, List<String> itens) {
         entradaData.setValue(agora.toLocalDate());
         entradaHora.setText(HORA.format(agora));
+        usoGravado = null;
         usoEntrada.clear();
         combustivel.setValue(null);
         montarVistoria(itens);
@@ -78,6 +81,7 @@ public class EntradaFormController {
     void preencher(EntradaVeiculo entrada, List<String> itensSemVistoria) {
         entradaData.setValue(entrada.quando().toLocalDate());
         entradaHora.setText(HORA.format(entrada.quando()));
+        usoGravado = entrada.uso();
         usoEntrada.setText(textoUso(entrada.uso()));
         combustivel.setValue(entrada.combustivel());
         List<ItemVistoria> gravados = entrada.vistoria().itens();
@@ -111,7 +115,9 @@ public class EntradaFormController {
         }
         Double uso = null;
         String digitado = usoEntrada.getText();
-        if (digitado != null && !digitado.isBlank()) {
+        if (usoGravado != null && digitado != null && digitado.strip().equals(textoUso(usoGravado))) {
+            uso = usoGravado;
+        } else if (digitado != null && !digitado.isBlank()) {
             try {
                 uso = NumeroBr.ler(digitado);
             } catch (NumberFormatException erro) {

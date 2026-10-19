@@ -64,9 +64,17 @@ public final class VeiculoRepositorio {
         return id;
     }
 
-    /** Grava as mudanças e uma linha no histórico para cada campo que mudou (SPEC 6.2). */
+    /**
+     * Grava as mudanças e uma linha no histórico para cada campo que mudou (SPEC 6.2). Com o dono anonimizado (LGPD),
+     * a placa, o chassi e a identificação da embarcação não voltam (uma tela aberta antes da anonimização ainda os
+     * mostraria).
+     */
     public void atualizar(Connection conexao, long id, Veiculo novo, Long cambioItemId) throws SQLException {
         VeiculoSalvo atual = exigir(conexao, id);
+        if (temIdentificacao(novo) && donoAnonimizado(conexao, atual.clienteId())) {
+            throw new OperacaoRecusadaException("O dono deste veículo foi anonimizado (LGPD): a placa, o chassi e a "
+                    + "identificação da embarcação não voltam. Deixe esses campos em branco para salvar.");
+        }
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement atualizacao = conexao.prepareStatement(
                 "UPDATE veiculo SET tipo = ?, marca = ?, modelo = ?, versao = ?, ano_fabricacao = ?, ano_modelo = ?, "
@@ -154,6 +162,20 @@ public final class VeiculoRepositorio {
     }
 
     /** Anonimização do cliente: apaga placa, chassi e identificação da embarcação dos veículos dele. */
+    private static boolean temIdentificacao(Veiculo veiculo) {
+        return !veiculo.placa().isEmpty() || !veiculo.chassi().isEmpty() || !veiculo.nomeEmbarcacao().isEmpty()
+                || !veiculo.numeroInscricao().isEmpty() || !veiculo.numeroCasco().isEmpty();
+    }
+
+    private static boolean donoAnonimizado(Connection conexao, long clienteId) throws SQLException {
+        try (PreparedStatement consulta = conexao.prepareStatement("SELECT anonimizado FROM cliente WHERE id = ?")) {
+            consulta.setLong(1, clienteId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                return linha.next() && linha.getInt(1) == 1;
+            }
+        }
+    }
+
     static void anonimizarDoCliente(Connection conexao, long clienteId, LocalDateTime quando) throws SQLException {
         List<Long> ids = new ArrayList<>();
         try (PreparedStatement consulta = conexao.prepareStatement("SELECT id FROM veiculo WHERE cliente_id = ?")) {

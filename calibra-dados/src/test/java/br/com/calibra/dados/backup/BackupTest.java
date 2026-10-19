@@ -3,6 +3,7 @@ package br.com.calibra.dados.backup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,6 +60,36 @@ class BackupTest {
         assertFalse(Files.exists(info.arquivo().resolveSibling(info.arquivo().getFileName() + ".parcial")));
         try (var restos = Files.list(base.pastas.temporaria())) {
             assertEquals(0, restos.count(), "a cópia temporária do banco foi apagada");
+        }
+    }
+
+    /**
+     * Revisão final: a cópia pela metade de um anexo ({@code .parcial}) não vai no backup, e um anexo removido no meio
+     * do backup fica de fora, em vez de derrubar o backup inteiro.
+     */
+    @Test
+    void anexoPelaMetadeOuRemovidoNaoDerrubaOBackup() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        Path veiculo = Files.createDirectories(base.pastas.anexos().resolve("veiculos").resolve("1"));
+        Files.writeString(veiculo.resolve("0123456789abcdef.jpg"), "foto");
+        Files.writeString(veiculo.resolve("fedcba9876543210.jpg.parcial"), "foto pela me");
+
+        InfoBackup info = base.backup.fazer(pasta.resolve("backups"), MotivoBackup.MANUAL);
+
+        assertEquals(1, info.manifesto().anexos(), "o manifesto conta só o que foi junto");
+        try (ZipFile zip = new ZipFile(info.arquivo().toFile())) {
+            assertEquals("foto", ler(zip, "anexos/veiculos/1/0123456789abcdef.jpg"));
+            assertNull(zip.getEntry("anexos/veiculos/1/fedcba9876543210.jpg.parcial"));
+        }
+
+        Path zipDeTeste = pasta.resolve("teste.zip");
+        try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(zipDeTeste))) {
+            assertFalse(Backup.adicionarSeExistir(zip, "anexos/sumiu.jpg", veiculo.resolve("sumiu.jpg")));
+            assertTrue(Backup.adicionarSeExistir(zip, "anexos/foto.jpg", veiculo.resolve("0123456789abcdef.jpg")));
+        }
+        try (ZipFile zip = new ZipFile(zipDeTeste.toFile())) {
+            assertNull(zip.getEntry("anexos/sumiu.jpg"), "o que sumiu não deixa entrada vazia no zip");
+            assertEquals("foto", ler(zip, "anexos/foto.jpg"));
         }
     }
 

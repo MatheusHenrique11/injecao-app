@@ -592,3 +592,33 @@ Plano aprovado em 18/10/2026. Resposta do dono: antes de ele abrir o 0.3.0 com o
     - os 18 testes de tela passaram no app instalado;
     - a atualização do banco foi ensaiada numa cópia dos dados reais, com o OK do dono: o backup "antes de atualizar o banco", as migrações V6 e V7 e a conferência do SQLite sem erro, com só números anotados e a cópia apagada no fim;
     - os dados reais ficaram com o mesmo SHA-256 e os mesmos 68 arquivos.
+
+### Revisão pelo agente (18/10/2026, pedida pelo dono depois do limite de uso)
+
+205. **O que a revisão achou e o que foi feito:** o agente (só leitura) revisou o diff da fase 3 e apontou 15 achados. Conferi cada um no código: 10 foram corrigidos agora, cada um com teste (decisões 206 a 210); 4 dependem de escolha do dono e ficaram para ele (decisão 211); 1 fica só documentado (decisão 212). A versão continua 0.3.0: o MSI foi refeito antes de o dono abrir o app com os dados reais.
+206. **Arquivos dos anexos e backup:**
+    - o backup que encontra um anexo removido no meio da cópia (a tela segue aberta durante o backup automático) deixa esse anexo de fora, em vez de falhar inteiro; o manifesto conta só o que foi junto;
+    - a cópia pela metade de um anexo (`.parcial`, de uma gravação em andamento ou de uma queda de energia) não vai no backup;
+    - o arquivo que não sai da pasta na hora (ex.: um PDF aberto no leitor ao anonimizar o cliente) antes só ia para o log e ficava para sempre. Agora a anonimização conta quantos ficaram e avisa na tela, e o app, ao abrir, antes da tela, apaga as cópias sem uso. Para não apagar o que não deve, a limpeza só mexe em `anexos\veiculos\`, só nos arquivos com o nome que o próprio Calibra dá (os 16 primeiros caracteres do SHA-256 + jpg, png ou pdf, ou a cópia `.parcial`), que nenhum anexo do banco usa e que foram criados (e mexidos) há mais de uma hora. Um erro na limpeza só vai para o log: o app abre do mesmo jeito.
+207. **LGPD depois da anonimização:**
+    - a placa, o chassi e a identificação da embarcação não voltam pela edição do veículo: o banco recusa e a mensagem pede os campos em branco. Os outros campos do veículo continuam editáveis;
+    - o orçamento pelo projeto não abre OS nova para cliente anonimizado (a abertura pela Nova OS já recusava); o projeto e os cálculos ficam para consulta;
+    - documento pessoal novo não se anexa (na OS ou no veículo) de cliente anonimizado; anexo sem a marca de pessoal, sim. Se a pessoa voltar à oficina, ela é cadastrada de novo, com consentimento novo.
+208. **Regras da OS e dinheiro:**
+    - a garantia vai até 3650 dias (10 anos), na entrega e no padrão de Configurações: depois da entrega a OS não muda, e um 9000 no lugar de 90 ficaria gravado para sempre;
+    - o recebido a mais (ex.: um recebimento lançado duas vezes) aparece na aba Entrega e pagamento, no comprovante e no texto "pronto para retirar", em vez de sumir atrás do "Pago";
+    - corrigir a entrada com o mesmo km (ex.: só a vistoria ou o tanque) não regrava o km no veículo, que pode ter mudado depois por outra OS ou pelo cadastro. A aba Entrada também devolve o km gravado exato (1.250,25) quando o campo não foi mexido, em vez do 1.250,3 que a tela mostra.
+209. **O orçamento do projeto e a segunda etapa da preparação:** a aba Peças e orçamento juntava as revisões de todas as OS do projeto. Depois da entrega da primeira OS, ela ficava presa no orçamento antigo, sem como começar o da etapa seguinte. Agora:
+    - ela mostra só o orçamento da OS em andamento do projeto; sem OS em andamento, ela fica vazia, e o orçamento novo abre outra OS (regra 7 do bloco 3.1);
+    - o orçamento antigo continua na OS dele (aba Orçamento da OS e ficha do veículo);
+    - na OS entregue ou cancelada, o editor do orçamento fica só para ver, com o motivo na tela, em vez de deixar clicar e dar erro. O PDF e o texto continuam;
+    - a conta do "desatualizado" ficou num lugar só (`comMotivos`), usada pelo projeto, pela OS e pelo envio.
+210. **Telas:**
+    - Entregar e Cancelar OS pedem para salvar antes o que mudou na aba Entrada (a mudança se perderia: depois, a OS não muda mais). Com a OS entregue ou cancelada, a trava da decisão 197 não vale mais: não há o que salvar, e a via não fica presa;
+    - a Nova OS sendo preenchida fica guardada também ao voltar para a lista da Oficina, ao abrir outra OS ou a ficha de um veículo. Ela só some quando a OS é aberta ou cancelada, como a decisão 183 já dizia.
+211. **Ficam para o dono decidir** (não mexi):
+    - **o tamanho dos backups:** cada backup leva todos os anexos, e ficam 30. Com fotos de 3 a 6 MB, em alguns meses cada backup pode ter centenas de MB, e a pasta, dezenas de GB (pior num pen drive). Proposta: os anexos irem para o backup só uma vez (cópia por conteúdo, como já são guardados), com a restauração montando tudo de novo;
+    - **anexar fotos grandes trava a tela por um instante:** a cópia e o SHA-256 rodam na thread da tela. Com 20 MB num disco lento, a janela "congela" por alguns segundos. Proposta: passar para segundo plano, junto com a fase 4;
+    - **o histórico das correções da OS:** a abertura e a entrada corrigidas não guardam o valor antigo (o veículo e o cliente guardam). Proposta: um histórico como o do veículo;
+    - **o nome do arquivo e a descrição dos anexos que ficam** (fotos, laudos) não mudam na anonimização: uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal continua com esse nome no banco. Proposta: trocar o nome original por "arquivo anonimizado" na anonimização.
+212. **Só documentado:** na atualização para a 0.3.0 (migração V6), a OS criada para um projeto que já tinha orçamento pega o status da última revisão. Se o cliente tinha aprovado a revisão 1 e havia uma revisão 2 em rascunho, a OS nasce "Aberta", e não "Aprovada": é preciso enviar e aprovar a revisão 2 antes de começar o serviço. Não afeta os dados deste PC (o banco real não tem orçamento), e mexer numa migração já publicada no MSI (o Flyway confere a impressão digital dela) não vale o risco.

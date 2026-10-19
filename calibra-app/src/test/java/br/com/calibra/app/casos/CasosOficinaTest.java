@@ -12,6 +12,8 @@ import java.io.RandomAccessFile;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import br.com.calibra.app.casos.CasosOficina.Anonimizacao;
 import br.com.calibra.app.casos.CasosOficina.FichaVeiculo;
 import br.com.calibra.app.casos.CasosOficina.Gravado;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
@@ -197,6 +200,9 @@ class CasosOficinaTest {
         assertEquals(Dinheiro.ler("540,00"), pago.recebido(), "o cancelado não conta");
         assertEquals(3, pago.recebimentos().size(), "mas fica na lista");
         assertTrue(pago.recebimentos().stream().anyMatch(PagamentoSalvo::cancelado));
+        assertEquals(Dinheiro.ZERO, pago.aMais());
+        oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("10,00"), "a mais"));
+        assertEquals(Dinheiro.ler("10,00"), oficina.pagamento(os).aMais(), "o que passou aparece (revisão pelo agente)");
 
         assertEquals(List.of(StatusOs.ABERTA, StatusOs.AGUARDANDO_APROVACAO, StatusOs.APROVADA, StatusOs.EM_EXECUCAO,
                 StatusOs.AGUARDANDO_PECAS, StatusOs.EM_EXECUCAO, StatusOs.PRONTA, StatusOs.ENTREGUE),
@@ -306,6 +312,28 @@ class CasosOficinaTest {
         assertEquals(249_000.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado());
         oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
         assertEquals(StatusOs.EM_EXECUCAO, status(os));
+    }
+
+    /**
+     * Revisão pelo agente: corrigir a entrada sem mexer no km (ex.: só o tanque) não regrava o km no veículo, que pode
+     * ter mudado depois por outra OS. Com o km corrigido, ele vai para o veículo.
+     */
+    @Test
+    void corrigirAEntradaSemMexerNoKmNaoMudaOVeiculo() {
+        long os = abrirComEntrada("Rita Alves", "NOP4Q56");
+        OsAberta aberta = oficina.buscar(os);
+        oficina.abrir(new NovaOs(new ClienteExistente(aberta.cliente().id()), new VeiculoExistente(aberta.veiculo().id()),
+                "Alinhamento", null, null, "", entrada(251_800.0)));
+        assertEquals(251_800.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado(), "a outra OS subiu o km");
+
+        Gravado corrigida = oficina.registrarEntrada(os, new EntradaVeiculo(agora(), 251_500.0, NivelCombustivel.MEIO,
+                Vistoria.VAZIA));
+        assertEquals(List.of(), corrigida.avisos(), "sem aviso de km menor");
+        assertEquals(NivelCombustivel.MEIO, oficina.buscar(os).os().entrada().combustivel(), "a correção grava");
+        assertEquals(251_800.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado(), "o km do veículo fica");
+
+        oficina.registrarEntrada(os, new EntradaVeiculo(agora(), 251_900.0, NivelCombustivel.MEIO, Vistoria.VAZIA));
+        assertEquals(251_900.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado(), "km corrigido vai para o veículo");
     }
 
     /** Antes da aprovação, recusa e revisão voltam a OS para aberta; depois, a revisão não mexe na OS. */
@@ -524,7 +552,8 @@ class CasosOficinaTest {
         AnexoSalvo daNina = oficina.anexar(outra, List.of(new NovoAnexo(doc, TipoAnexo.DOCUMENTO, "", null, true)))
                 .getFirst();
 
-        assertEquals(2, oficina.anonimizarCliente(aberta.cliente().id()), "a CNH da OS e o CRLV do veículo");
+        assertEquals(new Anonimizacao(2, 0), oficina.anonimizarCliente(aberta.cliente().id()),
+                "a CNH da OS e o CRLV do veículo");
         assertTrue(oficina.buscar(os).cliente().cliente().nome().startsWith("Cliente anonimizado #"));
         assertEquals("", oficina.buscar(os).veiculo().veiculo().placa());
         assertEquals(List.of(daOs.get(0).id(), daOs.get(2).id(), doVeiculo.get(1).id()),
@@ -534,7 +563,8 @@ class CasosOficinaTest {
                 "o da CNH fica: o outro anexo (sem a marca de pessoal) ainda usa o mesmo arquivo");
         assertEquals(List.of(daNina.id()), oficina.anexosDaOs(outra).stream().map(AnexoSalvo::id).toList(),
                 "o documento da outra cliente fica");
-        assertEquals(0, oficina.anonimizarCliente(aberta.cliente().id()), "de novo: nada mais a apagar");
+        assertEquals(new Anonimizacao(0, 0), oficina.anonimizarCliente(aberta.cliente().id()),
+                "de novo: nada mais a apagar");
     }
 
     /**
@@ -555,10 +585,92 @@ class CasosOficinaTest {
         assertThrows(OperacaoRecusadaException.class, () -> oficina.removerAnexo(documento.id()),
                 "pela tela, o anexo da OS entregue não sai");
 
-        assertEquals(1, oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
+        assertEquals(new Anonimizacao(1, 0), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
         assertEquals(List.of(), oficina.anexosDaOs(os), "a anonimização tira o documento pessoal mesmo da OS entregue");
         assertFalse(Files.exists(pastas.anexos().resolve(documento.arquivo())));
         assertEquals(StatusOs.ENTREGUE, status(os), "a OS fica como estava");
+    }
+
+    /**
+     * Revisão pelo agente: cliente anonimizado não ganha OS nova pelo orçamento do projeto, nem documento pessoal novo
+     * (na OS ou no veículo). Anexo sem a marca de pessoal ainda entra.
+     */
+    @Test
+    void clienteAnonimizadoNaoRecebeOsNovaNemDocumentoPessoal() throws Exception {
+        EntradaDimensionamento casoB = CasosProjetoTest.casoB();
+        long projeto = casos.criarProjeto(new NovoProjeto(new ClienteNovo(CasosProjetoTest.cliente("Sara Prado")),
+                new VeiculoNovo(CasosProjetoTest.carro("OPQ5R67")), "AP 2.0 turbo", casoB.motor(), casoB.meta()));
+        long os = oficina.osAtualDoProjeto(projeto);
+        oficina.cancelar(os, "Cliente desistiu.");
+        var aberto = casos.abrir(projeto);
+        long veiculo = aberto.veiculo().id();
+        oficina.anonimizarCliente(aberto.cliente().id());
+
+        OperacaoRecusadaException semOs = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.osAtualDoProjeto(projeto));
+        assertEquals("O cliente deste projeto foi anonimizado (LGPD) e não recebe OS nova. O projeto e os cálculos "
+                + "ficam para consulta.", semOs.getMessage());
+        assertEquals(List.of(os), oficina.ficha(veiculo).ordens().stream().map(ResumoOs::osId).toList(),
+                "nenhuma OS nova");
+
+        Path cnh = Files.writeString(raiz.resolve("cnh-sara.pdf"), "%PDF-1.7 CNH fictícia");
+        NovoAnexo documento = new NovoAnexo(cnh, TipoAnexo.DOCUMENTO, "CNH", null, true);
+        OperacaoRecusadaException pessoal = assertThrows(OperacaoRecusadaException.class,
+                () -> oficina.anexarAoVeiculo(veiculo, List.of(documento)));
+        assertTrue(pessoal.getMessage().startsWith("O cliente foi anonimizado (LGPD)"), pessoal.getMessage());
+        assertThrows(OperacaoRecusadaException.class, () -> oficina.anexar(os, List.of(documento)), "nem na OS");
+        assertFalse(Files.exists(pastas.anexos().resolve("veiculos").resolve(String.valueOf(veiculo))),
+                "recusado antes de copiar");
+        Path laudo = Files.writeString(raiz.resolve("laudo.pdf"), "%PDF-1.7 laudo fictício");
+        assertEquals(1, oficina.anexar(os, List.of(new NovoAnexo(laudo, TipoAnexo.LAUDO, "", null, false))).size(),
+                "sem a marca de pessoal, entra");
+    }
+
+    /**
+     * Revisão pelo agente: o arquivo do documento pessoal que não sai da pasta na hora (aberto em outro programa; aqui,
+     * somente leitura) é contado para o aviso, e a limpeza ao abrir o app apaga depois, junto com a cópia pela metade
+     * de uma queda de energia. O arquivo em uso, o recente e o com nome que não é do Calibra ficam.
+     */
+    @Test
+    void arquivoPresoSaiNaLimpezaAoAbrir() throws Exception {
+        long os = abrirComEntrada("Paula Reis", "MNO3P45");
+        Path cnh = Files.writeString(raiz.resolve("cnh-paula.pdf"), "%PDF-1.7 CNH fictícia");
+        Path foto = Files.write(raiz.resolve("IMG_0004.jpg"), new byte[] {(byte) 0xFF, (byte) 0xD8, 1, 2, 3});
+        List<AnexoSalvo> gravados = oficina.anexar(os, List.of(
+                new NovoAnexo(cnh, TipoAnexo.DOCUMENTO, "CNH", null, true),
+                new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false)));
+        Path copiaCnh = pastas.anexos().resolve(gravados.get(0).arquivo());
+        Path copiaFoto = pastas.anexos().resolve(gravados.get(1).arquivo());
+        Files.setAttribute(copiaCnh, "dos:readonly", true);
+
+        assertEquals(new Anonimizacao(1, 1), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
+        assertTrue(Files.exists(copiaCnh), "presa: ficou na pasta");
+        assertEquals(List.of(gravados.get(1).id()), oficina.anexosDaOs(os).stream().map(AnexoSalvo::id).toList(),
+                "o anexo saiu do banco do mesmo jeito");
+
+        Files.setAttribute(copiaCnh, "dos:readonly", false);
+        Path pasta = copiaCnh.getParent();
+        Path parcial = Files.writeString(pasta.resolve("0123456789abcdef.jpg.parcial"), "foto pela me");
+        Path recente = Files.writeString(pasta.resolve("fedcba9876543210.png"), "copiada agora há pouco");
+        Path outro = Files.writeString(pasta.resolve("anotacao.txt"), "não é cópia do Calibra");
+        for (Path arquivo : List.of(copiaCnh, copiaFoto, parcial, outro)) {
+            mudarIdade(arquivo, Duration.ofHours(2));
+        }
+        mudarIdade(recente, Duration.ofMinutes(30));
+
+        assertEquals(2, oficina.apagarArquivosSemUso(), "a CNH presa e a cópia pela metade");
+        assertFalse(Files.exists(copiaCnh));
+        assertFalse(Files.exists(parcial));
+        assertTrue(Files.exists(copiaFoto), "a foto ainda é anexo da OS");
+        assertTrue(Files.exists(recente), "de menos de uma hora: pode ser um anexo sendo gravado agora");
+        assertTrue(Files.exists(outro), "nome que o Calibra não dá: não é com ele");
+        assertEquals(0, oficina.apagarArquivosSemUso(), "de novo: nada");
+    }
+
+    /** Põe a criação e a última mudança do arquivo tanto tempo antes do relógio do teste. */
+    private void mudarIdade(Path arquivo, Duration idade) throws IOException {
+        FileTime quando = FileTime.from(relogio.instant().minus(idade));
+        Files.getFileAttributeView(arquivo, BasicFileAttributeView.class).setTimes(quando, quando, quando);
     }
 
     /**

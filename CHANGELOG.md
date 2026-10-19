@@ -2,7 +2,7 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
-## [0.3.0] — 18/10/2026 — Fase 3
+## [0.3.0] — 19/10/2026 — Fase 3
 
 ### Adicionado
 - **Ordem de serviço (OS)**, do número `OS-ano-sequência` à entrega: status com histórico (aberta, aguardando aprovação, aprovada, em execução, aguardando peças, pronta, entregue ou cancelada com o motivo), entrada do veículo com km, tanque, vistoria e objetos deixados, entrega com km de saída e garantia, e pagamento em partes, com o recebimento errado cancelado (nunca apagado). Serviço só começa com orçamento aprovado e com a entrada registrada.
@@ -29,6 +29,16 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - Banco de dados na versão 7 (V6: ordens de serviço; V7: anexos). Como sempre, a atualização faz um backup antes.
 - O app de desenvolvimento (`javafx:run`) usa uma pasta de dados só dele, `%LOCALAPPDATA%\Calibra-dev`.
 - A conferência do instalador confere também as páginas para imprimir (5 itens).
+
+### Corrigido (revisão final, antes de o 0.3.0 ser usado com dados reais)
+- A aba Peças e orçamento do projeto mostra o orçamento da OS em andamento; depois da entrega, o próximo orçamento abre outra OS (a segunda etapa da preparação), em vez de ficar preso no orçamento antigo. O orçamento da OS entregue ou cancelada fica só para ver.
+- Entregar e cancelar a OS pedem para salvar antes o que mudou na aba Entrada; depois da entrega, a via não fica mais presa por uma mudança que não dá para salvar.
+- Corrigir só a vistoria ou o tanque da entrada não regrava o km antigo no cadastro do veículo, e o km com duas casas (1.250,25) não é arredondado ao salvar.
+- A Nova OS sendo preenchida não se perde ao abrir outra OS ou voltar para a lista da Oficina.
+- O recebido a mais aparece na OS, no comprovante e no texto "pronto para retirar".
+- A garantia vai até 3650 dias (10 anos), para um 9000 no lugar de 90 não ficar gravado na OS entregue.
+- Cliente anonimizado: a placa e o chassi não voltam pela edição do veículo, e ele não recebe OS nova pelo projeto nem documento pessoal novo. O arquivo de documento que estava aberto em outro programa é avisado e sai da pasta na próxima abertura do app.
+- O backup não falha mais se um anexo for removido enquanto ele é feito, e não leva cópia de anexo pela metade.
 
 ## [0.2.0] — 15/10/2026 — Fase 2
 

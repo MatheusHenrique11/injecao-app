@@ -237,7 +237,7 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
 | entrada | Data e hora; km (ou horas de motor, nos náuticos), que atualiza o uso acumulado do veículo, com histórico; nível do tanque (reserva, 1/4, 1/2, 3/4, cheio); vistoria (itens com observação, como riscos, vidros e estepe); objetos deixados no veículo; fotos; serviço pedido, nas palavras do cliente; mecânico (cadastro simples: nome e ativo); previsão de entrega. |
 | `status` | ABERTA → AGUARDANDO_APROVACAO → APROVADA → EM_EXECUCAO ⇄ AGUARDANDO_PECAS → PRONTA → ENTREGUE. CANCELADA a qualquer momento antes de ENTREGUE, com o motivo. Cada mudança fica no histórico com data e hora. |
 | orçamento | Pertence à OS, com os itens, revisões e aprovação da fase 2. Na OS de preparação, aponta para o cálculo do projeto, como hoje; na OS comum, não aponta para cálculo. Enviar o orçamento leva a OS a AGUARDANDO_APROVACAO; aprovar, a APROVADA; a recusa deixa a OS aberta para uma revisão nova ou para cancelar. |
-| entrega | Data e hora; km de saída; garantia em dias (padrão em Configurações › OS: 90 dias, decidido em 17/10/2026) e a data em que ela vence; pagamento: forma (dinheiro, PIX, cartão de débito, cartão de crédito, transferência ou outro), valor e situação (pago, parcial ou pendente). Não há caixa nem contas. |
+| entrega | Data e hora; km de saída; garantia em dias, de 0 a 3650 (padrão em Configurações › OS: 90 dias, decidido em 17/10/2026; o limite, em 18/10/2026, item 208) e a data em que ela vence; pagamento: forma (dinheiro, PIX, cartão de débito, cartão de crédito, transferência ou outro), valor e situação (pago, parcial ou pendente), com o recebido a mais à vista. Não há caixa nem contas. |
 | anexos | Fotos, documentos, nota fiscal (PDF emitido no site da prefeitura) e laudos, na OS e no veículo; validade opcional, que gera aviso na fase 5. |
 
 - **OS não é apagada:** a cancelada fica no histórico. Depois de ENTREGUE, só o pagamento e os anexos mudam.
@@ -246,7 +246,7 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
   2. **Só se executa com orçamento aprovado** (Código de Defesa do Consumidor, art. 39, VI): da ABERTA não se pula para EM_EXECUCAO.
   3. **O orçamento move a OS só antes da aprovação:** enviar leva a AGUARDANDO_APROVACAO, aprovar leva a APROVADA, e recusar ou abrir uma revisão volta para ABERTA. Depois de aprovada, uma revisão nova não muda o status da OS. O valor da OS é o total da última revisão aprovada.
   4. **Pagamento em partes:** a OS aceita vários recebimentos (ex.: sinal na aprovação e o resto na entrega). A situação (pendente, parcial, pago) é calculada contra o valor da OS. Recebimento errado não se apaga: é cancelado, com o motivo, e deixa de contar.
-  - **Projeto e OS:** o orçamento feito pela aba do projeto vai para a OS atual dele, a mais nova que não foi entregue nem cancelada. Sem nenhuma, uma OS nova é aberta para o projeto, sem a entrada.
+  - **Projeto e OS:** o orçamento feito pela aba do projeto vai para a OS atual dele, a mais nova que não foi entregue nem cancelada. Sem nenhuma, uma OS nova é aberta para o projeto, sem a entrada. A aba do projeto mostra só o orçamento da OS atual; o das OS anteriores fica nelas, só para ver (alterado em 18/10/2026 — ver docs/decisoes.md, item 209). Cliente anonimizado não ganha OS nova (item 207).
 - **Documentos e mensagens** (bloco 3.3 — ver docs/decisoes.md, itens 195 a 198):
   - via do cliente (A4): a OS, o cliente e o veículo, o serviço pedido, a entrada com a vistoria item a item, o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Não sai com a entrada mudada na tela e não salva;
   - comprovante de entrega (A4, depois da entrega): a entrega, a garantia com a data em que vence, os itens e o total da revisão aprovada, os recebimentos e a assinatura de quem recebeu o veículo;
@@ -255,7 +255,7 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
 - **Padrões da OS** em Configurações (bloco 3.3, itens 192 e 193): a garantia padrão, os itens da vistoria, o texto da via do cliente e o cadastro dos mecânicos.
 - **Catálogo de serviços** (bloco 3.3, item 194): nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias. No orçamento, o serviço com preço próprio entra uma vez pelo preço; sem preço, entram as horas × o valor da hora.
 - **Ficha do veículo** (bloco 3.3, item 199): o cliente, o veículo, as OS, os projetos e os anexos de todas as OS, com os documentos do próprio veículo (anexo sem OS).
-- **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos marcados como documento pessoal, os das OS dele e os dos veículos dele, e mantém fotos, laudos e notas. O arquivo só sai da pasta se nenhum outro anexo o usar (bloco 3.3, item 201).
+- **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos marcados como documento pessoal, os das OS dele e os dos veículos dele, e mantém fotos, laudos e notas. O arquivo só sai da pasta se nenhum outro anexo o usar (bloco 3.3, item 201); o que estiver aberto em outro programa sai na próxima abertura do app. Depois, a identificação dos veículos dele não volta, e ele não recebe OS nova nem documento pessoal novo (itens 206 e 207).
 
 ---
 

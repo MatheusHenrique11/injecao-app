@@ -21,8 +21,11 @@ interface Navegacao {
     /** A lista da Oficina só com as OS do status (o cartão do Painel); null = as em andamento. */
     void abrirOficina(StatusOs status);
 
-    /** A Nova OS, na área da Oficina. */
+    /** A Nova OS, na área da Oficina; a que está sendo preenchida volta com o que foi digitado (decisão 183). */
     void novaOs();
+
+    /** A Nova OS foi gravada ou cancelada: a próxima começa em branco. */
+    void fecharNovaOs();
 
     /** A tela da OS, na área da Oficina. */
     void abrirOs(long osId);

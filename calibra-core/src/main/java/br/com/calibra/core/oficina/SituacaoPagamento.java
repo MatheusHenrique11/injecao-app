@@ -34,4 +34,10 @@ public enum SituacaoPagamento {
         Dinheiro falta = valor.menos(recebido);
         return falta.negativo() ? Dinheiro.ZERO : falta;
     }
+
+    /** Quanto foi recebido além do valor da OS (ex.: um recebimento lançado duas vezes); zero se não passou. */
+    public static Dinheiro aMais(Dinheiro valor, Dinheiro recebido) {
+        Dinheiro aMais = recebido.menos(valor);
+        return aMais.negativo() ? Dinheiro.ZERO : aMais;
+    }
 }

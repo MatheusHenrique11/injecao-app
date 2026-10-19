@@ -13,6 +13,7 @@ import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import br.com.calibra.dados.OperacaoRecusadaException;
 
@@ -31,6 +32,9 @@ public final class AnexosDaOficina {
 
     private static final Set<String> IMAGENS = Set.of("jpg", "jpeg", "png");
     private static final Set<String> ACEITOS = Set.of("jpg", "jpeg", "png", "pdf");
+    /** O nome que {@link #guardar} dá: veiculos/7/0123456789abcdef.jpg, ou a cópia pela metade (.parcial). */
+    private static final Pattern NOME_DA_COPIA = Pattern.compile(
+            PASTA + "/\\d+/[0-9a-f]{16}\\.(jpg|png|pdf)(\\.parcial)?");
 
     /** O arquivo copiado: o caminho relativo à pasta de anexos, o tamanho e o SHA-256 (para conferir). */
     public record Copia(String arquivo, long tamanhoBytes, String sha256) {
@@ -82,6 +86,11 @@ public final class AnexosDaOficina {
         if (arquivo.isPresent()) {
             Files.deleteIfExists(arquivo.get());
         }
+    }
+
+    /** O caminho (relativo à pasta de anexos, com "/") tem o nome que o Calibra dá às cópias? */
+    static boolean copiaDoCalibra(String relativo) {
+        return NOME_DA_COPIA.matcher(relativo).matches();
     }
 
     /** Foto (a tela mostra a miniatura); o resto é documento. */

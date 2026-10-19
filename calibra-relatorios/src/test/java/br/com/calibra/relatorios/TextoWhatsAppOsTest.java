@@ -54,4 +54,18 @@ class TextoWhatsAppOsTest {
                 Oficina Teste (fictícia) · (11) 99999-0000""",
                 TextoWhatsAppOs.prontaParaRetirar(ExemplosOs.entregue(null)));
     }
+
+    /** Revisão pelo agente: o que passou do valor aparece (a pessoa confere antes de mandar). */
+    @Test
+    void prontaParaRetirarComRecebidoAMais() {
+        assertEquals("""
+                *OS-2026-0007: pronto para retirar* — Oficina Teste (fictícia)
+                Veículo: Fiat Uno Mille 2011 · EFG4H56
+                Valor: R$ 1.000,00
+                Recebido: R$ 1.075,00
+                Tudo pago. Recebido a mais: R$ 75,00.
+
+                Oficina Teste (fictícia) · (11) 99999-0000""",
+                TextoWhatsAppOs.prontaParaRetirar(ExemplosOs.pagaAMais()));
+    }
 }

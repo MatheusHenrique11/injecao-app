@@ -259,6 +259,16 @@ class CasosProjetoTest {
         assertThrows(OperacaoRecusadaException.class, () -> casos.criarProjeto(new NovoProjeto(
                 new ClienteExistente(aberto.cliente().id()), new VeiculoExistente(aberto.veiculo().id()), "",
                 aberto.motor().configuracao(), aberto.projeto().meta())));
+
+        // Revisão pelo agente: a placa não volta pela edição do veículo; sem identificação, a edição grava.
+        long veiculo = aberto.veiculo().id();
+        OperacaoRecusadaException recusa = assertThrows(OperacaoRecusadaException.class,
+                () -> casos.salvarVeiculo(veiculo, carro("ABC1D23")));
+        assertTrue(recusa.getMessage().startsWith("O dono deste veículo foi anonimizado"), recusa.getMessage());
+        assertEquals("", casos.abrir(id).veiculo().veiculo().placa(), "nada gravado");
+        casos.salvarVeiculo(veiculo, new Veiculo(TipoVeiculo.CARRO, "VW", "Gol", "GTi", 1994, 1995, "", "", "", "",
+                "", 250_000.0, TipoCambio.MANUAL, false, Tracao.DIANTEIRA, null, "Branco", ""));
+        assertEquals(1995, casos.abrir(id).veiculo().veiculo().anoModelo(), "os outros campos continuam editáveis");
     }
 
     @Test

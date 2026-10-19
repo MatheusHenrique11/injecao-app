@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import br.com.calibra.core.cadastro.DadosOficina;
@@ -90,6 +91,17 @@ final class ExemplosOs {
         return new DadosOs(d.oficina(), null, d.numero(), StatusOs.PRONTA, d.abertaEm(), d.cliente(),
                 d.telefoneCliente(), d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(),
                 null, d.aprovado(), d.recebimentos().subList(0, 1), d.textoVia(), d.versaoApp(), d.geradoEm());
+    }
+
+    /** Entregue, com R$ 75,00 recebidos a mais (um PIX lançado sem cancelar o errado). */
+    static DadosOs pagaAMais() {
+        DadosOs d = entregue(null);
+        List<DadosOs.Recebimento> recebimentos = new ArrayList<>(d.recebimentos());
+        recebimentos.add(new DadosOs.Recebimento(new Pagamento(ENTREGUE.minusMinutes(4), FormaPagamento.PIX,
+                Dinheiro.ler("75,00"), "Lançado a mais"), false));
+        return new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(), d.telefoneCliente(),
+                d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(), d.entrega(),
+                d.aprovado(), recebimentos, d.textoVia(), d.versaoApp(), d.geradoEm());
     }
 
     /** Uma lancha: o uso em horas de motor. */

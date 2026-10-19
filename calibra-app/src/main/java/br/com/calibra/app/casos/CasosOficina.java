@@ -3,20 +3,26 @@ package br.com.calibra.app.casos;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import br.com.calibra.app.casos.CasosProjeto.ClienteExistente;
 import br.com.calibra.app.casos.CasosProjeto.EscolhaCliente;
@@ -103,6 +109,11 @@ public final class CasosOficina {
         public SituacaoDoPagamento {
             recebimentos = List.copyOf(recebimentos);
         }
+
+        /** O que foi recebido além do valor (ex.: um recebimento lançado duas vezes); null sem orçamento aprovado. */
+        public Dinheiro aMais() {
+            return valor == null ? null : SituacaoPagamento.aMais(valor, recebido);
+        }
     }
 
     /** A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum) e o pagamento. */
@@ -154,10 +165,23 @@ public final class CasosOficina {
         }
     }
 
+    /**
+     * O que a anonimização apagou.
+     *
+     * @param documentos os anexos marcados como documento pessoal que saíram
+     * @param arquivosPresos os arquivos deles que não saíram da pasta agora (abertos em outro programa); o Calibra
+     *        apaga na próxima vez que abrir
+     */
+    public record Anonimizacao(int documentos, int arquivosPresos) {
+    }
+
     private static final Logger LOG = Logger.getLogger(CasosOficina.class.getName());
 
     /** O máximo de linhas da lista da Oficina: uma oficina só não tem tanta OS em andamento. */
     private static final int LIMITE_DA_LISTA = 500;
+
+    /** Arquivo sem uso criado há menos que isso fica: pode ser a cópia de um anexo sendo gravado agora. */
+    private static final Duration IDADE_MINIMA_DA_SOBRA = Duration.ofHours(1);
 
     private final BancoDados banco;
     private final Clock relogio;
@@ -247,7 +271,7 @@ public final class CasosOficina {
                 return new Gravado(id, avisos);
             });
         } catch (RuntimeException erro) {
-            apagarSobras(copias);
+            apagarSobras(copias.stream().map(AnexosDaOficina.Copia::arquivo).toList());
             throw erro;
         }
     }
@@ -270,7 +294,8 @@ public final class CasosOficina {
 
     /**
      * Registra (ou corrige) a chegada do veículo. O km atualiza o uso acumulado do veículo, com histórico; menor que o
-     * do cadastro, vira aviso e é gravado assim mesmo (troca de painel acontece).
+     * do cadastro, vira aviso e é gravado assim mesmo (troca de painel acontece). Na correção com o mesmo km (ex.: só
+     * a vistoria), o veículo fica como está: o km dele pode ter mudado depois, por outra OS ou pelo cadastro.
      */
     public Gravado registrarEntrada(long osId, EntradaVeiculo entrada) {
         List<String> erros = entrada == null ? List.of("Informe a entrada do veículo.") : entrada.validar(agora());
@@ -279,6 +304,10 @@ public final class CasosOficina {
         }
         return banco.transacao(c -> {
             OrdemServicoSalva os = exigir(c, osId);
+            if (os.entrada() != null && Objects.equals(os.entrada().uso(), entrada.uso())) {
+                ordens.registrarEntrada(c, osId, entrada);
+                return new Gravado(osId, List.of());
+            }
             return new Gravado(osId, gravarEntrada(c, osId, os.veiculoId(), entrada));
         });
     }
@@ -554,10 +583,8 @@ public final class CasosOficina {
      * LGPD (SPEC 6.1 e 6.5): anonimiza o cliente e os veículos dele e apaga os anexos marcados como documento pessoal
      * (das OS dele e dos veículos dele), na mesma gravação; os arquivos que ficarem sem uso saem da pasta de anexos.
      * Fotos, laudos, notas fiscais, OS, projetos e cálculos ficam. Não tem volta.
-     *
-     * @return quantos anexos foram apagados
      */
-    public int anonimizarCliente(long clienteId) {
+    public Anonimizacao anonimizarCliente(long clienteId) {
         List<AnexoSalvo> apagados = banco.transacao(c -> {
             clientes.buscar(c, clienteId).orElseThrow(
                     () -> new OperacaoRecusadaException("Cliente #" + clienteId + " não encontrado."));
@@ -568,10 +595,8 @@ public final class CasosOficina {
             clientes.anonimizar(c, clienteId);
             return pessoais;
         });
-        apagarSobras(apagados.stream()
-                .map(anexo -> new AnexosDaOficina.Copia(anexo.arquivo(), anexo.tamanhoBytes(), anexo.sha256()))
-                .toList());
-        return apagados.size();
+        int presos = apagarSobras(apagados.stream().map(AnexoSalvo::arquivo).toList());
+        return new Anonimizacao(apagados.size(), presos);
     }
 
     // ===================== Anexos =====================
@@ -605,11 +630,18 @@ public final class CasosOficina {
         return anexar(veiculoId, null, novos);
     }
 
-    /** Copia os arquivos e grava os anexos numa gravação só; se algo falhar, as cópias novas são apagadas. */
+    /**
+     * Copia os arquivos e grava os anexos numa gravação só; se algo falhar, as cópias novas são apagadas. Cliente
+     * anonimizado não recebe documento pessoal novo (LGPD): os dados pessoais dele já foram apagados.
+     */
     private List<AnexoSalvo> anexar(long veiculoId, Long osId, List<NovoAnexo> novos) {
         List<String> erros = errosDosAnexos(novos);
         if (!erros.isEmpty()) {
             throw new EntradaInvalidaException(erros);
+        }
+        if (novos.stream().anyMatch(NovoAnexo::pessoal) && banco.ler(c -> donoAnonimizado(c, veiculoId, osId))) {
+            throw new OperacaoRecusadaException("O cliente foi anonimizado (LGPD): documento pessoal não se anexa mais. "
+                    + "Se o arquivo não tem dados pessoais, anexe sem a marca de documento pessoal.");
         }
         List<AnexosDaOficina.Copia> copias = new ArrayList<>();
         try {
@@ -625,9 +657,16 @@ public final class CasosOficina {
                 return gravados;
             });
         } catch (RuntimeException erro) {
-            apagarSobras(copias);
+            apagarSobras(copias.stream().map(AnexosDaOficina.Copia::arquivo).toList());
             throw erro;
         }
+    }
+
+    /** O dono do anexo (o cliente da OS ou, no anexo do veículo, o dono dele) foi anonimizado? */
+    private boolean donoAnonimizado(Connection conexao, long veiculoId, Long osId) throws SQLException {
+        long clienteId = osId != null ? exigir(conexao, osId).clienteId()
+                : veiculos.buscar(conexao, veiculoId).orElseThrow().clienteId();
+        return clientes.buscar(conexao, clienteId).orElseThrow().cliente().anonimizado();
     }
 
     /** Arquivo que não existe e anexo sem tipo (o formato e o tamanho do arquivo são conferidos na cópia). */
@@ -689,7 +728,7 @@ public final class CasosOficina {
             anexos.apagar(c, anexoId);
             return atual;
         });
-        apagarSobras(List.of(new AnexosDaOficina.Copia(anexo.arquivo(), anexo.tamanhoBytes(), anexo.sha256())));
+        apagarSobras(List.of(anexo.arquivo()));
     }
 
     /** Os anexos da OS, do mais antigo para o mais novo. */
@@ -707,16 +746,74 @@ public final class CasosOficina {
         return AnexosDaOficina.arquivo(anexo.arquivo(), pastaAnexos);
     }
 
-    /** Apaga as cópias que nenhum anexo usa (depois de remover, ou de uma gravação que não deu certo). */
-    private void apagarSobras(List<AnexosDaOficina.Copia> copias) {
-        for (AnexosDaOficina.Copia copia : copias) {
+    /**
+     * Apaga as cópias que nenhum anexo usa (depois de remover, ou de uma gravação que não deu certo).
+     *
+     * @param arquivos os caminhos relativos à pasta de anexos (o mesmo arquivo pode vir mais de uma vez)
+     * @return quantas não saíram (ex.: um PDF aberto em outro programa); a limpeza ao abrir o app tenta de novo
+     */
+    private int apagarSobras(List<String> arquivos) {
+        int presas = 0;
+        for (String arquivo : new LinkedHashSet<>(arquivos)) {
             try {
-                if (banco.ler(c -> anexos.quantosUsam(c, copia.arquivo())) == 0) {
-                    AnexosDaOficina.apagar(copia.arquivo(), pastaAnexos);
+                if (banco.ler(c -> anexos.quantosUsam(c, arquivo)) == 0) {
+                    AnexosDaOficina.apagar(arquivo, pastaAnexos);
                 }
             } catch (IOException | RuntimeException erro) {
-                LOG.log(Level.WARNING, "Não foi possível apagar a cópia sem uso " + copia.arquivo(), erro);
+                presas++;
+                LOG.log(Level.WARNING, "Não foi possível apagar a cópia sem uso " + arquivo, erro);
             }
+        }
+        return presas;
+    }
+
+    /**
+     * Apaga da pasta de anexos dos veículos os arquivos que nenhum anexo usa: os que não saíram na hora (abertos em
+     * outro programa ao remover o anexo ou ao anonimizar o cliente) e as cópias pela metade de uma queda de energia.
+     * Roda ao abrir o app. Só mexe nos arquivos com o nome que o próprio Calibra dá, criados há mais de uma hora; um
+     * erro aqui só vai para o log (o app abre do mesmo jeito).
+     *
+     * @return quantos arquivos foram apagados
+     */
+    public int apagarArquivosSemUso() {
+        Path pasta = pastaAnexos.resolve(AnexosDaOficina.PASTA);
+        if (!Files.isDirectory(pasta)) {
+            return 0;
+        }
+        int apagados = 0;
+        try (Stream<Path> itens = Files.walk(pasta)) {
+            List<Path> arquivos = itens.filter(Files::isRegularFile).toList();
+            Set<String> emUso = banco.ler(anexos::arquivosEmUso);
+            Instant limite = relogio.instant().minus(IDADE_MINIMA_DA_SOBRA);
+            for (Path arquivo : arquivos) {
+                String relativo = pastaAnexos.relativize(arquivo).toString().replace('\\', '/');
+                if (AnexosDaOficina.copiaDoCalibra(relativo) && !emUso.contains(relativo)
+                        && apagarSeCriadoAntes(arquivo, limite)) {
+                    apagados++;
+                }
+            }
+        } catch (IOException | RuntimeException erro) {
+            LOG.log(Level.WARNING, "Não foi possível conferir a pasta de anexos " + pasta, erro);
+        }
+        if (apagados > 0) {
+            int total = apagados;
+            LOG.info(() -> "Arquivos sem uso apagados da pasta de anexos: " + total + ".");
+        }
+        return apagados;
+    }
+
+    /** Apaga o arquivo se ele foi criado (e mexido pela última vez) antes do limite; false se ficou. */
+    private static boolean apagarSeCriadoAntes(Path arquivo, Instant limite) {
+        try {
+            BasicFileAttributes atributos = Files.readAttributes(arquivo, BasicFileAttributes.class);
+            if (!atributos.creationTime().toInstant().isBefore(limite)
+                    || !atributos.lastModifiedTime().toInstant().isBefore(limite)) {
+                return false;
+            }
+            return Files.deleteIfExists(arquivo);
+        } catch (IOException erro) {
+            LOG.log(Level.WARNING, "Não foi possível apagar o arquivo sem uso " + arquivo, erro);
+            return false;
         }
     }
 

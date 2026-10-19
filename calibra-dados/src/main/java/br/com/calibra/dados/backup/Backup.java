@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,6 +19,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.IntFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -47,6 +49,8 @@ public final class Backup {
     static final String ENTRADA_BANCO = "calibra.db";
     static final String ENTRADA_MANIFESTO = "manifesto.json";
     static final String PREFIXO_ANEXOS = "anexos/";
+    /** Final do nome de um arquivo ainda sendo gravado (o backup, ou a cópia de um anexo). */
+    static final String PARCIAL = ".parcial";
 
     private static final Logger LOG = Logger.getLogger(Backup.class.getName());
     private static final DateTimeFormatter CARIMBO = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
@@ -85,12 +89,12 @@ public final class Backup {
             LocalDateTime agora = LocalDateTime.now(relogio).truncatedTo(ChronoUnit.SECONDS);
             String versaoBanco = banco.versaoDoEsquema();
             copia = copiarBanco();
-            List<Path> anexos = Arquivos.arquivosDentro(pastas.anexos());
-            Manifesto manifesto = new Manifesto(Manifesto.FORMATO, versaoApp, versaoBanco, agora, motivo,
-                    Arquivos.sha256(copia), Files.size(copia), anexos.size());
+            String sha256Banco = Arquivos.sha256(copia);
+            long tamanhoBanco = Files.size(copia);
             Path destino = nomeLivre(pasta, agora);
-            Path parcial = destino.resolveSibling(destino.getFileName() + ".parcial");
-            escreverZip(parcial, copia, anexos, manifesto);
+            Path parcial = destino.resolveSibling(destino.getFileName() + PARCIAL);
+            Manifesto manifesto = escreverZip(parcial, copia, anexosDoBackup(), levados -> new Manifesto(
+                    Manifesto.FORMATO, versaoApp, versaoBanco, agora, motivo, sha256Banco, tamanhoBanco, levados));
             Arquivos.mover(parcial, destino);
             manterMaisRecentes(pasta, MANTER, destino);
             LOG.info(() -> "Backup feito (" + motivo.rotulo() + "): " + destino);
@@ -189,18 +193,34 @@ public final class Backup {
         return copia;
     }
 
-    private void escreverZip(Path destino, Path copiaBanco, List<Path> anexos, Manifesto manifesto)
+    /**
+     * Os arquivos da pasta de anexos que vão no backup. Fica de fora a cópia pela metade ({@code .parcial}) de um
+     * anexo sendo guardado, ou que sobrou de uma queda de energia: ela não é anexo de ninguém.
+     */
+    private List<Path> anexosDoBackup() throws IOException {
+        return Arquivos.arquivosDentro(pastas.anexos()).stream()
+                .filter(arquivo -> !arquivo.getFileName().toString().endsWith(PARCIAL))
+                .toList();
+    }
+
+    /** Monta o zip: o banco, os anexos e, por último, o manifesto, que conta os anexos que de fato foram junto. */
+    private Manifesto escreverZip(Path destino, Path copiaBanco, List<Path> anexos, IntFunction<Manifesto> manifesto)
             throws IOException {
         try (OutputStream saida = new BufferedOutputStream(Files.newOutputStream(destino));
                 ZipOutputStream zip = new ZipOutputStream(saida, StandardCharsets.UTF_8)) {
             adicionar(zip, ENTRADA_BANCO, copiaBanco);
+            int levados = 0;
             for (Path anexo : anexos) {
                 String relativo = pastas.anexos().relativize(anexo).toString().replace('\\', '/');
-                adicionar(zip, PREFIXO_ANEXOS + relativo, anexo);
+                if (adicionarSeExistir(zip, PREFIXO_ANEXOS + relativo, anexo)) {
+                    levados++;
+                }
             }
+            Manifesto pronto = manifesto.apply(levados);
             zip.putNextEntry(new ZipEntry(ENTRADA_MANIFESTO));
-            zip.write(Json.escreverFormatado(manifesto).getBytes(StandardCharsets.UTF_8));
+            zip.write(Json.escreverFormatado(pronto).getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
+            return pronto;
         }
     }
 
@@ -208,6 +228,28 @@ public final class Backup {
         zip.putNextEntry(new ZipEntry(nome));
         Files.copy(arquivo, zip);
         zip.closeEntry();
+    }
+
+    /**
+     * Põe o arquivo no zip, se ele ainda existir. Um anexo removido entre a lista e a cópia (a tela segue aberta
+     * durante o backup automático) fica de fora, em vez de derrubar o backup inteiro.
+     *
+     * @return false se o arquivo sumiu
+     */
+    static boolean adicionarSeExistir(ZipOutputStream zip, String nome, Path arquivo) throws IOException {
+        InputStream dados;
+        try {
+            dados = Files.newInputStream(arquivo);
+        } catch (NoSuchFileException sumiu) {
+            LOG.info(() -> "Anexo removido durante o backup, ficou de fora: " + arquivo);
+            return false;
+        }
+        try (dados) {
+            zip.putNextEntry(new ZipEntry(nome));
+            dados.transferTo(zip);
+            zip.closeEntry();
+        }
+        return true;
     }
 
     private static void apagarCopia(Path copia) {

@@ -107,6 +107,11 @@ public record DadosOs(
         return valor() == null ? null : SituacaoPagamento.falta(valor(), recebido());
     }
 
+    /** O que foi recebido além do valor (ex.: um recebimento lançado duas vezes); null sem orçamento aprovado. */
+    public Dinheiro aMais() {
+        return valor() == null ? null : SituacaoPagamento.aMais(valor(), recebido());
+    }
+
     /** Pendente, parcial ou pago; null sem orçamento aprovado. */
     public SituacaoPagamento situacao() {
         return valor() == null ? null : SituacaoPagamento.de(valor(), recebido());

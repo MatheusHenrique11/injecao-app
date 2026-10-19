@@ -93,6 +93,19 @@ class RelatorioOsTest {
         assertTrue(texto.indexOf("Amortecedor dianteiro") < texto.indexOf("Troca dos amortecedores"),
                 "as peças antes dos serviços");
         assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+        assertFalse(texto.contains("Recebido a mais"), "pago certinho: sem a linha do que passou");
+    }
+
+    /** Revisão pelo agente: o recebido a mais aparece, em vez de sumir atrás do "Pago". */
+    @Test
+    void comprovanteMostraORecebidoAMais() throws IOException {
+        Path destino = pasta.resolve("comprovante-a-mais.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.pagaAMais(), destino);
+        String texto = texto(destino);
+        for (String esperado : List.of("Recebido R$ 1.075,00", "Falta R$ 0,00", "Recebido a mais R$ 75,00",
+                "Situação Pago")) {
+            assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
+        }
     }
 
     @Test

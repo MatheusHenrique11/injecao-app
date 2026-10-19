@@ -22,6 +22,7 @@ import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosOficina;
+import br.com.calibra.app.casos.CasosOficina.Anonimizacao;
 import br.com.calibra.app.casos.CasosOficina.FichaVeiculo;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.ProjetoDoVeiculo;
@@ -193,10 +194,12 @@ public class FichaVeiculoController {
     /** Anonimiza o cliente e apaga os documentos pessoais (para os testes, sem a confirmação). */
     void anonimizarCliente() {
         try {
-            int apagados = recursos.oficina().anonimizarCliente(ficha.cliente().id());
+            Anonimizacao feita = recursos.oficina().anonimizarCliente(ficha.cliente().id());
             atualizar();
+            int apagados = feita.documentos();
             mostrarOk("Cliente anonimizado." + (apagados == 0 ? "" : apagados == 1
-                    ? " 1 documento pessoal foi apagado." : " " + apagados + " documentos pessoais foram apagados."));
+                    ? " 1 documento pessoal foi apagado." : " " + apagados + " documentos pessoais foram apagados.")
+                    + JanelasCadastro.avisoArquivosPresos(feita.arquivosPresos()));
         } catch (ErroDados erro) {
             mostrarErros(List.of(erro.getMessage()));
         }

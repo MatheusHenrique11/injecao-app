@@ -27,7 +27,7 @@ Tudo fica em `%LOCALAPPDATA%\Calibra\` (para abrir, cole esse endereço na barra
 | Pasta ou arquivo | O que tem |
 |---|---|
 | `calibra.db` | o banco de dados: clientes, veículos, ordens de serviço, projetos, cálculos, catálogos, orçamentos e configurações |
-| `anexos\` | o logo da oficina, as imagens dos mapas de turbo e as fotos e documentos das OS (em `anexos\veiculos\`) |
+| `anexos\` | o logo da oficina, as imagens dos mapas de turbo e as fotos e documentos das OS (em `anexos\veiculos\`). Ao abrir, o app apaga de `anexos\veiculos\` as cópias que nenhum anexo usa mais (ex.: um arquivo que estava aberto em outro programa quando o anexo foi removido) |
 | `backups\` | os backups automáticos (a pasta pode ser trocada, item 10) |
 | `logs\` | o registro do que o app fez, com o detalhe dos erros (para o suporte) |
 | `cache\` | arquivos temporários das bibliotecas (fontes do PDF); pode ser apagada |
@@ -61,7 +61,7 @@ Busca por placa, cliente, embarcação ou número da OS, sem precisar de acento 
 
 ### 5.3 Nova OS
 
-"Nova OS…" (no Painel ou na Oficina) tem três etapas. Se você sair no meio para outra tela, o que foi digitado fica lá.
+"Nova OS…" (no Painel ou na Oficina) tem três etapas. Se você sair no meio para outra tela (também para a lista da Oficina ou para outra OS), o que foi digitado fica lá: "Nova OS…" volta para ela. Ela só some quando a OS é aberta ou quando você cancela.
 
 1. **Cliente:** um já cadastrado ou novo (como no projeto, item 6.2). A busca acha também pela placa ou pelo nome da embarcação dos veículos do cliente.
 2. **Veículo:** um do cliente ou novo. Achando o cliente pela placa, o veículo daquela placa já vem escolhido.
@@ -81,15 +81,17 @@ O cabeçalho mostra o número, o cliente, o veículo, a etapa, o valor e o que j
 
 - **Começar o serviço:** só com o orçamento aprovado e a entrada registrada. Serviço só com orçamento aprovado é a regra do Código de Defesa do Consumidor (art. 39, VI).
 - **Aguardando peças…** (diga quais), **Retomar o serviço** e **Serviço pronto**.
-- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS.
+- **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia, até 3650 = 10 anos; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS.
 - **Cancelar OS…:** a qualquer momento antes da entrega, com o motivo. A OS cancelada fica no histórico; OS não se apaga.
+
+Com algo mudado e não salvo na aba Entrada, Entregar e Cancelar pedem para salvar antes: depois, a OS não muda mais, e a mudança se perderia.
 
 As abas:
 
-- **Entrada:** os dados da abertura e a entrada do veículo (registrar quando ele chegar, ou corrigir o que foi anotado errado).
-- **Orçamento:** o mesmo do projeto (item 9). Na OS sem projeto de preparação, os itens são digitados. A OS acompanha o orçamento até a aprovação: enviado leva a Aguardando aprovação; aprovado, a Aprovada; recusado ou revisão nova volta a Aberta. Depois de aprovada, uma revisão nova (o cliente pediu mais coisa) não muda a etapa, e o valor da OS passa a ser o da última revisão aprovada.
+- **Entrada:** os dados da abertura e a entrada do veículo (registrar quando ele chegar, ou corrigir o que foi anotado errado). Corrigir só a vistoria ou o tanque não mexe no km do cadastro do veículo; corrigir o km, sim.
+- **Orçamento:** o mesmo do projeto (item 9). Na OS sem projeto de preparação, os itens são digitados. A OS acompanha o orçamento até a aprovação: enviado leva a Aguardando aprovação; aprovado, a Aprovada; recusado ou revisão nova volta a Aberta. Depois de aprovada, uma revisão nova (o cliente pediu mais coisa) não muda a etapa, e o valor da OS passa a ser o da última revisão aprovada. Com a OS entregue ou cancelada, o orçamento fica só para ver (o PDF e o texto continuam saindo).
 - **Preparação:** com projeto ligado, o resumo e "Abrir o projeto". Sem projeto: "Criar projeto de preparação…" (o assistente começa no motor, com o cliente e o veículo da OS, e o projeto já nasce ligado a ela) ou ligar um projeto do mesmo veículo.
-- **Entrega e pagamento:** o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar.
+- **Entrega e pagamento:** o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar. Se o recebido passar do valor, aparece "recebido a mais": confira se nenhum recebimento foi lançado duas vezes e cancele o errado.
 - **Anexos:** fotos e PDF (nota fiscal, laudos, documentos), com miniatura. "Adicionar arquivos…" ou arrastar do Explorador. Foto vira "foto da entrada" antes de o serviço começar e "foto do serviço" depois; PDF vira "documento". "Editar…" muda o tipo, a descrição, a validade e a marca de documento pessoal. "Abrir" usa o programa do Windows. "Remover…" só com a OS em andamento.
 - **Histórico:** cada mudança de etapa, com data, hora e observação.
 
@@ -100,8 +102,8 @@ Depois da entrega, a OS não muda mais; os recebimentos e os anexos continuam va
 O botão **Documentos ▾**, no cabeçalho da OS:
 
 - **Via do cliente** (gerar PDF ou imprimir): a folha A4 que o cliente assina na chegada. Tem a OS, o cliente e o veículo, o serviço pedido, a previsão e o mecânico, a entrada (chegada, km, tanque, a vistoria item a item e os objetos deixados), o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Com algo mudado e não salvo na aba Entrada, a via não sai: a mensagem diz o que salvar. Assim nenhuma observação da vistoria fica de fora da folha assinada.
-- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence, os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta, a situação e a assinatura de quem recebeu o veículo.
-- **Copiar texto para WhatsApp:** "OS aberta" (o número, o veículo, quando chegou ou "orçamento a fazer", o serviço pedido e a previsão) e "pronto para retirar" (com a OS pronta: o valor, o recebido e o que falta). O app só copia: cole na conversa (Ctrl+V) e envie você mesmo.
+- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence, os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta (ou o recebido a mais), a situação e a assinatura de quem recebeu o veículo.
+- **Copiar texto para WhatsApp:** "OS aberta" (o número, o veículo, quando chegou ou "orçamento a fazer", o serviço pedido e a previsão) e "pronto para retirar" (com a OS pronta: o valor, o recebido e o que falta, ou o recebido a mais). O app só copia: cole na conversa (Ctrl+V), confira e envie você mesmo.
 - **Imprimir…** abre a janela de impressão do Windows. As páginas são preparadas em segundo plano; a primeira impressão demora alguns segundos (o app procura as fontes do Windows). Sem impressora, gere o PDF ou use a "Microsoft Print to PDF".
 
 ### 5.6 Ficha do veículo
@@ -145,6 +147,8 @@ Aberto pela OS ("Criar projeto de preparação…", item 5.4), o assistente já 
 
 O cabeçalho do projeto mostra a OS dele, num botão que a abre (ex.: "Abrir a OS-2026-0003 · Aprovada"), e o botão **Ficha do veículo** (item 5.6). O orçamento feito na aba Peças e orçamento vai para essa OS; se o projeto não tem OS em andamento, o app abre uma para ele, sem a entrada do veículo.
 
+Depois que a OS do projeto é entregue (ou cancelada), a aba Peças e orçamento fica sem orçamento: o próximo abre outra OS para o projeto (ex.: a segunda etapa da preparação). O orçamento antigo continua na OS dele, na ficha do veículo.
+
 ### 6.5 Status do projeto
 
 Rascunho → Dimensionado (primeiro cálculo salvo) → Orçado (orçamento enviado) → Aprovado (orçamento aprovado) → Mapa base → Em acerto → Concluído. Anda para a frente, um passo de cada vez. "Arquivar projeto" tira o projeto da lista a qualquer momento; "Reativar" volta ao status de antes.
@@ -157,6 +161,9 @@ O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ qu
 - os anexos marcados como documento pessoal (como CNH e CRLV), os das OS dele e os dos veículos dele. O arquivo só sai da pasta de anexos se nenhum outro anexo usar o mesmo.
 
 Fotos, laudos, notas fiscais, OS, projetos, cálculos e orçamentos ficam. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
+
+- Se um desses documentos estiver aberto em outro programa (como um PDF no leitor), o arquivo não sai da pasta na hora: o app avisa, e ele sai na próxima vez que o Calibra abrir. Feche o programa antes, se puder.
+- Depois de anonimizar, a placa, o chassi e a identificação da embarcação não voltam pela edição do veículo, e o cliente não recebe OS nova pelo orçamento do projeto nem documento pessoal novo. Se a pessoa voltar à oficina, cadastre-a de novo, com um consentimento novo.
 
 O que a anonimização não alcança:
 
@@ -229,7 +236,7 @@ A escala dos eixos precisa ser linear (é a dos mapas de compressor comuns).
 
 ## 9. Orçamento
 
-O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a OS tem projeto de preparação, também na aba **Peças e orçamento** do projeto: é o mesmo orçamento nas duas.
+O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a OS tem projeto de preparação, também na aba **Peças e orçamento** do projeto: é o mesmo orçamento nas duas (no projeto, o da OS em andamento; item 6.4). Com a OS entregue ou cancelada, ele fica só para ver.
 
 - **De preparação** (a OS tem projeto): sai do último cálculo salvo do projeto, que precisa estar em dia.
 - **Comum** (sem projeto, ex.: revisão, freios, suspensão): os itens são digitados ou vêm do catálogo de serviços. O PDF e o texto de WhatsApp dele saem sem o motor, a meta, o resumo técnico e a nota do mapa base.
@@ -253,7 +260,7 @@ Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento
 ## 10. Backup e restauração
 
 - **Automático:** o app confere ao abrir e depois de hora em hora, e faz um backup por dia. Ao fechar, se algo mudou, faz outro ("Fazendo backup antes de fechar…"). Ficam os 30 mais recentes.
-- **O backup** é um arquivo `calibra-backup-AAAA-MM-DD-HHMMSS.zip` com o banco, os anexos e um resumo com a versão e a conferência dos arquivos.
+- **O backup** é um arquivo `calibra-backup-AAAA-MM-DD-HHMMSS.zip` com o banco, os anexos e um resumo com a versão e a conferência dos arquivos. Um anexo removido enquanto o backup é feito fica de fora, sem atrapalhar o resto.
 - **Pasta:** em Configurações → Backup, dá para escolher outra pasta, como um pen drive ou um HD externo. Se ela não estiver ligada, o backup vai para a pasta padrão, com aviso na barra de baixo.
 - **Fazer backup agora:** a qualquer momento.
 - **Restaurar um backup…:** escolha o backup na lista e confirme. Antes de trocar os dados, o app guarda os dados atuais num backup de segurança na pasta padrão. Backup corrompido ou de uma versão mais nova do app é recusado sem mexer em nada. O que estiver digitado e não salvo nas telas se perde.

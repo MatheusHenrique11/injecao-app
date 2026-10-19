@@ -432,9 +432,13 @@ public class ProjetoController {
             return;
         }
         try {
-            oficina.anonimizarCliente(aberto.cliente().id());
+            int presos = oficina.anonimizarCliente(aberto.cliente().id()).arquivosPresos();
             recarregar();
             descartarVeiculo();
+            if (presos > 0) {
+                avisar(Alert.AlertType.WARNING, "Cliente anonimizado",
+                        JanelasCadastro.avisoArquivosPresos(presos).strip());
+            }
         } catch (ErroDados erro) {
             avisar(Alert.AlertType.ERROR, "Não foi possível anonimizar", erro.getMessage());
         }

@@ -92,6 +92,19 @@ final class JanelasCadastro {
         return alerta.showAndWait().filter(anonimizar::equals).isPresent();
     }
 
+    /**
+     * O complemento da mensagem quando arquivos dos documentos apagados ficaram na pasta (abertos em outro programa,
+     * como um PDF no leitor); vazio se nenhum ficou.
+     */
+    static String avisoArquivosPresos(int presos) {
+        if (presos == 0) {
+            return "";
+        }
+        return (presos == 1 ? " 1 arquivo estava aberto em outro programa e ainda não saiu da pasta"
+                : " " + presos + " arquivos estavam abertos em outro programa e ainda não saíram da pasta")
+                + ": feche o programa; o Calibra apaga na próxima vez que abrir.";
+    }
+
     /** A janela de edição: Salvar grava e fecha; com erro, mostra a mensagem e fica aberta. */
     private static boolean editar(Window dono, String titulo, Node formulario, Runnable gravar) {
         VBox erros = new VBox(4);

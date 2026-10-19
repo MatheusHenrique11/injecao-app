@@ -576,7 +576,8 @@ class OficinaUiTest {
 
     /**
      * Revisão final (bloco 3.4): o uso gravado com duas casas (1.250,25 h) aparece com uma na aba Entrada (1.250,3). A
-     * trava dos documentos compara o que a tela mostra, e a via não fica presa por uma mudança que ninguém fez.
+     * trava dos documentos compara o que a tela mostra, e a via não fica presa por uma mudança que ninguém fez. Na
+     * revisão pelo agente: corrigir só o tanque grava o uso como estava (1.250,25), sem arredondar.
      */
     @Test
     void usoComDuasCasasNaoTravaOsDocumentos() throws Throwable {
@@ -593,6 +594,12 @@ class OficinaUiTest {
                 principal.abrirOs(ana);
                 assertEquals("1.250,3", TelaDeTeste.<TextField>achar(cena, "usoEntrada").getText());
                 assertEquals(List.of(), principal.osAberta().pendentes(), "nada mudou: a via sai");
+
+                TelaDeTeste.<ComboBox<NivelCombustivel>>achar(cena, "combustivel").setValue(NivelCombustivel.CHEIO);
+                principal.osAberta().salvarEntrada();
+                EntradaVeiculo gravada = oficina.buscar(ana).os().entrada();
+                assertEquals(NivelCombustivel.CHEIO, gravada.combustivel());
+                assertEquals(1_250.25, gravada.uso(), "o uso fica como estava, sem virar 1.250,3");
             });
         } finally {
             if (principal != null) {
@@ -715,6 +722,11 @@ class OficinaUiTest {
         TelaDeTeste.<TextField>achar(cena, "nome").setText("Diego Alves (fictício)");
         TelaDeTeste.<TextField>achar(cena, "telefone").setText("(11) 97654-3210");
         TelaDeTeste.<CheckBox>achar(cena, "consentiu").setSelected(true);
+        // Decisão 183 (revisão pelo agente): ir para a lista da Oficina e voltar não perde o que foi digitado.
+        principal.abrirOficina(null);
+        assertNotNull(principal.novaOsAberta(), "a Nova OS continua guardada");
+        TelaDeTeste.<Button>achar(cena, "botaoNovaOs").fire();
+        assertEquals("Diego Alves (fictício)", TelaDeTeste.<TextField>achar(cena, "nome").getText());
         proximo();
         TelaDeTeste.<TextField>achar(cena, "marca").setText("Fiat");
         TelaDeTeste.<TextField>achar(cena, "modelo").setText("Uno");
@@ -974,8 +986,20 @@ class OficinaUiTest {
         assertTrue(texto("falta").endsWith("(Pago)"), texto("falta"));
         assertEquals(3, recebimentos.getItems().size(), "o cancelado fica na lista");
 
+        // Revisão pelo agente: a vistoria mudada e não salva se perderia na entrega (depois, a OS não muda mais).
+        TextField vistoria = achar(cena, "vistoria0");
+        String gravada = vistoria.getText();
+        vistoria.setText("Arranhão no para-choque, ainda não salvo");
+        os.entregar(new Entrega(agora, 120_150.0, new Garantia(90)));
+        assertEquals("Pronta", texto("status"), "não entregou");
+        assertEquals(List.of("• Antes de entregar, salve o que mudou na aba Entrada: a entrada (Salvar a correção da "
+                + "entrada). Depois da entrega, a OS não muda mais."), os.mensagens());
+        vistoria.setText(gravada);
+
         os.entregar(new Entrega(agora, 120_150.0, new Garantia(90)));
         assertEquals("Entregue", texto("status"));
+        vistoria.setText("Sobra na tela");
+        assertEquals(List.of(), os.pendentes(), "entregue: não há o que salvar, e a via não fica presa");
         documentosNaEntrega(os);
         assertFalse(TelaDeTeste.<Button>achar(cena, "botaoCancelarOs").isVisible(), "entregue não se cancela");
         assertTrue(texto("situacaoEntrega").endsWith("com garantia de 90 dias, até "

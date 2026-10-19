@@ -21,7 +21,7 @@ public record PadroesOs(int garantiaDias, List<String> itensVistoria, String tex
             + "do veículo na chegada (km, tanque, vistoria e objetos deixados) está anotado acima. O serviço só começa "
             + "depois que eu aprovar o orçamento.";
 
-    public static final int MAXIMO_DIAS = 3650;
+    public static final int MAXIMO_DIAS = Garantia.MAXIMO_DIAS;
     public static final int MAXIMO_ITENS = 20;
     public static final int MAXIMO_LETRAS_ITEM = 60;
     public static final int MAXIMO_LETRAS_TEXTO = 600;

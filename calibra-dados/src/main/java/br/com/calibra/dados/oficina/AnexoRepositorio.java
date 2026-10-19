@@ -7,9 +7,11 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.dados.Sql;
@@ -110,6 +112,18 @@ public final class AnexoRepositorio {
                 return linha.getInt(1);
             }
         }
+    }
+
+    /** Os arquivos que algum anexo usa (caminhos relativos à pasta de anexos), para achar as cópias sem uso. */
+    public Set<String> arquivosEmUso(Connection conexao) throws SQLException {
+        Set<String> arquivos = new HashSet<>();
+        try (PreparedStatement consulta = conexao.prepareStatement("SELECT DISTINCT arquivo FROM anexo");
+                ResultSet linhas = consulta.executeQuery()) {
+            while (linhas.next()) {
+                arquivos.add(linhas.getString(1));
+            }
+        }
+        return arquivos;
     }
 
     private static List<AnexoSalvo> lista(Connection conexao, String sql, long... parametros) throws SQLException {

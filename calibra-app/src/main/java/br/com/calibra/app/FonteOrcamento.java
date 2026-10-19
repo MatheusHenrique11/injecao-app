@@ -1,6 +1,7 @@
 package br.com.calibra.app;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 import br.com.calibra.app.casos.CasosOrcamento;
@@ -17,6 +18,9 @@ interface FonteOrcamento {
 
     /** As revisões, da mais nova para a mais antiga. */
     List<SituacaoOrcamento> revisoes();
+
+    /** Por que o orçamento não muda mais (a OS foi entregue ou cancelada): o editor só mostra. Vazio = dá para mexer. */
+    Optional<String> trava();
 
     /**
      * O orçamento novo já preenchido.
@@ -36,12 +40,20 @@ interface FonteOrcamento {
 
     String aoAprovar();
 
-    /** O orçamento do projeto de preparação: sempre com o cálculo, e o projeto acompanha o envio e a aprovação. */
+    /**
+     * O orçamento do projeto de preparação, o da OS em andamento dele: sempre com o cálculo, e o projeto acompanha o
+     * envio e a aprovação. Sem OS em andamento, o orçamento novo abre uma.
+     */
     static FonteOrcamento doProjeto(CasosOrcamento casos, long projetoId) {
         return new FonteOrcamento() {
             @Override
             public List<SituacaoOrcamento> revisoes() {
                 return casos.orcamentos(projetoId);
+            }
+
+            @Override
+            public Optional<String> trava() {
+                return Optional.empty();
             }
 
             @Override
@@ -81,6 +93,11 @@ interface FonteOrcamento {
             @Override
             public List<SituacaoOrcamento> revisoes() {
                 return casos.orcamentosDaOs(osId);
+            }
+
+            @Override
+            public Optional<String> trava() {
+                return casos.trava(osId);
             }
 
             @Override

@@ -33,7 +33,7 @@ public final class TextoWhatsAppOs {
         return String.join("\n", linhas);
     }
 
-    /** Pronto para retirar: o número, o veículo, o valor, o recebido, o que falta e o contato. */
+    /** Pronto para retirar: o número, o veículo, o valor, o recebido, o que falta (ou o que passou) e o contato. */
     public static String prontaParaRetirar(DadosOs dados) {
         List<String> linhas = new ArrayList<>();
         linhas.add("*" + dados.numero() + ": pronto para retirar*" + TextoOficina.noTitulo(dados.oficina()));
@@ -43,7 +43,13 @@ public final class TextoWhatsAppOs {
             if (dados.recebido().centavos() > 0) {
                 linhas.add("Recebido: " + dados.recebido().formatar());
             }
-            linhas.add(dados.falta().centavos() > 0 ? "*Falta: " + dados.falta().formatar() + "*" : "Tudo pago.");
+            if (dados.falta().centavos() > 0) {
+                linhas.add("*Falta: " + dados.falta().formatar() + "*");
+            } else if (dados.aMais().centavos() > 0) {
+                linhas.add("Tudo pago. Recebido a mais: " + dados.aMais().formatar() + ".");
+            } else {
+                linhas.add("Tudo pago.");
+            }
         }
         contato(linhas, dados);
         return String.join("\n", linhas);

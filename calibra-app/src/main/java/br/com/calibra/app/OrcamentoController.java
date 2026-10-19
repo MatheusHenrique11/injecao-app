@@ -119,6 +119,8 @@ public class OrcamentoController {
     private SituacaoOrcamento atual;
     /** Sem orçamento gravado e sem cálculo em dia: não dá para começar um. */
     private String semCalculo;
+    /** A OS foi entregue ou cancelada: o orçamento só se vê (null = dá para mexer). */
+    private String trava;
     /** O que está no editor mudou e não foi gravado. */
     private boolean alterado;
     private boolean preenchendo;
@@ -221,6 +223,7 @@ public class OrcamentoController {
      */
     void atualizar() {
         List<SituacaoOrcamento> lista = fonte.revisoes();
+        trava = fonte.trava().orElse(null);
         revisoes.getItems().setAll(lista);
         SituacaoOrcamento anterior = atual;
         atual = lista.isEmpty() ? null : lista.getFirst();
@@ -237,6 +240,10 @@ public class OrcamentoController {
         semCalculo = null;
         if (atual != null) {
             preencher(atual.orcamento().conteudo());
+            return;
+        }
+        if (trava != null) {
+            preencher(recursos.padroes().get().orcamento(List.of()));
             return;
         }
         try {
@@ -332,7 +339,7 @@ public class OrcamentoController {
     }
 
     private boolean editavel() {
-        return atual == null ? semCalculo == null : atual.orcamento().status().editavel();
+        return trava == null && (atual == null ? semCalculo == null : atual.orcamento().status().editavel());
     }
 
     /** Usa o cálculo do projeto: o orçamento gravado diz por si; o novo, pela fonte (a OS com projeto ligado). */
@@ -342,8 +349,9 @@ public class OrcamentoController {
 
     private void atualizarEstado() {
         OrcamentoSalvo o = atual == null ? null : atual.orcamento();
-        numero.setText(o == null ? "Orçamento novo" : "Orçamento " + o.numero().comRevisao());
-        situacao.setText(o == null ? "não gravado" : o.status().rotulo());
+        numero.setText(o == null ? (trava == null ? "Orçamento novo" : "Sem orçamento")
+                : "Orçamento " + o.numero().comRevisao());
+        situacao.setText(o == null ? (trava == null ? "não gravado" : "—") : o.status().rotulo());
         explicacao.setText(explicacao(o));
         boolean comCalculo = comCalculo();
         dicaItens.setText(comCalculo ? "As peças vêm do último cálculo salvo, com o preço de referência do catálogo "
@@ -367,6 +375,9 @@ public class OrcamentoController {
     }
 
     private String explicacao(OrcamentoSalvo o) {
+        if (trava != null) {
+            return trava;
+        }
         if (o == null) {
             return semCalculo != null ? semCalculo
                     : "Orçamento novo, ainda não gravado: confira os itens, some os serviços e clique em Salvar "
@@ -387,7 +398,8 @@ public class OrcamentoController {
 
     private void atualizarBotoes() {
         boolean editavel = editavel();
-        StatusOrcamento status = atual == null ? null : atual.orcamento().status();
+        // Com a OS entregue ou cancelada, nenhum botão de status: é como se não houvesse status para mudar.
+        StatusOrcamento status = atual == null || trava != null ? null : atual.orcamento().status();
         botaoSalvar.setDisable(!editavel);
         botaoDescartar.setDisable(!editavel || !alterado);
         botaoAdicionarPeca.setDisable(!editavel);

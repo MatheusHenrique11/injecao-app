@@ -73,6 +73,8 @@ public class PrincipalController implements Navegacao {
     /** O que está aberto na área da Oficina: a lista, a Nova OS ou uma OS. */
     private Parent telaOficina;
     private String tituloOficina;
+    /** A Nova OS sendo preenchida (decisão 183): fica guardada até ser gravada ou cancelada. */
+    private Parent telaNovaOs;
     private NovaOsController novaOsAberta;
     private OsController osAberta;
     private FichaVeiculoController fichaAberta;
@@ -119,6 +121,8 @@ public class PrincipalController implements Navegacao {
         this.casosOrcamento = new CasosOrcamento(contexto.banco(), contexto.relogio(), casosProjeto);
         this.casosOficina = new CasosOficina(contexto.banco(), contexto.relogio(), casosProjeto,
                 contexto.pastas().anexos());
+        // Antes da tela: o arquivo que ficou na pasta da última vez (aberto em outro programa) sai agora.
+        casosOficina.apagarArquivosSemUso();
         atualizarStatus();
         mostrarPainel();
     }
@@ -168,7 +172,6 @@ public class PrincipalController implements Navegacao {
         } else {
             oficina.atualizar();
         }
-        novaOsAberta = null;
         osAberta = null;
         fichaAberta = null;
         abrirNaAreaDaOficina(telaListaOficina, "Oficina");
@@ -181,21 +184,25 @@ public class PrincipalController implements Navegacao {
         oficina.filtrar(status);
     }
 
-    /** A Nova OS; se já há uma sendo preenchida, volta para ela, com o que foi digitado. */
+    /** A Nova OS; se já há uma sendo preenchida, volta para ela, com o que foi digitado (decisão 183). */
     @Override
     public void novaOs() {
-        if (novaOsAberta != null) {
-            mostrar(telaOficina, navOficina, tituloOficina);
-            return;
+        if (novaOsAberta == null) {
+            FXMLLoader carregador = carregador("nova-os.fxml");
+            telaNovaOs = carregar(carregador);
+            novaOsAberta = carregador.getController();
+            novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio(),
+                    contexto.configuracao().ler(Chave.OS));
         }
-        FXMLLoader carregador = carregador("nova-os.fxml");
-        Parent tela = carregar(carregador);
-        novaOsAberta = carregador.getController();
-        novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio(),
-                contexto.configuracao().ler(Chave.OS));
         osAberta = null;
         fichaAberta = null;
-        abrirNaAreaDaOficina(tela, "Nova OS");
+        abrirNaAreaDaOficina(telaNovaOs, "Nova OS");
+    }
+
+    @Override
+    public void fecharNovaOs() {
+        telaNovaOs = null;
+        novaOsAberta = null;
     }
 
     /** A Nova OS sendo preenchida; null se não há nenhuma (para os testes de interface). */
@@ -210,7 +217,6 @@ public class PrincipalController implements Navegacao {
         OsController os = carregador.getController();
         os.iniciar(new OsController.Recursos(casosOficina, casosProjeto, recursosDoOrcamento(), servicos, this,
                 contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria()), osId);
-        novaOsAberta = null;
         osAberta = os;
         fichaAberta = null;
         abrirNaAreaDaOficina(tela, os.numero());
@@ -228,7 +234,6 @@ public class PrincipalController implements Navegacao {
         FichaVeiculoController ficha = carregador.getController();
         ficha.iniciar(new FichaVeiculoController.Recursos(casosOficina, casosProjeto, casosCatalogo, servicos, this,
                 contexto.relogio()), veiculoId, rotuloVoltar, voltar);
-        novaOsAberta = null;
         osAberta = null;
         fichaAberta = ficha;
         abrirNaAreaDaOficina(tela, "Ficha do veículo");
@@ -389,6 +394,7 @@ public class PrincipalController implements Navegacao {
         telaListaOficina = null;
         oficina = null;
         telaOficina = null;
+        telaNovaOs = null;
         novaOsAberta = null;
         osAberta = null;
         fichaAberta = null;
