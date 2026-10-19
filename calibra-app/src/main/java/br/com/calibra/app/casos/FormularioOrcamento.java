@@ -185,7 +185,7 @@ public final class FormularioOrcamento {
             }
         }
         return new ItemOrcamento(linha.tipo(), linha.descricao(), quantidade, linha.unidade(), valor,
-                linha.catalogoItemId(), linha.catalogoVersao());
+                linha.catalogoItemId(), linha.catalogoVersao(), false);
     }
 
     // ===================== Padrões =====================

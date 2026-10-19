@@ -58,7 +58,7 @@ class FormularioOrcamentoTest {
     void idaEVolta() {
         Orcamento original = new Orcamento(List.of(
                 new ItemOrcamento(TipoItem.PECA, "Bico teste 1050", BigDecimal.valueOf(4), "un", Dinheiro.ler("450,00"),
-                        7L, 2),
+                        7L, 2, false),
                 ItemOrcamento.digitado(TipoItem.SERVICO, "Mão de obra", new BigDecimal("2.5"), "h",
                         Dinheiro.ler("1.180,50"))),
                 Desconto.emPercentual(new BigDecimal("7.5")), 12, "a partir da chegada das peças", 10, "à vista",

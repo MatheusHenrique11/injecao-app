@@ -13,9 +13,11 @@ import java.util.Objects;
  * @param catalogoItemId de onde a peça ou o serviço veio no catálogo (o preço é o de referência dele); null se
  *        digitado
  * @param catalogoVersao a versão do item do catálogo; null se digitada
+ * @param fornecidoPeloCliente a peça que o cliente traz (SPEC 6.6.4, Fase 3B; ex.: a ECU que ele já comprou): entra
+ *        com valor zero e não soma no total. Só peça; os orçamentos gravados antes da Fase 3B são lidos como false
  */
 public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantidade, String unidade,
-        Dinheiro valorUnitario, Long catalogoItemId, Integer catalogoVersao) {
+        Dinheiro valorUnitario, Long catalogoItemId, Integer catalogoVersao, boolean fornecidoPeloCliente) {
 
     public ItemOrcamento {
         Objects.requireNonNull(tipo, "tipo");
@@ -25,12 +27,15 @@ public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantida
         if (quantidade != null && quantidade.scale() < 0) {
             quantidade = quantidade.setScale(0);
         }
+        if (fornecidoPeloCliente) {
+            valorUnitario = Dinheiro.ZERO;
+        }
     }
 
     /** Peça ou serviço digitado (sem origem no catálogo). */
     public static ItemOrcamento digitado(TipoItem tipo, String descricao, BigDecimal quantidade, String unidade,
             Dinheiro valorUnitario) {
-        return new ItemOrcamento(tipo, descricao, quantidade, unidade, valorUnitario, null, null);
+        return new ItemOrcamento(tipo, descricao, quantidade, unidade, valorUnitario, null, null, false);
     }
 
     /**
@@ -47,17 +52,39 @@ public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantida
     public static ItemOrcamento doServico(String descricao, Double horas, Dinheiro preco, Dinheiro valorHora,
             long itemId, int versao) {
         if (preco != null) {
-            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", preco, itemId, versao);
+            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", preco, itemId, versao,
+                    false);
         }
         if (horas == null) {
             // O catálogo não grava serviço sem preço e sem horas; se vier assim, a pessoa preenche o valor.
-            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", null, itemId, versao);
+            return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.ONE, "serviço", null, itemId, versao,
+                    false);
         }
         return new ItemOrcamento(TipoItem.SERVICO, descricao, BigDecimal.valueOf(horas), "h", valorHora, itemId,
-                versao);
+                versao, false);
     }
 
-    /** Quantidade × valor unitário, arredondado no centavo. */
+    /**
+     * A linha de um item de material do catálogo (SPEC 6.6.4, Fase 3B): 1 × a unidade dele, pelo preço de referência.
+     * Sem preço, o valor fica em branco, para a pessoa preencher.
+     *
+     * @param preco o preço de referência do item do catálogo; null = sem preço
+     */
+    public static ItemOrcamento doItem(String descricao, String unidade, Dinheiro preco, long itemId, int versao) {
+        return new ItemOrcamento(TipoItem.PECA, descricao, BigDecimal.ONE, unidade, preco, itemId, versao, false);
+    }
+
+    /**
+     * A mesma linha com a quantidade multiplicada: a quantidade da linha do kit (2 × um serviço de 0,5 h = 1 h; 2 × um
+     * serviço com preço = 2 serviços).
+     */
+    public ItemOrcamento multiplicarQuantidade(BigDecimal fator) {
+        Objects.requireNonNull(fator, "fator");
+        return new ItemOrcamento(tipo, descricao, quantidade == null ? null : quantidade.multiply(fator), unidade,
+                valorUnitario, catalogoItemId, catalogoVersao, fornecidoPeloCliente);
+    }
+
+    /** Quantidade × valor unitário, arredondado no centavo; zero na peça fornecida pelo cliente. */
     public Dinheiro total() {
         return valorUnitario.vezes(quantidade);
     }
@@ -80,6 +107,9 @@ public record ItemOrcamento(TipoItem tipo, String descricao, BigDecimal quantida
             erros.add(onde + "informe o valor.");
         } else if (valorUnitario.negativo()) {
             erros.add(onde + "o valor não pode ser negativo (use o desconto).");
+        }
+        if (fornecidoPeloCliente && tipo != TipoItem.PECA) {
+            erros.add(onde + "só peça pode ser fornecida pelo cliente.");
         }
         return erros;
     }

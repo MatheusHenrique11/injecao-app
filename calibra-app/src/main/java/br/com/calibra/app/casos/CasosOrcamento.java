@@ -210,12 +210,12 @@ public final class CasosOrcamento {
             if (versao.isPresent()) {
                 Dinheiro preco = versao.get().info().precoReferencia();
                 itens.add(new ItemOrcamento(TipoItem.PECA, versao.get().info().nome(), qtd, "un", preco,
-                        usada.itemId(), usada.versao()));
+                        usada.itemId(), usada.versao(), false));
                 return;
             }
         }
         if (digitada != null) {
-            itens.add(new ItemOrcamento(TipoItem.PECA, digitada, qtd, "un", null, null, null));
+            itens.add(new ItemOrcamento(TipoItem.PECA, digitada, qtd, "un", null, null, null, false));
         }
     }
 

@@ -70,7 +70,8 @@ class OrcamentoTest {
     void oQueFaltaOuEstaErrado() {
         assertEquals(List.of("O orçamento precisa de pelo menos um item (peça ou serviço)."),
                 orcamento(Desconto.NENHUM).validar());
-        ItemOrcamento semNada = new ItemOrcamento(TipoItem.PECA, " ", BigDecimal.ZERO, "un", null, null, null);
+        ItemOrcamento semNada = new ItemOrcamento(TipoItem.PECA, " ", BigDecimal.ZERO, "un", null, null, null,
+                false);
         assertEquals(List.of("Item 1: escreva a descrição.", "Item 1: a quantidade deve ser maior que zero.",
                 "Item 1: informe o valor."), orcamento(Desconto.NENHUM, semNada).validar());
 
