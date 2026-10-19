@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,9 +44,13 @@ import br.com.calibra.dados.oficina.ResumoOs;
  */
 public class FichaVeiculoController {
 
-    /** O que a tela usa do resto do app. */
+    /**
+     * O que a tela usa do resto do app.
+     *
+     * @param tarefas a fila de segundo plano do app (a cópia dos documentos)
+     */
     record Recursos(CasosOficina oficina, CasosProjeto projetos, CasosCatalogo catalogo, HostServices servicos,
-            Navegacao navegacao, Clock relogio) {
+            Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
     }
 
     @FXML private Button botaoVoltar;
@@ -102,7 +107,8 @@ public class FichaVeiculoController {
         ListaOs.montar(ordens, recursos.relogio(), ListaOs.Coluna.NUMERO, ListaOs.Coluna.SERVICO, ListaOs.Coluna.STATUS,
                 ListaOs.Coluna.CHEGADA, ListaOs.Coluna.PREVISAO);
         ListaOs.aoAbrir(ordens, recursos.navegacao()::abrirOs);
-        anexosController.iniciar(recursos.oficina(), recursos.servicos(), new AnexosDoVeiculo(), this::mostrarOk,
+        anexosController.iniciar(recursos.oficina(), recursos.servicos(), recursos.tarefas(), new AnexosDoVeiculo(),
+                this::mostrarOk,
                 this::mostrarErros);
         anexosController.textos("Adicionar documento do veículo…", "Nenhum anexo. Adicione os documentos do veículo "
                 + "(como o CRLV); as fotos e as notas do serviço entram pelas OS.");
@@ -234,12 +240,16 @@ public class FichaVeiculoController {
         }
 
         @Override
-        public String anexar(List<Path> arquivos) {
+        public Callable<String> anexar(List<Path> arquivos) {
             List<NovoAnexo> novos = arquivos.stream().map(arquivo -> new NovoAnexo(arquivo, TipoAnexo.DOCUMENTO, "",
                     null, TipoAnexo.DOCUMENTO.pessoalPorPadrao())).toList();
-            recursos.oficina().anexarAoVeiculo(veiculoId, novos);
-            return (novos.size() == 1 ? "Documento anexado ao veículo." : novos.size() + " documentos anexados ao "
-                    + "veículo.") + " Para pôr a validade (ex.: do CRLV) ou mudar o tipo, use Editar.";
+            CasosOficina oficina = recursos.oficina();
+            long veiculo = veiculoId;
+            return () -> {
+                oficina.anexarAoVeiculo(veiculo, novos);
+                return (novos.size() == 1 ? "Documento anexado ao veículo." : novos.size() + " documentos anexados "
+                        + "ao veículo.") + " Para pôr a validade (ex.: do CRLV) ou mudar o tipo, use Editar.";
+            };
         }
 
         @Override

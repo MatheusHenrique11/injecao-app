@@ -191,7 +191,7 @@ public class PrincipalController implements Navegacao {
             FXMLLoader carregador = carregador("nova-os.fxml");
             telaNovaOs = carregar(carregador);
             novaOsAberta = carregador.getController();
-            novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, contexto.relogio(),
+            novaOsAberta.iniciar(casosOficina, casosProjeto, casosCatalogo, this, tarefas, contexto.relogio(),
                     contexto.configuracao().ler(Chave.OS));
         }
         osAberta = null;
@@ -210,13 +210,19 @@ public class PrincipalController implements Navegacao {
         return novaOsAberta;
     }
 
+    /** A fila de segundo plano (para os testes de interface). */
+    TarefasFundo tarefas() {
+        return tarefas;
+    }
+
     @Override
     public void abrirOs(long osId) {
         FXMLLoader carregador = carregador("os.fxml");
         Parent tela = carregar(carregador);
         OsController os = carregador.getController();
         os.iniciar(new OsController.Recursos(casosOficina, casosProjeto, recursosDoOrcamento(), servicos, this,
-                contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria()), osId);
+                contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria(),
+                tarefas), osId);
         osAberta = os;
         fichaAberta = null;
         abrirNaAreaDaOficina(tela, os.numero());
@@ -233,7 +239,7 @@ public class PrincipalController implements Navegacao {
         Parent tela = carregar(carregador);
         FichaVeiculoController ficha = carregador.getController();
         ficha.iniciar(new FichaVeiculoController.Recursos(casosOficina, casosProjeto, casosCatalogo, servicos, this,
-                contexto.relogio()), veiculoId, rotuloVoltar, voltar);
+                contexto.relogio(), tarefas), veiculoId, rotuloVoltar, voltar);
         osAberta = null;
         fichaAberta = ficha;
         abrirNaAreaDaOficina(tela, "Ficha do veículo");

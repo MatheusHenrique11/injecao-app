@@ -1,5 +1,6 @@
 package br.com.calibra.app;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,10 +16,14 @@ import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.concurrent.Task;
 
+import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.dados.ErroDados;
+
 /**
  * Trabalho demorado fora da thread da tela (SPEC 10: backup e restauração em {@link Task}, com indicador
- * de progresso). Tudo roda numa única linha de execução, um de cada vez: um backup automático nunca roda
- * junto com uma restauração.
+ * de progresso; desde a fase 3B, também a cópia de fotos e documentos). Tudo roda numa única linha de execução, um
+ * de cada vez: um backup automático nunca roda junto com uma restauração, e a cópia de uma foto nunca roda junto com
+ * a restauração, que troca a pasta de anexos inteira.
  */
 final class TarefasFundo {
 
@@ -77,6 +82,25 @@ final class TarefasFundo {
     /** Para a fila ao sair do app. */
     void encerrar() {
         executor.shutdownNow();
+    }
+
+    /**
+     * O que mostrar na tela quando um trabalho falha: os erros de entrada ou a mensagem do erro de dados (as duas já
+     * em português). Um erro inesperado vai para o tratamento de sempre (log e janela de erro), e a lista fica vazia.
+     */
+    static List<String> mensagens(Throwable erro) {
+        if (erro instanceof EntradaInvalidaException invalida) {
+            return invalida.erros();
+        }
+        if (erro instanceof ErroDados dados) {
+            return List.of(dados.getMessage());
+        }
+        Thread.UncaughtExceptionHandler tratamento = Thread.getDefaultUncaughtExceptionHandler();
+        if (tratamento != null) {
+            tratamento.uncaughtException(Thread.currentThread(), erro);
+            return List.of();
+        }
+        return List.of("Erro inesperado: " + erro);
     }
 
     private void terminou() {

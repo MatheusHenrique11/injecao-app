@@ -2,7 +2,6 @@ package br.com.calibra.app.casos;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -13,6 +12,7 @@ import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 import br.com.calibra.dados.OperacaoRecusadaException;
@@ -56,21 +56,38 @@ public final class AnexosDaOficina {
             throw new OperacaoRecusadaException("O arquivo " + nome + " não é foto (JPG ou PNG) nem PDF. Fotos do "
                     + "iPhone em HEIC: mande pelo WhatsApp, que ele converte para JPG.");
         }
-        long tamanho = Files.size(origem);
-        if (tamanho > TAMANHO_MAXIMO_BYTES) {
+        if (Files.size(origem) > TAMANHO_MAXIMO_BYTES) {
             throw new OperacaoRecusadaException("O arquivo " + nome + " passa de 20 MB.");
         }
-        String sha256 = sha256(origem);
-        String relativo = PASTA + "/" + veiculoId + "/" + sha256.substring(0, 16) + "."
-                + (extensao.equals("jpeg") ? "jpg" : extensao);
-        Path destino = anexos.resolve(relativo);
-        if (!Files.exists(destino)) {
-            Files.createDirectories(destino.getParent());
-            Path parcial = destino.resolveSibling(destino.getFileName() + ".parcial");
-            Files.copy(origem, parcial, StandardCopyOption.REPLACE_EXISTING);
-            Files.move(parcial, destino, StandardCopyOption.ATOMIC_MOVE);
+        String tipo = extensao.equals("jpeg") ? "jpg" : extensao;
+        Path pasta = anexos.resolve(PASTA).resolve(Long.toString(veiculoId));
+        Files.createDirectories(pasta);
+        // O nome sai do SHA-256, calculado durante a cópia (a foto é lida uma vez só). Até lá, a cópia tem um nome
+        // provisório terminado em .parcial, que o backup ignora e a limpeza ao abrir o app apaga, se sobrar.
+        Path parcial = pasta.resolve(provisorio() + "." + tipo + ".parcial");
+        try {
+            MessageDigest resumo = novoResumo();
+            try (InputStream entrada = new DigestInputStream(Files.newInputStream(origem), resumo)) {
+                Files.copy(entrada, parcial, StandardCopyOption.REPLACE_EXISTING);
+            }
+            String sha256 = HexFormat.of().formatHex(resumo.digest());
+            long tamanho = Files.size(parcial);
+            String relativo = PASTA + "/" + veiculoId + "/" + sha256.substring(0, 16) + "." + tipo;
+            Path destino = anexos.resolve(relativo);
+            if (!Files.exists(destino)) {
+                Files.move(parcial, destino, StandardCopyOption.ATOMIC_MOVE);
+            }
+            return new Copia(relativo, tamanho, sha256);
+        } finally {
+            Files.deleteIfExists(parcial);
         }
-        return new Copia(relativo, tamanho, sha256);
+    }
+
+    /** 16 caracteres hexadecimais ao acaso: o nome provisório tem o mesmo formato dos nomes de verdade. */
+    private static String provisorio() {
+        byte[] bytes = new byte[8];
+        ThreadLocalRandom.current().nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 
     /** O arquivo do anexo na pasta de anexos, se existir (um caminho que sai da pasta não vale). */
@@ -103,17 +120,11 @@ public final class AnexosDaOficina {
         return ponto < 0 ? "" : nome.substring(ponto + 1).toLowerCase(Locale.ROOT);
     }
 
-    /** O SHA-256 do arquivo, lido aos pedaços (uma foto de 20 MB não precisa caber inteira na memória). */
-    private static String sha256(Path arquivo) throws IOException {
-        MessageDigest resumo;
+    private static MessageDigest novoResumo() {
         try {
-            resumo = MessageDigest.getInstance("SHA-256");
+            return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException erro) {
             throw new IllegalStateException("SHA-256 faz parte de todo Java", erro);
         }
-        try (InputStream entrada = new DigestInputStream(Files.newInputStream(arquivo), resumo)) {
-            entrada.transferTo(OutputStream.nullOutputStream());
-        }
-        return HexFormat.of().formatHex(resumo.digest());
     }
 }

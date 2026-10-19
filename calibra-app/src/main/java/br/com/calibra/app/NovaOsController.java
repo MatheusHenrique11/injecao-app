@@ -30,7 +30,6 @@ import javafx.stage.Window;
 import br.com.calibra.app.casos.AnexosDaOficina;
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosOficina;
-import br.com.calibra.app.casos.CasosOficina.Gravado;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosProjeto;
@@ -83,6 +82,7 @@ public class NovaOsController {
     private CasosOficina casos;
     private CaixaMecanico caixaMecanico;
     private Navegacao navegacao;
+    private TarefasFundo tarefas;
     private Clock relogio;
     private int etapa;
 
@@ -111,11 +111,15 @@ public class NovaOsController {
         });
     }
 
-    /** @param padroes os padrões de Configurações › OS (os itens da vistoria) */
+    /**
+     * @param tarefas a fila de segundo plano do app, onde a OS é gravada com a cópia das fotos
+     * @param padroes os padrões de Configurações › OS (os itens da vistoria)
+     */
     void iniciar(CasosOficina casos, CasosProjeto projetos, CasosCatalogo catalogo, Navegacao navegacao,
-            Clock relogio, PadroesOs padroes) {
+            TarefasFundo tarefas, Clock relogio, PadroesOs padroes) {
         this.casos = casos;
         this.navegacao = navegacao;
+        this.tarefas = tarefas;
         this.relogio = relogio;
         LocalDateTime agora = LocalDateTime.now(relogio);
         escolhaClienteController.iniciar(projetos, agora.toLocalDate());
@@ -156,6 +160,10 @@ public class NovaOsController {
         }
     }
 
+    /**
+     * Grava a OS. O formulário é lido aqui, na thread da tela; a gravação, com a cópia das fotos, roda na fila de
+     * segundo plano: fotos grandes não travam a tela, e a janela de espera só aparece se passar de meio segundo.
+     */
     @FXML
     private void abrirOs() {
         List<String> erros = conferirEtapa();
@@ -163,22 +171,33 @@ public class NovaOsController {
             mostrarErros(erros);
             return;
         }
+        NovaOs nova;
+        List<NovoAnexo> fotos;
         try {
             EntradaVeiculo entrada = veiculoChegou.isSelected() ? formEntradaController.ler(new ArrayList<>()) : null;
-            NovaOs nova = new NovaOs(escolhaClienteController.escolha(), escolhaVeiculoController.escolha(),
+            nova = new NovaOs(escolhaClienteController.escolha(), escolhaVeiculoController.escolha(),
                     servicoPedido.getText(), caixaMecanico.escolhido(), previsao.getValue(), observacoes.getText(),
                     entrada);
-            List<NovoAnexo> fotos = entrada == null ? List.of() : listaFotos.getItems().stream()
+            fotos = entrada == null ? List.of() : listaFotos.getItems().stream()
                     .map(foto -> new NovoAnexo(foto, TipoAnexo.FOTO_ENTRADA, "", null, false)).toList();
-            Gravado gravado = casos.abrir(nova, fotos);
+        } catch (EntradaInvalidaException | ErroDados erro) {
+            mostrarErros(TarefasFundo.mensagens(erro));
+            return;
+        }
+        botaoAbrir.setDisable(true);
+        Runnable fecharEspera = JanelaProgresso.abrirSeDemorar(janela(),
+                fotos.isEmpty() ? "Abrindo a OS…" : "Abrindo a OS e copiando as fotos…");
+        tarefas.executar("Abrindo a OS", () -> casos.abrir(nova, fotos), gravado -> {
+            fecharEspera.run();
+            botaoAbrir.setDisable(false);
             mostrarAvisos(gravado.avisos());
             navegacao.fecharNovaOs();
             navegacao.abrirOs(gravado.osId());
-        } catch (EntradaInvalidaException erro) {
-            mostrarErros(erro.erros());
-        } catch (ErroDados erro) {
-            mostrarErros(List.of(erro.getMessage()));
-        }
+        }, erro -> {
+            fecharEspera.run();
+            botaoAbrir.setDisable(false);
+            mostrarErros(TarefasFundo.mensagens(erro));
+        });
     }
 
     @FXML

@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -75,9 +76,11 @@ public class OsController {
      *
      * @param padroes os padrões de Configurações › OS, lidos na hora (itens da vistoria, garantia e texto da via)
      * @param temporaria onde o PDF de uma impressão fica enquanto as páginas são desenhadas
+     * @param tarefas a fila de segundo plano do app (a cópia dos anexos)
      */
     record Recursos(CasosOficina oficina, CasosProjeto projetos, OrcamentoController.Recursos orcamento,
-            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes, Path temporaria) {
+            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes, Path temporaria,
+            TarefasFundo tarefas) {
     }
 
     @FXML private Label titulo;
@@ -178,7 +181,8 @@ public class OsController {
         this.recursos = recursos;
         this.osId = osId;
         caixaMecanico = new CaixaMecanico(mecanico, recursos.oficina());
-        anexosController.iniciar(recursos.oficina(), recursos.servicos(), new AnexosDaOs(), this::mostrarOk,
+        anexosController.iniciar(recursos.oficina(), recursos.servicos(), recursos.tarefas(), new AnexosDaOs(),
+                this::mostrarOk,
                 this::mostrarErros);
         atualizar();
         preencherFormularios();
@@ -542,7 +546,7 @@ public class OsController {
 
         /** PDF vira documento. O tipo e a descrição mudam em "Editar…". */
         @Override
-        public String anexar(List<Path> arquivos) {
+        public Callable<String> anexar(List<Path> arquivos) {
             StatusOs atual = aberta.os().status();
             boolean antesDoServico = atual.antesDaAprovacao() || atual == StatusOs.APROVADA;
             List<NovoAnexo> novos = arquivos.stream().map(arquivo -> {
@@ -550,9 +554,13 @@ public class OsController {
                         : antesDoServico ? TipoAnexo.FOTO_ENTRADA : TipoAnexo.FOTO_SERVICO;
                 return new NovoAnexo(arquivo, tipo, "", null, tipo.pessoalPorPadrao());
             }).toList();
-            recursos.oficina().anexar(osId, novos);
-            return (novos.size() == 1 ? "Arquivo anexado." : novos.size() + " arquivos anexados.")
-                    + " Para mudar o tipo ou pôr uma descrição, use Editar.";
+            CasosOficina oficina = recursos.oficina();
+            long os = osId;
+            return () -> {
+                oficina.anexar(os, novos);
+                return (novos.size() == 1 ? "Arquivo anexado." : novos.size() + " arquivos anexados.")
+                        + " Para mudar o tipo ou pôr uma descrição, use Editar.";
+            };
         }
 
         /** Remover só com a OS em andamento: o que ficou registrado na entrega não some. */

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 import javafx.application.HostServices;
@@ -48,12 +49,13 @@ public class AnexosController {
         List<AnexoSalvo> anexos();
 
         /**
-         * Anexa os arquivos.
+         * Prepara a anexação dos arquivos, na thread da tela (ex.: o tipo de cada um, pela etapa da OS), e devolve o
+         * trabalho de copiar e gravar, que roda em segundo plano.
          *
-         * @return a mensagem de sucesso
-         * @throws EntradaInvalidaException ou {@link ErroDados} se não deu (nada é gravado)
+         * @return o trabalho; ele devolve a mensagem de sucesso e lança {@link EntradaInvalidaException} ou
+         *     {@link ErroDados} se não deu (nada é gravado)
          */
-        String anexar(List<Path> arquivos);
+        Callable<String> anexar(List<Path> arquivos);
 
         /** Se o anexo se remove aqui (ex.: o da OS entregue não; o da OS, só na própria OS). */
         boolean podeRemover(AnexoSalvo anexo);
@@ -82,9 +84,12 @@ public class AnexosController {
     private final Map<Long, Image> miniaturas = new HashMap<>();
     private CasosOficina casos;
     private HostServices servicos;
+    private TarefasFundo tarefas;
     private Fonte fonte;
     private Consumer<String> ok = texto -> { };
     private Consumer<List<String>> erros = lista -> { };
+    /** Uma cópia está em andamento: outra (pelo botão ou arrastando) espera ela terminar. */
+    private boolean copiando;
 
     @FXML
     private void initialize() {
@@ -115,13 +120,15 @@ public class AnexosController {
     }
 
     /**
+     * @param tarefas a fila de segundo plano do app, onde a cópia dos arquivos roda
      * @param ok mostra a mensagem de sucesso na tela que usa a lista
      * @param erros mostra os erros na tela que usa a lista
      */
-    void iniciar(CasosOficina casos, HostServices servicos, Fonte fonte, Consumer<String> ok,
+    void iniciar(CasosOficina casos, HostServices servicos, TarefasFundo tarefas, Fonte fonte, Consumer<String> ok,
             Consumer<List<String>> erros) {
         this.casos = casos;
         this.servicos = servicos;
+        this.tarefas = tarefas;
         this.fonte = fonte;
         this.ok = ok;
         this.erros = erros;
@@ -162,9 +169,45 @@ public class AnexosController {
         }
     }
 
-    /** Anexa os arquivos (do botão ou arrastados do Windows Explorer). */
+    /**
+     * Anexa os arquivos (do botão ou arrastados do Windows Explorer). A cópia roda na fila de segundo plano: uma foto
+     * grande não trava a tela, e a janela de espera só aparece se passar de meio segundo.
+     */
     void adicionarAnexos(List<Path> arquivos) {
-        executar(() -> fonte.anexar(arquivos));
+        if (arquivos.isEmpty() || copiando) {
+            return;
+        }
+        Callable<String> trabalho;
+        try {
+            trabalho = fonte.anexar(arquivos);
+        } catch (EntradaInvalidaException | ErroDados erro) {
+            erros.accept(TarefasFundo.mensagens(erro));
+            return;
+        }
+        String texto = arquivos.size() == 1 ? "Copiando 1 arquivo" : "Copiando " + arquivos.size() + " arquivos";
+        copiando = true;
+        botaoAdicionarAnexos.setDisable(true);
+        Runnable fecharEspera = JanelaProgresso.abrirSeDemorar(janela(), texto + "…");
+        tarefas.executar(texto, trabalho, mensagem -> {
+            fecharEspera.run();
+            terminouCopia();
+            atualizar();
+            ok.accept(mensagem);
+        }, erro -> {
+            fecharEspera.run();
+            terminouCopia();
+            erros.accept(TarefasFundo.mensagens(erro));
+        });
+    }
+
+    private void terminouCopia() {
+        copiando = false;
+        botaoAdicionarAnexos.setDisable(false);
+    }
+
+    /** Uma cópia está em andamento (para os testes). */
+    boolean copiando() {
+        return copiando;
     }
 
     @FXML

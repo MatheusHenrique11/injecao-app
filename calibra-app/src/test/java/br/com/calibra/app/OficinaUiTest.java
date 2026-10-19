@@ -24,7 +24,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.imageio.ImageIO;
@@ -130,6 +134,8 @@ class OficinaUiTest {
     private long ana;
     private long bruno;
     private long carla;
+    /** A OS aberta pela Nova OS com as fotos, para conferir que a segunda usa o mesmo carro. */
+    private long primeiraOs;
 
     @Test
     void painelEListaDaOficina() throws Throwable {
@@ -157,7 +163,11 @@ class OficinaUiTest {
             TelaDeTeste.naTelaDoJavaFx(() -> oficina.novoMecanico("Carlos (fictício)"));
             TelaDeTeste.naTelaDoJavaFx(this::abrir);
             TelaDeTeste.naTelaDoJavaFx(this::novaOsComEntradaEFotos);
+            TelaDeTeste.esperar(() -> principal.osAberta() != null, "a OS abrir, depois de copiar as fotos");
+            TelaDeTeste.naTelaDoJavaFx(this::osAbertaComAsFotos);
             TelaDeTeste.naTelaDoJavaFx(this::novaOsPelaPlacaSemOVeiculo);
+            TelaDeTeste.esperar(() -> principal.osAberta() != null, "a segunda OS abrir");
+            TelaDeTeste.naTelaDoJavaFx(this::osSemOVeiculo);
         } finally {
             if (principal != null) {
                 principal.encerrar();
@@ -184,6 +194,9 @@ class OficinaUiTest {
             orcamentoPeloWhatsApp();
             TelaDeTeste.naTelaDoJavaFx(this::aprovarOrcamento);
             TelaDeTeste.naTelaDoJavaFx(this::passosEAnexos);
+            TelaDeTeste.esperar(() -> TelaDeTeste.<ListView<?>>achar(cena, "listaAnexos").getItems().size() == 2,
+                    "a foto e a nota serem copiadas");
+            TelaDeTeste.naTelaDoJavaFx(this::anexosEPronta);
             textoProntaParaRetirar();
             TelaDeTeste.esperar(this::miniaturasCarregadas, "as miniaturas dos anexos carregarem");
             TelaDeTeste.naTelaDoJavaFx(this::recebimentosEEntrega);
@@ -532,6 +545,11 @@ class OficinaUiTest {
                 assertEquals(List.of(ana), ids("ordens"));
                 Path crlv = Files.writeString(pasta.resolve("crlv.pdf"), "%PDF-1.7 CRLV fictício");
                 ficha.anexos().adicionarAnexos(List.of(crlv));
+                assertTrue(ficha.anexos().copiando(), "a cópia roda em segundo plano");
+            });
+            TelaDeTeste.esperar(() -> !principal.fichaAberta().anexos().copiando(), "o documento ser copiado");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                FichaVeiculoController ficha = principal.fichaAberta();
                 ListView<AnexoSalvo> anexos = ficha.anexos().lista();
                 assertEquals(1, anexos.getItems().size());
                 assertNull(anexos.getItems().getFirst().osId(), "documento do veículo, sem OS");
@@ -568,6 +586,51 @@ class OficinaUiTest {
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Fase 3B (bloco 3B.0): a cópia de uma foto grande roda na fila de segundo plano. Com a fila ocupada (como durante
+     * um backup comprido), a tela segue respondendo, o botão espera, e a foto entra na lista quando a fila chega nela.
+     */
+    @Test
+    void fotoGrandeNaoTravaATela() throws Throwable {
+        CountDownLatch liberar = new CountDownLatch(1);
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::prontaParaEntregar);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            Path grande = fotoGrande("motor-por-dentro.png");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaAnexos"));
+                principal.tarefas().executar("Fila ocupada (teste)", () -> liberar.await(30, TimeUnit.SECONDS),
+                        feito -> { }, erro -> { });
+                principal.osAberta().adicionarAnexos(List.of(grande));
+                assertTrue(TelaDeTeste.<Button>achar(cena, "botaoAdicionarAnexos").isDisabled(), "o botão espera");
+            });
+            AtomicBoolean vazia = new AtomicBoolean();
+            TelaDeTeste.naTelaDoJavaFx(() -> vazia.set(TelaDeTeste.<ListView<?>>achar(cena, "listaAnexos").getItems()
+                    .isEmpty()));
+            assertTrue(vazia.get(), "com a cópia esperando na fila, a tela respondeu, e a foto ainda não está lá");
+
+            liberar.countDown();
+            TelaDeTeste.esperar(() -> TelaDeTeste.<ListView<?>>achar(cena, "listaAnexos").getItems().size() == 1,
+                    "a foto ser copiada");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertFalse(TelaDeTeste.<Button>achar(cena, "botaoAdicionarAnexos").isDisabled(), "o botão volta");
+                AnexoSalvo foto = oficina.anexosDaOs(ana).getFirst();
+                assertEquals(Files.size(grande), foto.tamanhoBytes());
+                assertEquals(TipoAnexo.FOTO_SERVICO, foto.tipo());
+            });
+            // A miniatura também carrega em segundo plano, com a foto aberta: espera, para a pasta do teste sair.
+            TelaDeTeste.esperar(this::miniaturasCarregadas, "a miniatura da foto carregar");
+        } finally {
+            liberar.countDown();
             if (principal != null) {
                 principal.encerrar();
             }
@@ -758,8 +821,13 @@ class OficinaUiTest {
         assertEquals(2, TelaDeTeste.<ListView<?>>achar(cena, "listaFotos").getItems().size());
         assertTrue(contemTexto(cena.getRoot(), "IMG_0003.heic não é foto em JPG ou PNG."), "a HEIC fica fora");
         salvar(cena, "oficina-4-nova-os.png");
-        TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+        Button abrir = achar(cena, "botaoAbrir");
+        abrir.fire();
+        assertTrue(abrir.isDisabled(), "a OS é gravada e as fotos copiadas em segundo plano: o botão espera");
+    }
 
+    /** Depois de gravar: a Nova OS fechou e a OS abriu, com a entrada, a vistoria e as duas fotos. */
+    private void osAbertaComAsFotos() throws Exception {
         assertNull(principal.novaOsAberta(), "a Nova OS fechou");
         assertNotNull(principal.osAberta(), "e a tela da OS abriu");
         List<ResumoOs> criadas = oficina.listar(FiltroOs.todas());
@@ -784,7 +852,7 @@ class OficinaUiTest {
 
     /** O cliente achado pela placa já traz o veículo dele escolhido; o orçamento vem antes do veículo. */
     private void novaOsPelaPlacaSemOVeiculo() throws Exception {
-        long primeira = ids("listaOs").getFirst();
+        primeiraOs = ids("listaOs").getFirst();
         TelaDeTeste.<Button>achar(cena, "botaoNovaOs").fire();
         TelaDeTeste.<TextField>achar(cena, "buscaCliente").setText("efg-4h56");
         ListView<ClienteSalvo> clientes = achar(cena, "listaClientes");
@@ -801,6 +869,10 @@ class OficinaUiTest {
         TelaDeTeste.<CheckBox>achar(cena, "veiculoChegou").setSelected(false);
         salvar(cena, "oficina-5-nova-os-sem-o-veiculo.png");
         TelaDeTeste.<Button>achar(cena, "botaoAbrir").fire();
+    }
+
+    /** A OS sem o veículo aberta: a entrada fica para depois, e o próximo passo não espreme os botões. */
+    private void osSemOVeiculo() throws Exception {
         assertEquals("Registrar a entrada", TelaDeTeste.<Button>achar(cena, "botaoSalvarEntrada").getText(),
                 "o veículo ainda não chegou");
         for (String botao : List.of("botaoComecar", "botaoCancelarOs")) {
@@ -819,7 +891,8 @@ class OficinaUiTest {
         assertEquals(2, lista.size());
         OsAberta segunda = oficina.buscar(lista.getFirst());
         assertFalse(segunda.os().veiculoChegou(), "a entrada fica para quando o carro chegar");
-        assertEquals(oficina.buscar(primeira).veiculo().id(), segunda.veiculo().id(), "o mesmo carro, sem cadastro novo");
+        assertEquals(oficina.buscar(primeiraOs).veiculo().id(), segunda.veiculo().id(),
+                "o mesmo carro, sem cadastro novo");
         salvar(cena, "oficina-6-lista-com-as-novas.png");
     }
 
@@ -886,7 +959,15 @@ class OficinaUiTest {
         abas.getSelectionModel().select(aba(abas, "abaAnexos"));
         Path nota = Files.writeString(pasta.resolve("nota-fiscal.pdf"), "%PDF-1.7 nota fictícia");
         os.adicionarAnexos(List.of(foto("amortecedor-velho.jpg"), nota));
+        assertEquals(List.of(), TelaDeTeste.<ListView<?>>achar(cena, "listaAnexos").getItems(),
+                "a cópia roda em segundo plano, fora da thread da tela");
+        assertTrue(TelaDeTeste.<Button>achar(cena, "botaoAdicionarAnexos").isDisabled(), "o botão espera a cópia");
+    }
+
+    /** Depois da cópia: a foto do serviço e a nota na lista; a OS fica pronta. */
+    private void anexosEPronta() throws Exception {
         ListView<AnexoSalvo> anexos = achar(cena, "listaAnexos");
+        assertFalse(TelaDeTeste.<Button>achar(cena, "botaoAdicionarAnexos").isDisabled(), "copiou: o botão volta");
         assertEquals(List.of(TipoAnexo.FOTO_SERVICO, TipoAnexo.DOCUMENTO), anexos.getItems().stream()
                 .map(AnexoSalvo::tipo).toList(), "foto durante o serviço é foto do serviço; PDF é documento");
         anexos.getSelectionModel().selectFirst();
@@ -1048,6 +1129,20 @@ class OficinaUiTest {
 
     private void proximo() {
         TelaDeTeste.<Button>achar(cena, "botaoProximo").fire();
+    }
+
+    /** Uma foto PNG de uns 5 MB (pontos ao acaso não se comprimem), como a de um celular. */
+    private Path fotoGrande(String nome) throws IOException {
+        BufferedImage imagem = new BufferedImage(1300, 1300, BufferedImage.TYPE_INT_RGB);
+        Random sorteio = new Random(7);
+        for (int y = 0; y < imagem.getHeight(); y++) {
+            for (int x = 0; x < imagem.getWidth(); x++) {
+                imagem.setRGB(x, y, sorteio.nextInt(0x1000000));
+            }
+        }
+        Path arquivo = pasta.resolve(nome);
+        ImageIO.write(imagem, "png", arquivo.toFile());
+        return arquivo;
     }
 
     /** Uma foto fictícia (um retângulo azul) em PNG ou JPG, pela extensão do nome. */
