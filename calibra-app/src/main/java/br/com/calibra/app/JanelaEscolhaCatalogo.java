@@ -61,8 +61,10 @@ final class JanelaEscolhaCatalogo<T> {
             int indice = i;
             tabela.getColumns().add(coluna(colunas.get(i), 140, item -> formulario.resumo(item.dados()).get(indice)));
         }
-        tabela.getColumns().add(coluna("Preço de referência", 150, item -> item.info().precoReferencia() == null ? ""
-                : item.info().precoReferencia().formatar()));
+        if (formulario.temPreco()) {
+            tabela.getColumns().add(coluna("Preço de referência", 150,
+                    item -> item.info().precoReferencia() == null ? "" : item.info().precoReferencia().formatar()));
+        }
         tabela.getColumns().add(coluna("Conferência", 110, item -> item.info().aVerificar() ? "a verificar" : ""));
         tabela.setPrefSize(1000, 420);
         Label vazio = new Label("Nada cadastrado em " + tipo.plural() + ". Cadastre na tela Catálogos.");

@@ -20,7 +20,7 @@ import br.com.calibra.app.catalogo.TabelaColada;
  * para acrescentar, remover e colar a tabela copiada do Excel ou do PDF. Os campos ficam sempre editáveis (numa
  * célula de TableView, o que foi digitado se perde ao clicar fora).
  */
-final class EditorTabela extends VBox {
+final class EditorTabela extends VBox implements EditorDeLinhas {
 
     private static final double LARGURA_COLUNA = 120;
 
@@ -50,7 +50,8 @@ final class EditorTabela extends VBox {
     }
 
     /** As linhas como estão digitadas (inclusive as vazias, que a leitura deixa de lado). */
-    List<List<String>> linhas() {
+    @Override
+    public List<List<String>> linhas() {
         List<List<String>> valores = new ArrayList<>();
         for (Node no : linhas.getChildren()) {
             HBox linha = (HBox) no;
@@ -64,7 +65,8 @@ final class EditorTabela extends VBox {
     }
 
     /** Troca as linhas; sem nenhuma, deixa uma vazia para digitar. */
-    void preencher(List<List<String>> valores) {
+    @Override
+    public void preencher(List<List<String>> valores) {
         linhas.getChildren().clear();
         for (List<String> linha : valores) {
             acrescentar(linha);

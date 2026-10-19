@@ -1,5 +1,6 @@
 package br.com.calibra.app.catalogo;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -11,6 +12,8 @@ import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
@@ -156,9 +159,26 @@ public final class ExemplosCatalogo {
                 new InfoCatalogo("Diagnóstico teste", FONTE, DATA, false, new Dinheiro(25_000), "Dados fictícios."));
     }
 
-    /** Um exemplo de cada tipo, na ordem das abas. */
+    /** Item de material para o orçamento (Fase 3B), com preço de referência. */
+    public static Exemplo<ItemMaterial> item() {
+        return new Exemplo<>(TipoCatalogo.ITEM, new ItemMaterial("Relé teste 12 V 40 A", "un", FONTE, DATA),
+                new InfoCatalogo("Relé teste 12 V 40 A", FONTE, DATA, false, Dinheiro.ler("18,50"), "Dados fictícios."));
+    }
+
+    /**
+     * Kit (Fase 3B) com 2 × um item e 1 × um serviço: um pacote. Ele aponta para o catálogo, então fica fora de
+     * {@link #umDeCada()}: quem grava passa os ids de um item e de um serviço que existam.
+     */
+    public static Exemplo<Kit> kit(long itemId, long servicoId) {
+        return new Exemplo<>(TipoCatalogo.KIT, new Kit("Kit teste de relé", List.of(
+                new Kit.Linha(Kit.TipoLinha.ITEM, itemId, "Relé teste 12 V 40 A", new BigDecimal("2")),
+                new Kit.Linha(Kit.TipoLinha.SERVICO, servicoId, "Limpeza de bicos teste", BigDecimal.ONE)), FONTE,
+                DATA), new InfoCatalogo("Kit teste de relé", FONTE, DATA, false, null, "Dados fictícios."));
+    }
+
+    /** Um exemplo de cada tipo, na ordem das abas (menos o kit, que aponta para o catálogo: {@link #kit}). */
     public static List<Exemplo<?>> umDeCada() {
         return List.of(bicoComTabela(), bomba(), injecao(), turbo(), combustivel(), intercooler(), sensor(), cambio(),
-                motor(), servicoPorHora());
+                motor(), servicoPorHora(), item());
     }
 }

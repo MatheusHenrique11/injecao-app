@@ -50,6 +50,14 @@ public interface FormaCatalogo<T> {
         return valor;
     }
 
+    /**
+     * false quando o tipo não tem preço de referência próprio (o kit: o valor sai das linhas dele). A tela não mostra
+     * o campo nem a coluna do preço.
+     */
+    default boolean temPreco() {
+        return true;
+    }
+
     /** false quando o nome sai dos próprios dados ({@link #nomeDerivado}): a tela não mostra o campo Nome. */
     default boolean nomeDigitado() {
         return true;

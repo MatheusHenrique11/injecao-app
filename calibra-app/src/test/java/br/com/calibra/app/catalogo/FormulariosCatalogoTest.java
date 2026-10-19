@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -20,6 +21,8 @@ import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.orcamento.CategoriaServico;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Injecao;
@@ -282,6 +285,58 @@ class FormulariosCatalogoTest {
         assertEquals(List.of("Injeção programável", "12 h", "365 dias"), servicos.resumo(chicote.dados()));
         assertEquals("sem garantia", FormaServico.garantia(0));
         assertEquals("1 dia", FormaServico.garantia(1));
+    }
+
+    /** Item de material (Fase 3B): a unidade é obrigatória; o novo já vem com "un" e com a fonte da oficina. */
+    @Test
+    void itemPrecisaDaUnidade() {
+        FormularioCatalogo<ItemMaterial> itens = FormasCatalogo.de(TipoCatalogo.ITEM);
+        assertEquals("un", itens.novo().texto(FormaItem.UNIDADE));
+        assertEquals("Tabela da oficina", itens.novo().texto(FormularioCatalogo.FONTE));
+        Leitura<ItemMaterial> cabo = itens.ler(itens.novo().texto(FormularioCatalogo.NOME, "Cabo 6 mm²")
+                .texto(FormaItem.UNIDADE, " m ").texto(FormularioCatalogo.PRECO, "18,00"));
+        assertEquals(List.of(), cabo.erros());
+        assertEquals(new ItemMaterial("Cabo 6 mm²", "m", "Tabela da oficina", null), cabo.dados());
+        assertEquals(1_800, cabo.info().precoReferencia().centavos());
+        assertEquals(List.of("Preencha \"Unidade\"."), itens.ler(itens.novo().texto(FormularioCatalogo.NOME, "Cabo")
+                .texto(FormaItem.UNIDADE, "")).erros());
+        assertEquals(List.of("Unidade"), itens.colunas());
+        assertEquals(List.of("un"), itens.resumo(ExemplosCatalogo.item().dados()));
+    }
+
+    /**
+     * Kit (Fase 3B): as linhas apontam para o catálogo (tipo, id, nome e quantidade); o kit não tem preço próprio, e
+     * as versões mostram cada linha como "2 × nome (item)".
+     */
+    @Test
+    void kitComLinhasDoCatalogo() {
+        FormularioCatalogo<Kit> kits = FormasCatalogo.de(TipoCatalogo.KIT);
+        assertFalse(kits.temPreco());
+        assertTrue(kits.campos().stream().noneMatch(campo -> campo.chave().equals(FormularioCatalogo.PRECO)),
+                "o kit não tem o campo do preço");
+        Exemplo<Kit> exemplo = ExemplosCatalogo.kit(31, 21);
+        idaEVolta(exemplo);
+        conferirFormulario(exemplo);
+        assertEquals(List.of("1 item, 1 serviço", "sim"), kits.resumo(exemplo.dados()));
+        assertEquals(List.of("2 itens", "—"), kits.resumo(new Kit("Só itens", List.of(
+                new Kit.Linha(Kit.TipoLinha.ITEM, 31, "Relé", BigDecimal.ONE),
+                new Kit.Linha(Kit.TipoLinha.ITEM, 32, "Fusível", BigDecimal.ONE)), "Tabela da oficina", null)));
+
+        ValoresForm errado = kits.novo().texto(FormularioCatalogo.NOME, "Kit errado").tabela(FormaKit.LINHAS, List.of(
+                FormaKit.linha(Kit.TipoLinha.ITEM, 31, "Relé", "dois"),
+                FormaKit.linha(Kit.TipoLinha.SERVICO, 21, "Instalação", ""),
+                List.of("", "", "", "1")));
+        assertEquals(List.of("Linha 1 (Relé): quantidade: \"dois\" não é um número válido: use vírgula para decimais "
+                + "(ex.: 3,5).", "Linha 2 (Instalação): informe a quantidade.",
+                "Linha 3: escolha o item ou o serviço no catálogo."), kits.ler(errado).erros());
+        assertEquals(List.of("O kit precisa de pelo menos uma linha (um item ou um serviço do catálogo)."),
+                kits.ler(kits.novo().texto(FormularioCatalogo.NOME, "Kit vazio")).erros());
+
+        LinhaHistorico linhas = kits.historico(List.of(new VersaoCatalogo<>(1, 1, exemplo.dados(), exemplo.info(),
+                LocalDateTime.of(2026, 10, 19, 10, 0)))).stream().filter(l -> l.campo().equals("Linhas do kit"))
+                .findFirst().orElseThrow();
+        assertEquals(List.of("2 × Relé teste 12 V 40 A (item)\n1 × Limpeza de bicos teste (serviço)"),
+                linhas.valores());
     }
 
     /** Um serviço novo com o nome e a categoria preenchidos (o resto, cada teste preenche). */

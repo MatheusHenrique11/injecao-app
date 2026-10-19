@@ -170,6 +170,17 @@ public final class LeituraForm {
         return linhas;
     }
 
+    /**
+     * As linhas de um campo de linhas do catálogo (as linhas do kit), como texto e sem espaços nas pontas; as linhas
+     * totalmente vazias ficam de fora.
+     */
+    public List<List<String>> linhasDeTexto(String chave) {
+        return valores.tabela(chave).stream()
+                .filter(linha -> linha.stream().anyMatch(celula -> celula != null && !celula.isBlank()))
+                .map(linha -> linha.stream().map(celula -> celula == null ? "" : celula.strip()).toList())
+                .toList();
+    }
+
     /** Anota um erro de regra (ex.: "Tempo morto, linha 2: preencha a tensão"). */
     public void erro(String mensagem) {
         erros.add(mensagem);

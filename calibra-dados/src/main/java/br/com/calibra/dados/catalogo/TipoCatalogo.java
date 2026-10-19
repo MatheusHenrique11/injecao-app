@@ -6,6 +6,8 @@ import java.util.function.BiFunction;
 
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
@@ -42,9 +44,14 @@ public final class TipoCatalogo<T> {
     /** Serviços da oficina, com o tempo padrão (bloco 3.3). */
     public static final TipoCatalogo<ServicoPadrao> SERVICO =
             new TipoCatalogo<>("SERVICO", "Serviços", "serviço", ServicoPadrao.class, null);
+    /** Itens de material para o orçamento: cabo, fusível, relé, a ECU... (Fase 3B, SPEC 6.6.4). */
+    public static final TipoCatalogo<ItemMaterial> ITEM =
+            new TipoCatalogo<>("ITEM", "Itens", "item", ItemMaterial.class, null);
+    /** Kits de itens e serviços; com serviço, é um pacote (Fase 3B, SPEC 6.6.4). */
+    public static final TipoCatalogo<Kit> KIT = new TipoCatalogo<>("KIT", "Kits", "kit", Kit.class, null);
 
     private static final List<TipoCatalogo<?>> TODOS =
-            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO, SERVICO);
+            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO, SERVICO, ITEM, KIT);
 
     private final String codigo;
     private final String plural;

@@ -61,9 +61,17 @@ public final class FormularioCatalogo<T> {
                 .comDica("De onde vieram os dados: manual, site do fabricante, medição na bancada..."));
         campos.add(CampoForm.data(DATA, "Data da informação"));
         campos.add(CampoForm.marcar(A_VERIFICAR, "A verificar (dado ainda não confirmado)"));
-        campos.add(CampoForm.texto(PRECO, "Preço de referência (R$)", false).comDica("Opcional; vai para o orçamento."));
+        if (forma.temPreco()) {
+            campos.add(CampoForm.texto(PRECO, "Preço de referência (R$)", false)
+                    .comDica("Opcional; vai para o orçamento."));
+        }
         campos.add(CampoForm.area(OBSERVACOES, "Observações"));
         return campos;
+    }
+
+    /** false no tipo sem preço de referência próprio (o kit): a tela não mostra o campo nem a coluna do preço. */
+    public boolean temPreco() {
+        return forma.temPreco();
     }
 
     /** Valores de um item novo. */
@@ -104,7 +112,7 @@ public final class FormularioCatalogo<T> {
         String fonte = leitura.textoObrigatorio(FONTE);
         LocalDate data = leitura.data(DATA);
         boolean aVerificar = leitura.marcado(A_VERIFICAR);
-        Dinheiro preco = leitura.dinheiro(PRECO);
+        Dinheiro preco = forma.temPreco() ? leitura.dinheiro(PRECO) : null;
         if (preco != null && preco.centavos() < 0) {
             leitura.erro("O preço de referência não pode ser negativo.");
         }
@@ -191,6 +199,10 @@ public final class FormularioCatalogo<T> {
                 List<String> linhas = valores.tabela(campo.chave()).stream()
                         .map(linha -> String.join(" · ", linha.stream().map(c -> c.isBlank() ? VAZIO : c).toList()))
                         .toList();
+                yield linhas.isEmpty() ? VAZIO : String.join("\n", linhas);
+            }
+            case LINHAS -> {
+                List<String> linhas = valores.tabela(campo.chave()).stream().map(FormaKit::exibir).toList();
                 yield linhas.isEmpty() ? VAZIO : String.join("\n", linhas);
             }
             default -> texto.isEmpty() ? VAZIO : texto;

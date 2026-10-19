@@ -20,7 +20,9 @@ public final class FormasCatalogo {
             new FormularioCatalogo<>(new FormaSensor()),
             new FormularioCatalogo<>(new FormaCambio()),
             new FormularioCatalogo<>(new FormaMotor()),
-            new FormularioCatalogo<>(new FormaServico()));
+            new FormularioCatalogo<>(new FormaServico()),
+            new FormularioCatalogo<>(new FormaItem()),
+            new FormularioCatalogo<>(new FormaKit()));
 
     private static final Map<TipoCatalogo<?>, FormularioCatalogo<?>> POR_TIPO =
             TODOS.stream().collect(Collectors.toUnmodifiableMap(FormularioCatalogo::tipo, Function.identity()));

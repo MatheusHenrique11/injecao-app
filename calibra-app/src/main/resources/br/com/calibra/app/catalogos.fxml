@@ -9,6 +9,6 @@
       fx:controller="br.com.calibra.app.CatalogosController" styleClass="pagina">
   <Label styleClass="titulo-secao" text="Catálogos"/>
   <Label styleClass="dica" wrapText="true"
-         text="Peças, serviços e dados técnicos usados nos projetos e nos orçamentos, sempre com fonte e data. As peças e os serviços começam vazios: cadastre as peças a partir do manual ou do site do fabricante, e os serviços pela tabela da oficina. Combustíveis e motores já vêm cadastrados; os motores ficam &quot;a verificar&quot; até você conferir."/>
+         text="Peças, serviços, itens, kits e dados técnicos usados nos projetos e nos orçamentos, sempre com fonte e data. As peças, os serviços, os itens e os kits começam vazios: cadastre as peças a partir do manual ou do site do fabricante, e os serviços, os itens e os kits pela tabela da oficina. Combustíveis e motores já vêm cadastrados; os motores ficam &quot;a verificar&quot; até você conferir."/>
   <TabPane fx:id="abas" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"/>
 </VBox>

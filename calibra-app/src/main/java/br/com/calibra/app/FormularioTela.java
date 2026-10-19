@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -27,6 +28,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
+import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.catalogo.CampoForm;
 import br.com.calibra.app.catalogo.ValoresForm;
 
@@ -39,14 +41,15 @@ final class FormularioTela {
     private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /** Como ler e escrever um campo da tela, e o que esconder quando ele não se aplica. */
-    private record CampoTela(CampoForm campo, Supplier<String> ler, Consumer<String> escrever, EditorTabela tabela,
+    private record CampoTela(CampoForm campo, Supplier<String> ler, Consumer<String> escrever, EditorDeLinhas tabela,
             List<Node> nos, Node controle) {
     }
 
     private final GridPane grade = new GridPane();
     private final Map<String, CampoTela> campos = new LinkedHashMap<>();
 
-    FormularioTela(List<CampoForm> lista) {
+    /** @param casos o catálogo, para escolher as linhas do kit; null se nenhum campo for de linhas */
+    FormularioTela(List<CampoForm> lista, CasosCatalogo casos) {
         grade.getStyleClass().add("grade");
         ColumnConstraints rotulos = new ColumnConstraints();
         rotulos.setMinWidth(Region.USE_PREF_SIZE);
@@ -57,15 +60,16 @@ final class FormularioTela {
         grade.getColumnConstraints().setAll(rotulos, controles);
         int linha = 0;
         for (CampoForm campo : lista) {
-            CampoTela tela = montar(campo);
+            CampoTela tela = montar(campo, casos);
             campos.put(campo.chave(), tela);
             if (campo.tipo() == CampoForm.Tipo.OCULTO) {
                 continue;
             }
             Label rotulo = new Label(campo.tipo() == CampoForm.Tipo.MARCAR ? "" : campo.rotulo());
             rotulo.setLabelFor(tela.controle());
-            GridPane.setValignment(rotulo, campo.tipo() == CampoForm.Tipo.TABELA || campo.tipo() == CampoForm.Tipo.AREA
-                    ? VPos.TOP : VPos.CENTER);
+            boolean alto = campo.tipo() == CampoForm.Tipo.TABELA || campo.tipo() == CampoForm.Tipo.LINHAS
+                    || campo.tipo() == CampoForm.Tipo.AREA;
+            GridPane.setValignment(rotulo, alto ? VPos.TOP : VPos.CENTER);
             VBox celula = new VBox(2, tela.controle());
             if (!campo.dica().isEmpty()) {
                 Label dica = new Label(campo.dica());
@@ -134,7 +138,7 @@ final class FormularioTela {
         return campos.get(chave).controle();
     }
 
-    EditorTabela tabela(String chave) {
+    EditorDeLinhas tabela(String chave) {
         return campos.get(chave).tabela();
     }
 
@@ -153,7 +157,7 @@ final class FormularioTela {
         }
     }
 
-    private static CampoTela montar(CampoForm campo) {
+    private static CampoTela montar(CampoForm campo, CasosCatalogo casos) {
         List<Node> nos = new ArrayList<>();
         switch (campo.tipo()) {
             case TEXTO, NUMERO, INTEIRO -> {
@@ -199,6 +203,11 @@ final class FormularioTela {
             case TABELA -> {
                 EditorTabela tabela = new EditorTabela(campo.rotulo(), campo.colunas());
                 return new CampoTela(campo, () -> "", texto -> { }, tabela, nos, tabela);
+            }
+            case LINHAS -> {
+                EditorLinhasKit linhas = new EditorLinhasKit(Objects.requireNonNull(casos,
+                        "o campo de linhas do catálogo precisa do catálogo"));
+                return new CampoTela(campo, () -> "", texto -> { }, linhas, nos, linhas);
             }
             case OCULTO -> {
                 // Só guarda o valor: não entra na grade (o controle fica fora da tela e desligado).

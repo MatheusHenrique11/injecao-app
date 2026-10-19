@@ -236,8 +236,10 @@ final class PainelCatalogo<T> extends VBox {
         }
         tabela.getColumns().add(coluna("Versão", 70, item -> "v" + item.versao()));
         tabela.getColumns().add(coluna("Conferência", 110, item -> item.info().aVerificar() ? "a verificar" : ""));
-        tabela.getColumns().add(coluna("Preço de referência", 150, item -> item.info().precoReferencia() == null ? ""
-                : item.info().precoReferencia().formatar()));
+        if (formulario.temPreco()) {
+            tabela.getColumns().add(coluna("Preço de referência", 150,
+                    item -> item.info().precoReferencia() == null ? "" : item.info().precoReferencia().formatar()));
+        }
         tabela.getColumns().add(coluna("Fonte", 260, item -> item.info().fonte()));
         tabela.getColumns().add(coluna("Situação", 100, item -> item.arquivado() ? "arquivado" : ""));
         tabela.setRowFactory(lista -> {

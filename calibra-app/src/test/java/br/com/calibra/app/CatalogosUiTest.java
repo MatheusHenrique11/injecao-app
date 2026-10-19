@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -35,10 +36,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.catalogo.ExemplosCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.ServicosSugeridos;
 import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
@@ -158,13 +162,95 @@ class CatalogosUiTest {
         }
     }
 
+    /**
+     * Fase 3B (SPEC 6.6.4): cadastrar um item (a unidade já vem "un") e um kit com um item, escolhido pelo botão "+ Item
+     * do catálogo…" de dentro do kit, e um serviço. O kit não tem o campo nem a coluna do preço; ao editar, as linhas
+     * voltam com os nomes do catálogo.
+     */
+    @Test
+    void itensEKits() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        AtomicReference<JanelaItemCatalogo<Kit>> janelaKit = new AtomicReference<>();
+        AtomicReference<ItemCatalogo<ServicoPadrao>> servico = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaITEM"));
+                PainelCatalogo<ItemMaterial> itens = achar(cena, "painelITEM");
+                JanelaItemCatalogo<ItemMaterial> janela = itens.janelaNovo();
+                assertEquals("un", texto(janela.tela(), "unidade").getText(), "a unidade já vem preenchida");
+                texto(janela.tela(), FormularioCatalogo.NOME).setText("Relé 12 V 40 A (fictício)");
+                texto(janela.tela(), FormularioCatalogo.PRECO).setText("18,50");
+                fotografar(janela.dialogo(), "captura-catalogo-item-cadastro.png");
+                assertTrue(janela.gravar(), janela.erros()::toString);
+                ExemplosCatalogo.Exemplo<ServicoPadrao> hora = ExemplosCatalogo.servicoPorHora();
+                servico.set(casos.criar(TipoCatalogo.SERVICO, hora.dados(), hora.info()));
+
+                abas.getSelectionModel().select(aba(abas, "abaKIT"));
+                PainelCatalogo<Kit> kits = achar(cena, "painelKIT");
+                assertTrue(kits.tabela().getColumns().stream().noneMatch(c -> c.getText().equals("Preço de referência")),
+                        "o kit não tem a coluna do preço");
+                JanelaItemCatalogo<Kit> novo = kits.janelaNovo();
+                texto(novo.tela(), FormularioCatalogo.NOME).setText("Kit relé auxiliar (fictício)");
+                janelaKit.set(novo);
+            });
+
+            TelaDeTeste.semEsperar(() -> ((Button) linhasDoKit(janelaKit.get()).lookup("#kitAdicionarItem")).fire(),
+                    falha);
+            Stage escolha = TelaDeTeste.esperarJanela("Item do catálogo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(escolha);
+                TableView<?> tabela = (TableView<?>) painel.lookup("#escolhaCatalogo");
+                assertEquals(1, tabela.getItems().size(), "só os itens, sem os serviços");
+                tabela.getSelectionModel().selectFirst();
+                TelaDeTeste.apertar(painel, "Usar este");
+            });
+            TelaDeTeste.esperar(() -> !escolha.isShowing(), "a escolha fechar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                JanelaItemCatalogo<Kit> novo = janelaKit.get();
+                EditorLinhasKit linhas = linhasDoKit(novo);
+                linhas.adicionar(Kit.TipoLinha.SERVICO, servico.get());
+                linhas.quantidade(0).setText("2");
+                fotografar(novo.dialogo(), "captura-catalogo-kit-cadastro.png");
+                assertTrue(novo.gravar(), novo.erros()::toString);
+                assertEquals("Cadastrado: Kit relé auxiliar (fictício) (v1).", novo.mensagem());
+
+                PainelCatalogo<Kit> kits = achar(cena, "painelKIT");
+                kits.atualizar();
+                ItemCatalogo<Kit> kit = kits.tabela().getItems().getFirst();
+                assertEquals(List.of("Relé 12 V 40 A (fictício)", "Limpeza de bicos teste"),
+                        kit.dados().linhas().stream().map(Kit.Linha::nome).toList());
+                assertEquals(List.of(new BigDecimal("2"), BigDecimal.ONE),
+                        kit.dados().linhas().stream().map(Kit.Linha::quantidade).toList());
+                assertEquals(List.of("1 item, 1 serviço"), coluna(kits.tabela(), "Linhas"));
+                assertEquals(List.of("sim"), coluna(kits.tabela(), "Pacote"), "com serviço, é um pacote");
+                salvar(cena, "captura-catalogo-kits.png");
+
+                EditorLinhasKit reaberto = linhasDoKit(kits.janelaEditar(kit));
+                assertEquals(List.of("Relé 12 V 40 A (fictício)", "Limpeza de bicos teste"), reaberto.linhas()
+                        .stream().map(l -> l.get(2)).toList(), "ao editar, as linhas voltam com os nomes");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    private static EditorLinhasKit linhasDoKit(JanelaItemCatalogo<Kit> janela) {
+        return (EditorLinhasKit) janela.tela().controle("linhas");
+    }
+
     private static int indice(String nome) {
         List<Sugestao> todos = ServicosSugeridos.todos();
         return todos.indexOf(todos.stream().filter(s -> s.nome().equals(nome)).findFirst().orElseThrow());
     }
 
-    private static List<String> coluna(TableView<ItemCatalogo<ServicoPadrao>> tabela, String titulo) {
-        TableColumn<ItemCatalogo<ServicoPadrao>, ?> coluna = tabela.getColumns().stream()
+    private static <T> List<String> coluna(TableView<ItemCatalogo<T>> tabela, String titulo) {
+        TableColumn<ItemCatalogo<T>, ?> coluna = tabela.getColumns().stream()
                 .filter(c -> c.getText().equals(titulo)).findFirst().orElseThrow();
         return tabela.getItems().stream().map(item -> String.valueOf(coluna.getCellData(item))).toList();
     }

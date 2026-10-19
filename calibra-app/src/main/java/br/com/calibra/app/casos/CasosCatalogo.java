@@ -1,5 +1,7 @@
 package br.com.calibra.app.casos;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,6 +15,7 @@ import br.com.calibra.app.catalogo.FormasCatalogo;
 import br.com.calibra.app.catalogo.FormularioSugeridos;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.dados.BancoDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
@@ -106,7 +109,7 @@ public final class CasosCatalogo {
                             + " (" + mesmoCodigo.get().info().nome() + "). Use outro código.");
                 }
             }
-            return catalogo.inserir(c, tipo, dados, info, null);
+            return catalogo.inserir(c, tipo, comOCatalogoDeAgora(c, tipo, dados), info, null);
         });
     }
 
@@ -120,16 +123,47 @@ public final class CasosCatalogo {
         return banco.transacao(c -> {
             ItemCatalogo<T> atual = catalogo.buscar(c, tipo, id).orElseThrow(() -> new OperacaoRecusadaException(
                     "Item de catálogo #" + id + " (" + tipo.singular() + ") não encontrado."));
-            if (tipo.comVersao(dados, atual.versao()).equals(atual.dados()) && info.equals(atual.info())) {
+            T conferidos = comOCatalogoDeAgora(c, tipo, dados);
+            if (tipo.comVersao(conferidos, atual.versao()).equals(atual.dados()) && info.equals(atual.info())) {
                 return new Gravacao<>(atual, false);
             }
-            if (dados instanceof Combustivel novo && atual.dados() instanceof Combustivel antigo
+            if (conferidos instanceof Combustivel novo && atual.dados() instanceof Combustivel antigo
                     && !novo.codigo().equals(antigo.codigo())) {
                 throw new EntradaInvalidaException("O código do combustível não muda depois de criado (os motores "
                         + "guardam o código " + antigo.codigo() + "). Para outro código, use Duplicar.");
             }
-            return new Gravacao<>(catalogo.novaVersao(c, tipo, id, dados, info), true);
+            return new Gravacao<>(catalogo.novaVersao(c, tipo, id, conferidos, info), true);
         });
+    }
+
+    /**
+     * No kit (Fase 3B), cada linha precisa apontar para um item ou um serviço do catálogo, e o nome guardado em cada
+     * linha (só para mostrar) passa a ser o de agora. Os outros tipos passam como vieram.
+     *
+     * @throws EntradaInvalidaException com as linhas que não estão no catálogo
+     */
+    private <T> T comOCatalogoDeAgora(Connection c, TipoCatalogo<T> tipo, T dados) throws SQLException {
+        if (!(dados instanceof Kit kit)) {
+            return dados;
+        }
+        List<String> erros = new ArrayList<>();
+        List<Kit.Linha> linhas = new ArrayList<>();
+        for (int i = 0; i < kit.linhas().size(); i++) {
+            Kit.Linha linha = kit.linhas().get(i);
+            Optional<String> nome = linha.tipo() == Kit.TipoLinha.ITEM
+                    ? catalogo.buscar(c, TipoCatalogo.ITEM, linha.itemId()).map(item -> item.info().nome())
+                    : catalogo.buscar(c, TipoCatalogo.SERVICO, linha.itemId()).map(item -> item.info().nome());
+            if (nome.isEmpty()) {
+                erros.add("Linha " + (i + 1) + (linha.nome().isEmpty() ? "" : " (" + linha.nome() + ")") + ": esse "
+                        + linha.tipo().rotulo() + " não está no catálogo; escolha de novo.");
+            } else {
+                linhas.add(new Kit.Linha(linha.tipo(), linha.itemId(), nome.get(), linha.quantidade()));
+            }
+        }
+        if (!erros.isEmpty()) {
+            throw new EntradaInvalidaException(erros);
+        }
+        return tipo.converter(new Kit(kit.nome(), linhas, kit.fonte(), kit.data()));
     }
 
     /**

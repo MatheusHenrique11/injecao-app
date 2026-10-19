@@ -46,7 +46,7 @@ final class JanelaItemCatalogo<T> {
         this.casos = casos;
         this.formulario = formulario;
         this.item = item;
-        this.tela = new FormularioTela(formulario.campos());
+        this.tela = new FormularioTela(formulario.campos(), casos);
         tela.preencher(valores);
         if (item != null) {
             tela.travarCamposFixos();

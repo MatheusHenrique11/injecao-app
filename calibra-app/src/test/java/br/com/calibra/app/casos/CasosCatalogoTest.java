@@ -2,10 +2,12 @@ package br.com.calibra.app.casos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
@@ -26,6 +28,8 @@ import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.orcamento.CategoriaServico;
+import br.com.calibra.core.orcamento.ItemMaterial;
+import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.ServicosSugeridos;
 import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
@@ -137,6 +141,36 @@ class CasosCatalogoTest {
 
         reabrirSemMudar(TipoCatalogo.SERVICO);
         assertEquals(1, casos.versoes(TipoCatalogo.SERVICO, id).size());
+    }
+
+    /**
+     * Kit (Fase 3B, SPEC 6.6.4): cada linha precisa apontar para um item ou um serviço do catálogo (o serviço não vale
+     * como item); o nome guardado em cada linha é o de agora, e gravar de novo sem mudar não cria versão.
+     */
+    @Test
+    void kitApontaParaItensEServicosDoCatalogo() {
+        ItemCatalogo<ItemMaterial> rele = casos.criar(TipoCatalogo.ITEM, ExemplosCatalogo.item().dados(),
+                ExemplosCatalogo.item().info());
+        Exemplo<ServicoPadrao> hora = ExemplosCatalogo.servicoPorHora();
+        ItemCatalogo<ServicoPadrao> servico = casos.criar(TipoCatalogo.SERVICO, hora.dados(), hora.info());
+        Exemplo<Kit> exemplo = ExemplosCatalogo.kit(rele.id(), servico.id());
+        Kit comNomeVelho = new Kit(exemplo.dados().nome(), List.of(
+                new Kit.Linha(Kit.TipoLinha.ITEM, rele.id(), "Nome antigo", new BigDecimal("2")),
+                exemplo.dados().linhas().get(1)), exemplo.dados().fonte(), exemplo.dados().data());
+
+        ItemCatalogo<Kit> kit = casos.criar(TipoCatalogo.KIT, comNomeVelho, exemplo.info());
+        assertEquals(exemplo.dados(), kit.dados(), "o nome de cada linha vem do catálogo");
+        assertFalse(casos.salvar(TipoCatalogo.KIT, kit.id(), exemplo.dados(), exemplo.info()).versaoNova());
+        assertNull(kit.info().precoReferencia(), "o kit não tem preço próprio");
+
+        EntradaInvalidaException trocado = assertThrows(EntradaInvalidaException.class, () -> casos.criar(
+                TipoCatalogo.KIT, ExemplosCatalogo.kit(servico.id(), rele.id()).dados(), exemplo.info()));
+        assertEquals(List.of("Linha 1 (Relé teste 12 V 40 A): esse item não está no catálogo; escolha de novo.",
+                "Linha 2 (Limpeza de bicos teste): esse serviço não está no catálogo; escolha de novo."),
+                trocado.erros(), "os ids trocados: o serviço não vale como item, e o item não vale como serviço");
+        assertThrows(EntradaInvalidaException.class, () -> casos.criar(TipoCatalogo.KIT,
+                ExemplosCatalogo.kit(99_999, servico.id()).dados(), exemplo.info()), "id que não existe");
+        assertEquals(1, casos.listar(TipoCatalogo.KIT, "", true).size(), "nada mais foi gravado");
     }
 
     /** Serviços sugeridos (SPEC 6.6.1): todos numa gravação só, cada um na versão 1, com a categoria da lista. */
