@@ -35,12 +35,14 @@ import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.projeto.Meta;
 import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.core.util.NumeroBr;
@@ -51,6 +53,8 @@ import br.com.calibra.dados.cadastro.ClienteRepositorio;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoRepositorio;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.catalogo.CatalogoRepositorio;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.oficina.AnexoRepositorio;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.DadosAbertura;
@@ -116,9 +120,16 @@ public final class CasosOficina {
         }
     }
 
-    /** A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum) e o pagamento. */
+    /**
+     * A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum), o pagamento e a garantia de
+     * cada serviço da revisão aprovada (vazia sem orçamento aprovado).
+     */
     public record OsAberta(OrdemServicoSalva os, ClienteSalvo cliente, VeiculoSalvo veiculo, MecanicoSalvo mecanico,
-            SituacaoDoPagamento pagamento) {
+            SituacaoDoPagamento pagamento, List<GarantiaDoServico> garantias) {
+
+        public OsAberta {
+            garantias = List.copyOf(garantias);
+        }
     }
 
     /**
@@ -197,6 +208,7 @@ public final class CasosOficina {
     private final ProjetoRepositorio projetoRepositorio;
     private final MotorRepositorio motores;
     private final OrdensDoProjeto ordensDoProjeto;
+    private final CatalogoRepositorio catalogo;
 
     /** @param pastaAnexos a pasta de anexos dos dados, para onde vão as cópias das fotos e dos documentos */
     public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos, Path pastaAnexos) {
@@ -214,6 +226,7 @@ public final class CasosOficina {
         this.projetoRepositorio = new ProjetoRepositorio(relogio);
         this.motores = new MotorRepositorio(relogio);
         this.ordensDoProjeto = new OrdensDoProjeto(relogio);
+        this.catalogo = new CatalogoRepositorio(relogio);
     }
 
     // ===================== Abertura e entrada =====================
@@ -448,8 +461,17 @@ public final class CasosOficina {
             VeiculoSalvo veiculo = veiculos.buscar(c, os.veiculoId()).orElseThrow();
             MecanicoSalvo mecanico = os.mecanicoId() == null ? null
                     : mecanicos.buscar(c, os.mecanicoId()).orElse(null);
-            return new OsAberta(os, cliente, veiculo, mecanico, situacaoDoPagamento(c, osId));
+            return new OsAberta(os, cliente, veiculo, mecanico, situacaoDoPagamento(c, osId), garantias(c, osId));
         });
+    }
+
+    /**
+     * A garantia de cada serviço da última revisão aprovada (SPEC 6.6.1): a própria, da versão do serviço que está no
+     * orçamento, ou, sem ela (e na linha digitada), a da OS. Vazia sem orçamento aprovado. A revisão aprovada e as
+     * versões do catálogo não mudam, então a resposta é a mesma em qualquer dia.
+     */
+    public List<GarantiaDoServico> garantiasDosServicos(long osId) {
+        return banco.ler(c -> garantias(c, osId));
     }
 
     public List<MudancaStatusOs> historico(long osId) {
@@ -478,8 +500,26 @@ public final class CasosOficina {
             return new DadosOs(oficina, logo, os.numero().texto(), os.status(), os.criadoEm(), cliente.nome(),
                     cliente.telefone(), CasosOrcamento.textoVeiculo(veiculo),
                     veiculo.tipo() != null && veiculo.tipo().nautico(), os.servicoPedido(), os.previsaoEntrega(),
-                    mecanico, os.entrada(), os.entrega(), aprovado, recebimentos, textoVia, versaoApp, agora);
+                    mecanico, os.entrada(), os.entrega(), aprovado, garantias(c, osId), recebimentos, textoVia,
+                    versaoApp, agora);
         });
+    }
+
+    private List<GarantiaDoServico> garantias(Connection c, long osId) throws SQLException {
+        Optional<OrcamentoSalvo> aprovado = orcamentos.ultimoAprovado(c, osId);
+        if (aprovado.isEmpty()) {
+            return List.of();
+        }
+        List<GarantiaDoServico> garantias = new ArrayList<>();
+        for (ItemOrcamento servico : aprovado.get().conteudo().servicos()) {
+            Integer dias = null;
+            if (servico.catalogoItemId() != null && servico.catalogoVersao() != null) {
+                dias = catalogo.versao(c, TipoCatalogo.SERVICO, servico.catalogoItemId(), servico.catalogoVersao())
+                        .map(versao -> versao.dados().garantiaDias()).orElse(null);
+            }
+            garantias.add(new GarantiaDoServico(servico.descricao(), dias));
+        }
+        return garantias;
     }
 
     /** A OS atual do projeto de preparação; sem nenhuma em andamento, abre uma para ele (ABERTA, sem a entrada). */

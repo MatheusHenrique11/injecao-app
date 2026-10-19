@@ -2,12 +2,16 @@ package br.com.calibra.relatorios;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.Garantia;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.orcamento.ItemOrcamento;
@@ -51,8 +55,8 @@ public final class RelatorioOs {
     }
 
     /**
-     * O comprovante de entrega: a entrega e a garantia, os itens e o total da revisão aprovada, os recebimentos e a
-     * assinatura de quem recebeu o veículo.
+     * O comprovante de entrega: a entrega e a garantia (com a dos serviços que têm a própria, Fase 3B), os itens e o
+     * total da revisão aprovada, os recebimentos e a assinatura de quem recebeu o veículo.
      *
      * @throws IllegalArgumentException se a OS ainda não foi entregue
      */
@@ -134,8 +138,32 @@ public final class RelatorioOs {
         pdf.item("Entregue em", entrega.quando().format(DATA_HORA));
         pdf.item(dados.embarcacao() ? "Horas de motor na saída" : "Km na saída", uso(entrega.usoSaida(), dados));
         int dias = entrega.garantia().dias();
-        pdf.item("Garantia", dias == 0 ? "sem garantia" : dias + (dias == 1 ? " dia" : " dias") + ", até "
+        pdf.item("Garantia", dias == 0 ? "sem garantia" : dias(dias) + ", até "
                 + entrega.garantiaVence().format(TextoOrcamento.DIA));
+        String proprias = garantiasProprias(dados, entrega);
+        if (!proprias.isEmpty()) {
+            pdf.item("Garantia própria", proprias);
+        }
+    }
+
+    /**
+     * Os serviços com garantia própria (SPEC 6.6.1), com o dia em que ela vence: "Reparo ou troca de alternador, 365
+     * dias, até 14/10/2027; Diagnóstico de falha elétrica, sem garantia". Os outros serviços ficam com a garantia da OS,
+     * da linha de cima. Vazio se nenhum tiver a própria: o comprovante fica como era, sem ocupar espaço (com uma tabela
+     * de todos os serviços, a assinatura ia para a segunda página numa OS de três serviços).
+     */
+    private static String garantiasProprias(DadosOs dados, Entrega entrega) {
+        LocalDate dia = entrega.quando().toLocalDate();
+        return dados.garantias().stream().filter(GarantiaDoServico::propria).map(servico -> {
+            Garantia garantia = servico.garantia(entrega.garantia());
+            return servico.servico() + ", " + (garantia.dias() == 0 ? "sem garantia"
+                    : dias(garantia.dias()) + ", até " + garantia.vence(dia).format(TextoOrcamento.DIA));
+        }).collect(Collectors.joining("; "));
+    }
+
+    /** "1 dia" ou "90 dias". */
+    private static String dias(int dias) {
+        return dias + (dias == 1 ? " dia" : " dias");
     }
 
     /** Os itens e os totais da revisão aprovada do orçamento, numa tabela só (as peças antes dos serviços). */

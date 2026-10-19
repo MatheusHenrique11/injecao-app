@@ -9,6 +9,7 @@ import java.util.Objects;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
@@ -30,6 +31,8 @@ import br.com.calibra.core.orcamento.Orcamento;
  * @param entrada null = o veículo ainda não chegou
  * @param entrega null = não foi entregue
  * @param aprovado a última revisão aprovada do orçamento; null sem orçamento aprovado
+ * @param garantias a garantia de cada serviço da revisão aprovada (a própria, do catálogo, ou a da OS); vazia sem
+ *        orçamento aprovado
  * @param recebimentos todos, na ordem em que foram recebidos; os cancelados ficam e não contam
  * @param textoVia o texto acima das assinaturas na via do cliente (Configurações › OS); vazio = só as assinaturas
  */
@@ -49,6 +52,7 @@ public record DadosOs(
         EntradaVeiculo entrada,
         Entrega entrega,
         OrcamentoAprovado aprovado,
+        List<GarantiaDoServico> garantias,
         List<Recebimento> recebimentos,
         String textoVia,
         String versaoApp,
@@ -85,6 +89,7 @@ public record DadosOs(
         Objects.requireNonNull(veiculo, "veiculo");
         servicoPedido = servicoPedido == null ? "" : servicoPedido.strip();
         mecanico = mecanico == null ? "" : mecanico.strip();
+        garantias = garantias == null ? List.of() : List.copyOf(garantias);
         recebimentos = recebimentos == null ? List.of() : List.copyOf(recebimentos);
         textoVia = textoVia == null ? "" : textoVia.strip();
         Objects.requireNonNull(versaoApp, "versaoApp");

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javafx.application.HostServices;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -47,6 +49,7 @@ import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.cadastro.Veiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.EntradaVeiculo;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
@@ -331,7 +334,7 @@ public class OsController {
     private void entregar() {
         if (tudoSalvo(Momento.ENTREGA)) {
             JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
-                    recursos.padroes().get().garantiaDias()).ifPresent(this::entregar);
+                    recursos.padroes().get().garantiaDias(), aberta.garantias()).ifPresent(this::entregar);
         }
     }
 
@@ -481,7 +484,7 @@ public class OsController {
             case ENTREGUE -> "Entregue em " + Datas.diaHora(os.entrega().quando())
                     + (os.entrega().usoSaida() == null ? "" : ", com " + NumeroBr.formatar(os.entrega().usoSaida(), 0)
                             + (nautico() ? " h" : " km") + " na saída")
-                    + ", " + garantia(os) + ".";
+                    + ", " + garantia(os) + "." + garantiasProprias(os, aberta.garantias());
             case CANCELADA -> "OS cancelada: não há entrega.";
             case PRONTA -> "Pronto para retirar: registre a entrega quando o cliente buscar.";
             default -> "A entrega fica liberada quando o serviço estiver pronto.";
@@ -503,6 +506,20 @@ public class OsController {
         int dias = os.entrega().garantia().dias();
         return dias == 0 ? "sem garantia" : "com garantia de " + dias + (dias == 1 ? " dia" : " dias") + ", até "
                 + Datas.dia(os.garantiaAte());
+    }
+
+    /**
+     * Os serviços com garantia própria (do catálogo), com o dia em que ela vence: " Garantia própria: Reparo ou troca
+     * de alternador, 365 dias, até 14/10/2027." Vazio se nenhum tiver; os outros ficam com a garantia da OS.
+     */
+    static String garantiasProprias(OrdemServicoSalva os, List<GarantiaDoServico> garantias) {
+        LocalDate entrega = os.entrega().quando().toLocalDate();
+        String proprias = garantias.stream().filter(GarantiaDoServico::propria)
+                .map(servico -> servico.servico() + ", " + JanelasOs.diasDeGarantia(servico.diasProprios())
+                        + (servico.diasProprios() == 0 ? ""
+                                : ", até " + Datas.dia(servico.garantia(os.entrega().garantia()).vence(entrega))))
+                .collect(Collectors.joining("; "));
+        return proprias.isEmpty() ? "" : " Garantia própria: " + proprias + ".";
     }
 
     @FXML

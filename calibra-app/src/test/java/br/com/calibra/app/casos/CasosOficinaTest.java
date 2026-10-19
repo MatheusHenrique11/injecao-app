@@ -45,6 +45,7 @@ import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.FormaPagamento;
 import br.com.calibra.core.oficina.Garantia;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.Pagamento;
@@ -52,12 +53,14 @@ import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.oficina.Vistoria;
+import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
 import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.core.projeto.StatusProjeto;
 import br.com.calibra.core.semaforo.Indicador;
@@ -67,6 +70,9 @@ import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.backup.Backup;
+import br.com.calibra.dados.catalogo.InfoCatalogo;
+import br.com.calibra.dados.catalogo.ItemCatalogo;
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
@@ -92,6 +98,7 @@ class CasosOficinaTest {
     private CasosProjeto casos;
     private CasosOrcamento orcamentos;
     private CasosOficina oficina;
+    private CasosCatalogo catalogo;
 
     @BeforeEach
     void abrirBanco() throws IOException {
@@ -102,6 +109,7 @@ class CasosOficinaTest {
         casos = new CasosProjeto(banco, relogio, "0.3.0-teste");
         orcamentos = new CasosOrcamento(banco, relogio, casos);
         oficina = new CasosOficina(banco, relogio, casos, pastas.anexos());
+        catalogo = new CasosCatalogo(banco, relogio);
     }
 
     private LocalDateTime agora() {
@@ -254,6 +262,53 @@ class CasosOficinaTest {
         assertEquals(Dinheiro.ler("270,00"), paga.recebido(), "o cancelado não conta");
         assertEquals(Dinheiro.ler("270,00"), paga.falta());
         assertEquals(SituacaoPagamento.PARCIAL, paga.situacao());
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.1): a garantia de cada serviço da revisão aprovada. O do catálogo com garantia própria usa a
+     * dele, a da versão que está no orçamento (mudar o serviço no catálogo depois não muda a OS); o do catálogo sem
+     * garantia própria e o digitado ficam com a da OS; as peças não entram.
+     */
+    @Test
+    void garantiaDeCadaServicoDoOrcamentoAprovado() {
+        ServicoPadrao alternador = servico("Reparo ou troca de alternador", 365);
+        ItemCatalogo<ServicoPadrao> comGarantia = catalogo.criar(TipoCatalogo.SERVICO, alternador, info(alternador));
+        ServicoPadrao bateria = servico("Teste de bateria e do sistema de carga", null);
+        ItemCatalogo<ServicoPadrao> semGarantia = catalogo.criar(TipoCatalogo.SERVICO, bateria, info(bateria));
+        long os = abrirComEntrada("Ana Costa", "ABC1D23");
+        assertEquals(List.of(), oficina.garantiasDosServicos(os), "sem orçamento aprovado");
+
+        Dinheiro hora = Dinheiro.ler("180,00");
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(os, new Orcamento(List.of(
+                ItemOrcamento.digitado(TipoItem.PECA, "Alternador recondicionado", BigDecimal.ONE, "un",
+                        Dinheiro.ler("650,00")),
+                ItemOrcamento.doServico(alternador.textoNoOrcamento(), alternador.horas(), null, hora,
+                        comGarantia.id(), comGarantia.versao()),
+                ItemOrcamento.doServico(bateria.textoNoOrcamento(), bateria.horas(), null, hora, semGarantia.id(),
+                        semGarantia.versao()),
+                ItemOrcamento.digitado(TipoItem.SERVICO, "Limpeza dos terminais", BigDecimal.ONE, "h", hora)),
+                Desconto.NENHUM, 1, "", 15, "", ""));
+        assertEquals(List.of(), oficina.garantiasDosServicos(os), "o rascunho ainda não vale");
+        enviarEAprovar(orcamento);
+        assertTrue(catalogo.salvar(TipoCatalogo.SERVICO, comGarantia.id(), servico(alternador.nome(), 30),
+                info(alternador)).versaoNova(), "o serviço muda no catálogo depois da aprovação (v2)");
+
+        List<GarantiaDoServico> esperado = List.of(new GarantiaDoServico("Reparo ou troca de alternador", 365),
+                new GarantiaDoServico("Teste de bateria e do sistema de carga", null),
+                new GarantiaDoServico("Limpeza dos terminais", null));
+        assertEquals(esperado, oficina.garantiasDosServicos(os), "a v1, que está no orçamento");
+        assertEquals(esperado, oficina.buscar(os).garantias(), "a tela da OS recebe a mesma lista");
+        assertEquals(esperado, oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "").garantias(),
+                "e o comprovante de entrega");
+    }
+
+    private static ServicoPadrao servico(String nome, Integer garantiaDias) {
+        return new ServicoPadrao(nome, 1.0, "Tabela da oficina", null, CategoriaServico.PARTIDA_CARGA, "", true,
+                garantiaDias);
+    }
+
+    private static InfoCatalogo info(ServicoPadrao servico) {
+        return new InfoCatalogo(servico.nome(), "Tabela da oficina", null, false, null, "");
     }
 
     /**

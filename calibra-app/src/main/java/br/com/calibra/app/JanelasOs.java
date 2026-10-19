@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -22,12 +23,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.FormaPagamento;
 import br.com.calibra.core.oficina.Garantia;
+import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.orcamento.Dinheiro;
@@ -78,12 +81,15 @@ final class JanelasOs {
     }
 
     /**
-     * A entrega: o dia e a hora, o km (ou as horas de motor) na saída e a garantia em dias.
+     * A entrega: o dia e a hora, o km (ou as horas de motor) na saída e a garantia em dias. Os serviços com garantia
+     * própria (do catálogo) aparecem embaixo da garantia, que vale para os outros.
      *
      * @param rotuloUso "Km" ou "Horas de motor"
      * @param garantiaPadrao a garantia de Configurações › OS, que já vem preenchida
+     * @param garantias a garantia de cada serviço da revisão aprovada
      */
-    static Optional<Entrega> entrega(Window dono, LocalDateTime agora, String rotuloUso, int garantiaPadrao) {
+    static Optional<Entrega> entrega(Window dono, LocalDateTime agora, String rotuloUso, int garantiaPadrao,
+            List<GarantiaDoServico> garantias) {
         Dialog<Entrega> dialogo = dialogo(dono, "Entregar o veículo", "Entrega ao cliente: quando, com quanto no painel "
                 + "e com quantos dias de garantia?");
         DatePicker data = new DatePicker(agora.toLocalDate());
@@ -102,7 +108,18 @@ final class JanelasOs {
         grade.addRow(1, new Label("Hora (hh:mm)"), hora);
         grade.addRow(2, new Label(rotuloUso + " na saída"), uso);
         grade.addRow(3, new Label("Garantia (dias)"), garantia);
-        grade.add(erro, 0, 4, 2, 1);
+        String proprias = garantiasProprias(garantias);
+        if (!proprias.isEmpty()) {
+            Label aviso = new Label("Com garantia própria (do catálogo): " + proprias + ". Os outros serviços ficam "
+                    + "com a garantia acima.");
+            aviso.setId("entregaGarantiasProprias");
+            aviso.getStyleClass().add("dica");
+            aviso.setWrapText(true);
+            aviso.setPrefWidth(440);
+            aviso.setMinHeight(Region.USE_PREF_SIZE);
+            grade.add(aviso, 0, 4, 2, 1);
+        }
+        grade.add(erro, 0, 5, 2, 1);
         dialogo.getDialogPane().setContent(grade);
         ButtonType gravar = botoes(dialogo);
         dialogo.getDialogPane().lookupButton(gravar).addEventFilter(ActionEvent.ACTION, evento -> {
@@ -239,6 +256,21 @@ final class JanelasOs {
         dialogo.getDialogPane().getButtonTypes().setAll(gravar, new ButtonType("Cancelar",
                 ButtonBar.ButtonData.CANCEL_CLOSE));
         return gravar;
+    }
+
+    /**
+     * Os serviços com garantia própria: "Reparo ou troca de alternador, 365 dias; Diagnóstico de falha elétrica, sem
+     * garantia". Vazio se nenhum tiver.
+     */
+    static String garantiasProprias(List<GarantiaDoServico> garantias) {
+        return garantias.stream().filter(GarantiaDoServico::propria)
+                .map(servico -> servico.servico() + ", " + diasDeGarantia(servico.diasProprios()))
+                .collect(Collectors.joining("; "));
+    }
+
+    /** "sem garantia", "1 dia" ou "365 dias". */
+    static String diasDeGarantia(int dias) {
+        return dias == 0 ? "sem garantia" : dias + (dias == 1 ? " dia" : " dias");
     }
 
     private static Label erro() {

@@ -93,6 +93,7 @@ import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.oficina.Vistoria;
+import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemOrcamento;
@@ -105,6 +106,7 @@ import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
+import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.config.Chave;
@@ -671,6 +673,83 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.1): o serviço do catálogo com garantia própria. A janela de entrega diz qual serviço tem a
+     * própria, e a aba Entrega e pagamento mostra até quando ela vale. Vale a versão que está no orçamento: o serviço
+     * mudou no catálogo depois da aprovação, e a OS continua com os 365 dias.
+     */
+    @Test
+    void garantiaPropriaDoServicoNaEntrega() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::prontaComGarantiaPropria);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> principal.abrirOs(ana));
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoEntregar").fire(), falha);
+            Stage entrega = TelaDeTeste.esperarJanela("Entregar o veículo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(entrega);
+                assertEquals("Com garantia própria (do catálogo): Reparo de alternador teste, 365 dias. Os outros "
+                        + "serviços ficam com a garantia acima.",
+                        ((Label) painel.lookup("#entregaGarantiasProprias")).getText());
+                ((TextField) painel.lookup("#entregaUso")).setText("120.300");
+                salvar(entrega.getScene(), "oficina-23-janela-entrega-garantia-propria.png");
+                textoInteiro(painel);
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Entregar o veículo") == null
+                    && "Entregue".equals(texto("status")), "a entrega gravar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaEntrega"));
+                LocalDate hoje = LocalDate.now();
+                assertTrue(texto("situacaoEntrega").endsWith("com garantia de 90 dias, até "
+                        + Datas.dia(hoje.plusDays(90)) + ". Garantia própria: Reparo de alternador teste, 365 dias, até "
+                        + Datas.dia(hoje.plusDays(365)) + "."), texto("situacaoEntrega"));
+                salvar(cena, "oficina-24-aba-entrega-garantia-propria.png");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Ana, pronta para entregar, com dois serviços aprovados: o "Reparo de alternador teste" do catálogo, com garantia
+     * própria de 365 dias, e uma mão de obra digitada (a garantia da OS). Depois da aprovação, o serviço ganha a v2 no
+     * catálogo, com 30 dias.
+     */
+    private void prontaComGarantiaPropria() {
+        CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+        ServicoPadrao alternador = new ServicoPadrao("Reparo de alternador teste", 2.0, "Tabela da oficina", null,
+                CategoriaServico.PARTIDA_CARGA, "", true, 365);
+        InfoCatalogo info = new InfoCatalogo(alternador.nome(), "Tabela da oficina", null, false, null,
+                "Dados fictícios.");
+        ItemCatalogo<ServicoPadrao> servico = catalogo.criar(TipoCatalogo.SERVICO, alternador, info);
+        LocalDateTime agora = LocalDateTime.now().withNano(0);
+        ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23", "Luz da bateria acesa no painel", null,
+                agora.minusHours(3))).osId();
+        CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()));
+        Dinheiro hora = Dinheiro.ler("180,00");
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(ana, new Orcamento(List.of(
+                ItemOrcamento.doServico(alternador.textoNoOrcamento(), alternador.horas(), null, hora, servico.id(),
+                        servico.versao()),
+                ItemOrcamento.digitado(TipoItem.SERVICO, "Limpeza dos terminais da bateria", BigDecimal.ONE, "h", hora)),
+                Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(orcamento.id());
+        orcamentos.aprovar(orcamento.id(), agora.minusHours(2), MeioAprovacao.WHATSAPP, "Pode fazer.");
+        catalogo.salvar(TipoCatalogo.SERVICO, servico.id(), new ServicoPadrao(alternador.nome(), 2.0,
+                "Tabela da oficina", null, CategoriaServico.PARTIDA_CARGA, "", true, 30), info);
+        oficina.mudarStatus(ana, StatusOs.EM_EXECUCAO, "");
+        oficina.mudarStatus(ana, StatusOs.PRONTA, "");
     }
 
     /** A OS da Ana pronta para entregar: orçamento de 2 h a R$ 180 aprovado, serviço começado e pronto. */

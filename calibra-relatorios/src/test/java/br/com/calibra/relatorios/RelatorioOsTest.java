@@ -90,6 +90,7 @@ class RelatorioOsTest {
                 "Falta R$ 0,00", "Situação Pago", "Quem recebeu o veículo (nome e assinatura)")) {
             assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
         }
+        assertFalse(texto.contains("Garantia própria"), "sem serviço com garantia própria, como era no 0.3.0");
         assertTrue(texto.indexOf("Amortecedor dianteiro") < texto.indexOf("Troca dos amortecedores"),
                 "as peças antes dos serviços");
         assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
@@ -106,6 +107,29 @@ class RelatorioOsTest {
                 "Situação Pago")) {
             assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.1): os serviços com garantia própria aparecem embaixo da garantia da OS, com o dia em que ela
+     * vence (0 dias: "sem garantia"); o serviço sem a própria fica com a da OS e não se repete. Uma OS de três serviços
+     * continua numa página só, com a assinatura.
+     */
+    @Test
+    void comprovanteMostraOsServicosComGarantiaPropria() throws IOException {
+        Path destino = pasta.resolve("comprovante-garantia-propria.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.comGarantiaPorServico(), destino);
+        String texto = texto(destino);
+        assertTrue(texto.contains("Garantia: 90 dias, até 12/01/2027 Garantia própria: Reparo ou troca de alternador, "
+                + "365 dias, até 14/10/2027; Diagnóstico de falha elétrica, sem garantia Serviço feito"), texto);
+        assertFalse(texto.contains("Troca dos amortecedores dianteiros,"), "o da garantia da OS não se repete");
+        assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+        try (PDDocument documento = Loader.loadPDF(destino.toFile())) {
+            assertEquals(1, documento.getNumberOfPages(), "a assinatura fica na mesma página");
+        }
+
+        Path soPecas = pasta.resolve("comprovante-so-pecas.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.soComPecas(), soPecas);
+        assertFalse(texto(soPecas).contains("Garantia própria"), "sem serviço no orçamento, nada a mais");
     }
 
     @Test
@@ -157,6 +181,8 @@ class RelatorioOsTest {
         RelatorioOs.viaDoCliente(ExemplosOs.entregue(logo()), alvo.resolve("exemplo-via-do-cliente.pdf"));
         RelatorioOs.comprovanteDeEntrega(ExemplosOs.entregue(logo()),
                 alvo.resolve("exemplo-comprovante-de-entrega.pdf"));
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.comGarantiaPorServico(),
+                alvo.resolve("exemplo-comprovante-garantia-por-servico.pdf"));
         Files.writeString(alvo.resolve("exemplo-os-whatsapp.txt"), TextoWhatsAppOs.osAberta(ExemplosOs.entregue(null))
                 + "\n\n----------\n\n" + TextoWhatsAppOs.prontaParaRetirar(ExemplosOs.pronta()));
         assertTrue(Files.size(alvo.resolve("exemplo-via-do-cliente.pdf")) > 1_500);
