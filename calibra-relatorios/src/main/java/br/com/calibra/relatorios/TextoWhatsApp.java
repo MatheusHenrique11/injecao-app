@@ -71,8 +71,10 @@ public final class TextoWhatsApp {
         linhas.add("");
         linhas.add(titulo);
         for (ItemOrcamento item : itens) {
-            linhas.add("• " + item.descricao() + " — " + TextoOrcamento.quantidadeComUnidade(item) + " × "
-                    + item.valorUnitario().formatar() + " = " + item.total().formatar());
+            // A peça do cliente (Fase 3B) sai sem conta: só a quantidade e a marca.
+            linhas.add("• " + item.descricao() + " — " + TextoOrcamento.quantidadeComUnidade(item)
+                    + (item.fornecidoPeloCliente() ? ", " + TextoOrcamento.FORNECIDO
+                            : " × " + item.valorUnitario().formatar() + " = " + item.total().formatar()));
         }
     }
 }

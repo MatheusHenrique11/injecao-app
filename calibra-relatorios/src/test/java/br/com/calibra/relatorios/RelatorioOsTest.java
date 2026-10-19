@@ -9,12 +9,18 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import br.com.calibra.core.orcamento.Desconto;
+import br.com.calibra.core.orcamento.Dinheiro;
+import br.com.calibra.core.orcamento.ItemOrcamento;
+import br.com.calibra.core.orcamento.Orcamento;
+import br.com.calibra.core.orcamento.TipoItem;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -130,6 +136,25 @@ class RelatorioOsTest {
         Path soPecas = pasta.resolve("comprovante-so-pecas.pdf");
         RelatorioOs.comprovanteDeEntrega(ExemplosOs.soComPecas(), soPecas);
         assertFalse(texto(soPecas).contains("Garantia própria"), "sem serviço no orçamento, nada a mais");
+    }
+
+    /** Fase 3B (SPEC 6.6.4): no comprovante, a peça do cliente também sai marcada e com R$ 0,00. */
+    @Test
+    void comprovanteComPecaDoCliente() throws IOException {
+        DadosOs d = ExemplosOs.entregue(null);
+        Orcamento comEcu = new Orcamento(List.of(new ItemOrcamento(TipoItem.PECA, "ECU programável (fictícia)",
+                BigDecimal.ONE, "un", Dinheiro.ler("4.900,00"), 11L, 1, true), ItemOrcamento.digitado(TipoItem.SERVICO,
+                "Instalação de injeção programável", BigDecimal.valueOf(8), "h", Dinheiro.ler("180,00"))),
+                Desconto.NENHUM, 5, "", 15, "", "");
+        DadosOs dados = new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(),
+                d.telefoneCliente(), d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(),
+                d.entrega(), new DadosOs.OrcamentoAprovado("ORC-2026-0009 rev. 1", comEcu), List.of(), List.of(), "",
+                d.versaoApp(), d.geradoEm());
+        Path destino = pasta.resolve("comprovante-peca-do-cliente.pdf");
+        RelatorioOs.comprovanteDeEntrega(dados, destino);
+        String texto = texto(destino);
+        assertTrue(texto.contains("ECU programável (fictícia) (fornecido pelo cliente) 1 un R$ 0,00 R$ 0,00"), texto);
+        assertTrue(texto.contains("Valor da OS R$ 1.440,00"), texto);
     }
 
     @Test

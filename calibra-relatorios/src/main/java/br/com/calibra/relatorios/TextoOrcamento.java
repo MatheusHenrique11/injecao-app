@@ -19,6 +19,9 @@ public final class TextoOrcamento {
 
     static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    /** A marca da peça que o cliente traz (SPEC 6.6.4, Fase 3B), no PDF e no WhatsApp. */
+    static final String FORNECIDO = "fornecido pelo cliente";
+
     /** A nota do bloco 2.5, no PDF e no WhatsApp. */
     public static final String NOTA_MAPA_BASE = "O mapa base sai conservador, para o motor pegar com segurança; o acerto "
             + "final é feito no dinamômetro (ou na rua ou na água), com wideband.";
@@ -57,13 +60,21 @@ public final class TextoOrcamento {
                 + (orcamento.validadeDias() == 1 ? " dia)" : " dias)");
     }
 
-    /** As linhas da tabela de itens: descrição, quantidade, unidade, valor unitário e total. */
+    /**
+     * As linhas da tabela de itens: descrição, quantidade, unidade, valor unitário e total. A peça do cliente sai
+     * marcada na descrição e com R$ 0,00 (Fase 3B).
+     */
     static List<List<String>> linhas(List<ItemOrcamento> itens) {
         List<List<String>> linhas = new ArrayList<>();
         for (ItemOrcamento item : itens) {
-            linhas.add(List.of(item.descricao(), quantidade(item.quantidade()), item.unidade(),
+            linhas.add(List.of(descricao(item), quantidade(item.quantidade()), item.unidade(),
                     item.valorUnitario().formatar(), item.total().formatar()));
         }
         return linhas;
+    }
+
+    /** "ECU FuelTech FT450 (fornecido pelo cliente)" na peça do cliente; nas outras, a descrição como está. */
+    static String descricao(ItemOrcamento item) {
+        return item.fornecidoPeloCliente() ? item.descricao() + " (" + FORNECIDO + ")" : item.descricao();
     }
 }

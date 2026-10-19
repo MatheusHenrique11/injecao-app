@@ -102,6 +102,25 @@ class RelatorioOrcamentoTest {
                 "0.3.0-teste", AGORA);
     }
 
+    /**
+     * Fase 3B: um orçamento de injeção programável, com as linhas de um kit (2 relés, o chicote e a instalação) e a ECU
+     * que o cliente traz.
+     */
+    private static DadosOrcamento dadosComKitEPecaDoCliente(Path logo) {
+        Orcamento revisao = new Orcamento(List.of(
+                new ItemOrcamento(TipoItem.PECA, "ECU programável (fictícia)", BigDecimal.ONE, "un",
+                        Dinheiro.ler("4.900,00"), 11L, 1, true),
+                ItemOrcamento.doItem("Relé 12 V 40 A", "un", Dinheiro.ler("18,50"), 12, 1)
+                        .multiplicarQuantidade(BigDecimal.valueOf(2)),
+                ItemOrcamento.doServico("Confecção de chicote para injeção programável", null, Dinheiro.ler("1.800,00"),
+                        null, 21, 1),
+                ItemOrcamento.doServico("Instalação de injeção programável", 8.0, null, Dinheiro.ler("180,00"), 22, 1)),
+                Desconto.NENHUM, 5, "", 15, "", "");
+        return new DadosOrcamento(oficina(), logo, "Carla Reis (fictícia)", "VW Gol GTi 1994 · CDE3F45",
+                new NumeroOrcamento(2026, 4, 1), StatusOrcamento.ENVIADO, revisao, LocalDate.of(2026, 10, 13), null,
+                "0.3.0-teste", AGORA);
+    }
+
     private static String texto(Path pdf) throws IOException {
         try (PDDocument documento = Loader.loadPDF(pdf.toFile())) {
             return new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
@@ -225,6 +244,35 @@ class RelatorioOrcamentoTest {
                 "sem a nota e sem o telefone, o texto termina na validade");
     }
 
+    /**
+     * Fase 3B (SPEC 6.6.4): a peça do cliente sai marcada e com R$ 0,00, fora do total; as linhas do kit saem como as
+     * outras.
+     */
+    @Test
+    void pdfComKitEPecaDoCliente() throws IOException {
+        Path destino = pasta.resolve("orcamento-kit.pdf");
+        RelatorioOrcamento.gerar(dadosComKitEPecaDoCliente(null), destino);
+        String texto = texto(destino);
+        for (String esperado : List.of("ECU programável (fictícia) (fornecido pelo cliente) 1 un R$ 0,00 R$ 0,00",
+                "Relé 12 V 40 A 2 un R$ 18,50 R$ 37,00",
+                "Confecção de chicote para injeção programável 1 serviço R$ 1.800,00 R$ 1.800,00",
+                "Instalação de injeção programável 8 h R$ 180,00 R$ 1.440,00", "Total R$ 3.277,00")) {
+            assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
+        }
+        assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+    }
+
+    @Test
+    void textoParaWhatsAppComPecaDoCliente() {
+        String texto = TextoWhatsApp.de(dadosComKitEPecaDoCliente(null));
+        assertTrue(texto.contains("""
+                *Peças*
+                • ECU programável (fictícia) — 1 un, fornecido pelo cliente
+                • Relé 12 V 40 A — 2 un × R$ 18,50 = R$ 37,00"""), texto);
+        assertTrue(texto.contains("Peças: R$ 37,00"), "a peça do cliente não soma");
+        assertTrue(texto.contains("*Total: R$ 3.277,00*"), texto);
+    }
+
     /** Deixa PDFs de exemplo em target/ para conferência visual (evidência dos blocos 2.5 e 3.3). */
     @Test
     void geraExemploParaConferencia() throws IOException {
@@ -239,6 +287,11 @@ class RelatorioOrcamentoTest {
         RelatorioOrcamento.gerar(dadosDaOs(logo()), daOs);
         Files.writeString(destino.resolveSibling("exemplo-orcamento-os-whatsapp.txt"), TextoWhatsApp.de(dadosDaOs(null)));
         assertTrue(Files.size(daOs) > 1_500, "uma página só, menor que a do orçamento de preparação");
+        Path comKit = destino.resolveSibling("exemplo-orcamento-kit-e-peca-do-cliente.pdf");
+        RelatorioOrcamento.gerar(dadosComKitEPecaDoCliente(logo()), comKit);
+        Files.writeString(destino.resolveSibling("exemplo-orcamento-kit-e-peca-do-cliente-whatsapp.txt"),
+                TextoWhatsApp.de(dadosComKitEPecaDoCliente(null)));
+        assertTrue(Files.size(comKit) > 1_500);
     }
 
     private static boolean temImagem(Path pdf) throws IOException {
