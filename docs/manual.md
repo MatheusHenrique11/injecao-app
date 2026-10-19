@@ -28,7 +28,7 @@ Tudo fica em `%LOCALAPPDATA%\Calibra\` (para abrir, cole esse endereço na barra
 |---|---|
 | `calibra.db` | o banco de dados: clientes, veículos, ordens de serviço, projetos, cálculos, catálogos, orçamentos e configurações |
 | `anexos\` | o logo da oficina, as imagens dos mapas de turbo e as fotos e documentos das OS (em `anexos\veiculos\`). Ao abrir, o app apaga de `anexos\veiculos\` as cópias que nenhum anexo usa mais (ex.: um arquivo que estava aberto em outro programa quando o anexo foi removido) |
-| `backups\` | os backups automáticos (a pasta pode ser trocada, item 10) |
+| `backups\` | os backups automáticos e, em `backups\anexos-dos-backups\`, as fotos e os documentos deles, guardados uma vez só (a pasta pode ser trocada, item 10) |
 | `logs\` | o registro do que o app fez, com o detalhe dos erros (para o suporte) |
 | `cache\` | arquivos temporários das bibliotecas (fontes do PDF); pode ser apagada |
 
@@ -71,7 +71,7 @@ Busca por placa, cliente, embarcação ou número da OS, sem precisar de acento 
    - as **fotos da entrada**: JPG ou PNG, até 20 MB cada, pelo botão ou arrastando do Explorador de Arquivos;
    - desmarcando "O veículo já está aqui", a OS abre sem a entrada (orçamento por WhatsApp ou telefone). A entrada fica para quando o veículo chegar, na aba Entrada da OS.
 
-**Abrir a OS** grava tudo de uma vez e abre a OS. Se uma foto não servir, nada é gravado: tire a foto da lista e tente de novo. Foto do iPhone em HEIC não abre: mande pelo WhatsApp, que ele converte para JPG.
+**Abrir a OS** grava tudo de uma vez e abre a OS. As fotos são copiadas em segundo plano: a tela não trava, o botão espera, e uma janela de espera aparece se a cópia passar de meio segundo. Se uma foto não servir, nada é gravado: tire a foto da lista e tente de novo. Foto do iPhone em HEIC não abre: mande pelo WhatsApp, que ele converte para JPG.
 
 O número sai como `OS-ano-sequência` (ex.: OS-2026-0001), e a sequência recomeça a cada ano. O km da entrada atualiza o do cadastro do veículo; se for menor, o app avisa e grava assim mesmo (troca de painel acontece).
 
@@ -92,7 +92,7 @@ As abas:
 - **Orçamento:** o mesmo do projeto (item 9). Na OS sem projeto de preparação, os itens são digitados. A OS acompanha o orçamento até a aprovação: enviado leva a Aguardando aprovação; aprovado, a Aprovada; recusado ou revisão nova volta a Aberta. Depois de aprovada, uma revisão nova (o cliente pediu mais coisa) não muda a etapa, e o valor da OS passa a ser o da última revisão aprovada. Com a OS entregue ou cancelada, o orçamento fica só para ver (o PDF e o texto continuam saindo).
 - **Preparação:** com projeto ligado, o resumo e "Abrir o projeto". Sem projeto: "Criar projeto de preparação…" (o assistente começa no motor, com o cliente e o veículo da OS, e o projeto já nasce ligado a ela) ou ligar um projeto do mesmo veículo.
 - **Entrega e pagamento:** o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar. Se o recebido passar do valor, aparece "recebido a mais": confira se nenhum recebimento foi lançado duas vezes e cancele o errado.
-- **Anexos:** fotos e PDF (nota fiscal, laudos, documentos), com miniatura. "Adicionar arquivos…" ou arrastar do Explorador. Foto vira "foto da entrada" antes de o serviço começar e "foto do serviço" depois; PDF vira "documento". "Editar…" muda o tipo, a descrição, a validade e a marca de documento pessoal. "Abrir" usa o programa do Windows. "Remover…" só com a OS em andamento.
+- **Anexos:** fotos e PDF (nota fiscal, laudos, documentos), com miniatura. "Adicionar arquivos…" ou arrastar do Explorador; a cópia roda em segundo plano, como na Nova OS. Foto vira "foto da entrada" antes de o serviço começar e "foto do serviço" depois; PDF vira "documento". "Editar…" muda o tipo, a descrição, a validade e a marca de documento pessoal. "Abrir" usa o programa do Windows. "Remover…" só com a OS em andamento.
 - **Histórico:** cada mudança de etapa, com data, hora e observação.
 
 Depois da entrega, a OS não muda mais; os recebimentos e os anexos continuam valendo. Avisos que não impedem (ex.: km de saída menor que o da entrada) aparecem em amarelo, embaixo.
@@ -260,10 +260,13 @@ Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento
 ## 10. Backup e restauração
 
 - **Automático:** o app confere ao abrir e depois de hora em hora, e faz um backup por dia. Ao fechar, se algo mudou, faz outro ("Fazendo backup antes de fechar…"). Ficam os 30 mais recentes.
-- **O backup** é um arquivo `calibra-backup-AAAA-MM-DD-HHMMSS.zip` com o banco, os anexos e um resumo com a versão e a conferência dos arquivos. Um anexo removido enquanto o backup é feito fica de fora, sem atrapalhar o resto.
-- **Pasta:** em Configurações → Backup, dá para escolher outra pasta, como um pen drive ou um HD externo. Se ela não estiver ligada, o backup vai para a pasta padrão, com aviso na barra de baixo.
+- **O backup** é um arquivo `calibra-backup-AAAA-MM-DD-HHMMSS.zip` com o banco e um resumo com a versão, a conferência dos arquivos e a lista dos anexos. As fotos e os documentos ficam na pasta **`anexos-dos-backups`**, ao lado dos arquivos dos backups, **uma vez só**: uma foto que não mudou não é copiada de novo a cada backup. Por isso cada backup é pequeno, e a pasta cresce só com as fotos novas. A aba Backup mostra quanto ela ocupa. Um anexo removido enquanto o backup é feito fica de fora, sem atrapalhar o resto.
+- **Para levar os backups para outro lugar** (outro computador, outro HD), copie a pasta de backup inteira, com a `anexos-dos-backups`. O arquivo `.zip` sozinho não tem as fotos.
+- **Limpeza:** quando um backup antigo sai (ficam os 30 mais recentes), sai também da `anexos-dos-backups` o que nenhum backup restante usa.
+- **Pasta:** em Configurações → Backup, dá para escolher outra pasta, como um pen drive ou um HD externo. Se ela não estiver ligada, o backup vai para a pasta padrão, com aviso na barra de baixo. Cada pasta tem a sua `anexos-dos-backups`.
 - **Fazer backup agora:** a qualquer momento.
-- **Restaurar um backup…:** escolha o backup na lista e confirme. Antes de trocar os dados, o app guarda os dados atuais num backup de segurança na pasta padrão. Backup corrompido ou de uma versão mais nova do app é recusado sem mexer em nada. O que estiver digitado e não salvo nas telas se perde.
+- **Restaurar um backup…:** escolha o backup na lista e confirme. Antes de trocar os dados, o app confere cada foto e documento pela impressão digital e guarda os dados atuais num backup de segurança na pasta padrão. Backup corrompido, de uma versão mais nova do app ou sem as fotos na `anexos-dos-backups` é recusado sem mexer em nada, com a explicação. O que estiver digitado e não salvo nas telas se perde.
+- **Backups antigos** (feitos até a versão 0.3.0, com as fotos dentro do `.zip`) continuam restaurando normalmente. Eles saem da pasta conforme os novos entram.
 - **Ao atualizar o app** e o banco precisar mudar de versão, o app faz um backup antes. Se a atualização do banco falhar, ele volta o backup e mostra a mensagem.
 
 ## 11. Mapa base

@@ -652,3 +652,20 @@ Proposta do dono de 18/10/2026 (SPEC 1.2), com o plano aprovado em 19/10/2026. A
     - **a "descrição padrão" do serviço é o texto da linha do orçamento.** A via do cliente não lista o orçamento, porque é assinada na chegada;
     - **o vínculo do serviço com o checklist modelo entra no 3B.3,** junto com os modelos;
     - **o texto da SPEC usa "oficina" onde a proposta dizia "escritório",** como no resto da SPEC e do app.
+
+### Bloco 3B.0: backup e cópia de anexos (19/10/2026)
+
+227. **Backup formato 2: cada anexo guardado uma vez** (item 1 da decisão 211):
+    - o zip leva o banco e o manifesto; o manifesto lista cada anexo (caminho, SHA-256 e tamanho), e o conteúdo fica na pasta `anexos-dos-backups`, ao lado dos zips, com o SHA-256 como nome. Uma foto que não muda é guardada uma vez, não 30;
+    - os anexos são guardados **antes** da cópia do banco: um anexo removido no meio do backup fica de fora, e o banco, copiado depois, também não o tem. Um removido depois de guardado só sobra no backup, sem uso. A cópia de um anexo novo calcula o SHA-256 enquanto copia e grava com `.parcial`, renomeando no fim;
+    - a restauração do formato 2 confere primeiro se todos os arquivos estão lá (sem copiar nada); depois copia cada um e confere o SHA-256. Arquivo faltando, arquivo com outro conteúdo, caminho que sai da pasta de anexos ou nome que não é um SHA-256 recusam a restauração sem mexer em nada. A conferência sem restaurar confere os arquivos na própria pasta;
+    - o formato 1 (zip com os anexos dentro, até a 0.3.0) continua restaurando como antes; o 0.3.0 recusa o formato 2 com a mensagem de "versão mais nova", que já existia;
+    - a limpeza: depois de ficar com os 30 mais recentes, sai da `anexos-dos-backups` o que nenhum backup restante usa (e as cópias `.parcial`). Se algum backup da pasta não puder ser lido, a limpeza espera o próximo backup, porque ele pode usar um desses arquivos. Erro na limpeza só vai para o log: o backup já está feito;
+    - cada backup ainda lê todos os anexos para conferir o SHA-256 (o formato 1 lia e gravava tudo de novo). Se com o tempo isso pesar no backup ao fechar, dá para guardar o SHA-256 de cada arquivo entre um backup e outro;
+    - a aba Backup mostra quanto a `anexos-dos-backups` ocupa. Para levar os backups para outro lugar, copia-se a pasta inteira (manual, item 10).
+228. **Cópia de fotos e documentos em segundo plano** (item 2 da decisão 211):
+    - anexar na aba Anexos da OS ou na ficha do veículo, e abrir a Nova OS com as fotos, rodam na fila de segundo plano do app (`TarefasFundo`), a mesma do backup e da restauração. Assim a cópia nunca roda junto com uma restauração, que troca a pasta de anexos inteira;
+    - o formulário e o tipo de cada anexo são lidos na thread da tela; só o trabalho de copiar e gravar vai para a fila;
+    - durante a cópia, o botão fica desligado; a janela de espera só aparece se passar de meio segundo, para não piscar na tela numa cópia rápida;
+    - a cópia de um anexo lê a foto uma vez (o SHA-256 sai durante a cópia, com um nome provisório `.parcial` até o fim), e não duas;
+    - nos testes de tela, os passos que copiam esperam a fila terminar; um teste novo segura a fila (como um backup comprido faria) e confere que a tela responde e que a foto de 5 MB entra quando a fila chega nela.

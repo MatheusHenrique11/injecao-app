@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.core.cadastro.DadosOficina;
+import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.BaseDeTeste;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.config.Chave;
@@ -142,6 +143,51 @@ class BackupTest {
         assertEquals(Backup.MANTER, Backup.listar(destino).size(), "o primeiro backup saiu");
         assertFalse(Files.exists(guardados.resolve(sha256("foto antiga"))), "nenhum backup restante usa a foto");
         assertTrue(Files.exists(guardados.resolve(sha256("foto nova"))));
+    }
+
+    /**
+     * Evidência do bloco 3B.0 (em target/, para conferir): dois backups com fotos de celular fictícias. O zip fica com
+     * o tamanho do banco, a pasta anexos-dos-backups cresce só com a foto nova, e o primeiro backup restaura igual.
+     */
+    @Test
+    void geraEvidenciaParaConferencia() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("dados"));
+        Path veiculo = Files.createDirectories(base.pastas.anexos().resolve("veiculos").resolve("1"));
+        Random sorteio = new Random(11);
+        for (int i = 1; i <= 4; i++) {
+            Files.write(veiculo.resolve(String.format("%016x.jpg", i)), fotoAoAcaso(sorteio));
+        }
+        Path destino = pasta.resolve("backups");
+        InfoBackup primeiro = base.backup.fazer(destino, MotivoBackup.MANUAL);
+        long depoisDoPrimeiro = Backup.tamanhoDosAnexos(destino);
+        Files.write(veiculo.resolve(String.format("%016x.jpg", 5)), fotoAoAcaso(sorteio));
+        InfoBackup segundo = base.backup.fazer(destino, MotivoBackup.MANUAL);
+        long depoisDoSegundo = Backup.tamanhoDosAnexos(destino);
+
+        base.restauracao().restaurar(primeiro.arquivo());
+
+        assertEquals(6_000_000, depoisDoPrimeiro, "as 4 fotos, uma vez");
+        assertEquals(7_500_000, depoisDoSegundo, "só a foto nova entrou");
+        assertTrue(segundo.tamanhoBytes() < 150_000, "o zip leva o banco: " + segundo.tamanhoBytes());
+        assertEquals(4, quantos(veiculo), "o primeiro backup volta com as 4 fotos");
+        Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+        Files.createDirectories(alvo);
+        Files.write(alvo.resolve("evidencia-backup-formato-2.txt"), List.of(
+                "Bloco 3B.0: backup que guarda cada anexo uma vez (fotos fictícias de 1,5 MB)",
+                "1º backup, 4 fotos: o zip tem " + NumeroBr.tamanhoArquivo(primeiro.tamanhoBytes())
+                        + "; a pasta anexos-dos-backups, " + NumeroBr.tamanhoArquivo(depoisDoPrimeiro),
+                "2º backup, 5 fotos: o zip tem " + NumeroBr.tamanhoArquivo(segundo.tamanhoBytes())
+                        + "; a pasta anexos-dos-backups, " + NumeroBr.tamanhoArquivo(depoisDoSegundo),
+                "No formato 1, cada um dos 30 backups levaria as fotos todas: "
+                        + NumeroBr.tamanhoArquivo(depoisDoSegundo) + " a cada backup.",
+                "Restaurar o 1º backup: as 4 fotos voltam, conferidas pelo SHA-256; a 5ª sai."),
+                StandardCharsets.UTF_8);
+    }
+
+    private static byte[] fotoAoAcaso(Random sorteio) {
+        byte[] foto = new byte[1_500_000];
+        sorteio.nextBytes(foto);
+        return foto;
     }
 
     /** Com um backup ilegível na pasta, a limpeza não apaga nada: ele pode usar algum arquivo dela. */

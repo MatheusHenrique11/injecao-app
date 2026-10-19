@@ -2,6 +2,13 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [Não lançado] — Fase 3B (auto elétrica)
+
+### Mudado
+- **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.
+- **Fotos e documentos copiados em segundo plano:** anexar na OS ou na ficha do veículo e abrir a Nova OS com as fotos não travam mais a tela; a janela de espera só aparece se a cópia passar de meio segundo.
+- SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
+
 ## [0.3.0] — 19/10/2026 — Fase 3
 
 ### Adicionado

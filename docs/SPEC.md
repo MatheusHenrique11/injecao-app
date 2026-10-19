@@ -570,9 +570,9 @@ Fases dos níveis C, B e A alteradas em 15/10/2026 (eram 3, 3 e 5), com o roteir
 - **Instalador MSI** via `jlink` + `jpackage`, com o Java embutido; atalho no menu Iniciar; ícone; versão semântica (0.x.y); UpgradeCode fixo para instalar por cima sem perder dados. Desinstalar não apaga `%LOCALAPPDATA%\Calibra`.
 - **Script** `scripts/gerar-instalador.ps1`: roda `mvn -q verify`, gera o MSI e o coloca em `dist/` com a versão no nome.
 - **Banco:** migração automática ao abrir, com backup antes de migrar; se a migração falhar, restaurar o backup e mostrar a mensagem.
-- **Backup:** automático diário e ao fechar o app; manter os 30 mais recentes; pasta configurável (HD externo ou pen drive); restaurar pela tela de Configurações.
+- **Backup:** automático diário e ao fechar o app; manter os 30 mais recentes; pasta configurável (HD externo ou pen drive); restaurar pela tela de Configurações. Desde a Fase 3B, cada backup é o banco e a lista dos anexos, e os anexos ficam guardados uma vez só na pasta de backup (`anexos-dos-backups`), conferidos pela impressão digital na restauração; os backups antigos, com os anexos no zip, continuam restaurando (alterado em 19/10/2026 — ver docs/decisoes.md, item 227).
 - **Logs:** arquivo rotativo em `logs\` (10 arquivos de 5 MB). Erro inesperado mostra mensagem amigável em português e grava o detalhe no log.
-- **Interface fluida:** cálculos, PDFs, backup e importações rodam em `javafx.concurrent.Task`, com indicador de progresso.
+- **Interface fluida:** cálculos, PDFs, backup, importações e a cópia de fotos e documentos (Fase 3B, item 228) rodam em `javafx.concurrent.Task`, com indicador de progresso.
 - **Desempenho:** abrir em menos de 5 s e recalcular um projeto em menos de 1 s num i5 com 8 GB.
 - **Versão visível** no rodapé; `CHANGELOG.md` atualizado a cada entrega; `docs/manual.md` (manual do usuário em português) atualizado a cada fase.
 - **Opcional:** GitHub Actions com runner Windows gerando o MSI quando eu criar uma tag.
