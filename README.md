@@ -1,6 +1,6 @@
 # Calibra (nome provisório)
 
-App desktop para Windows, 100% offline, só da minha oficina: gratuito, num computador e sem login. Ele faz a gestão do dia a dia (ordens de serviço e, depois, agenda e lembretes) e a preparação: dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
+App desktop para Windows, 100% offline, só da minha oficina: gratuito, num computador e sem login. Ele faz a gestão do dia a dia (ordens de serviço de mecânica e de auto elétrica e, depois, agenda e lembretes) e a preparação: dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
 
 A especificação completa está em [docs/SPEC.md](docs/SPEC.md).
 
@@ -10,11 +10,18 @@ Fase 2 (0.2.0): banco de dados com backup e restauração; projetos com cliente,
 
 Fase 3 (0.3.0): a oficina. Ordem de serviço da entrada do veículo (vistoria e fotos) à entrega com garantia e ao pagamento em partes; Painel e lista da Oficina; o orçamento passa a pertencer à OS; via do cliente e comprovante de entrega em PDF ou impressos; textos para o WhatsApp; catálogo de serviços; ficha do veículo; projeto de preparação ligado à OS.
 
-Próximas fases (SPEC 12, roteiro de 15/10/2026):
+Em andamento: **Fase 3B — Auto elétrica** (SPEC 1.2), a segunda linha de serviço da oficina, na mesma OS. Ela sai no instalador 0.3.1, no fim da fase. Já prontos no código:
+- **3B.0:** o backup que guarda cada foto e documento uma vez só, e a cópia de anexos em segundo plano;
+- **3B.1:** o catálogo de serviços com categoria, descrição no orçamento e garantia própria, e os serviços sugeridos de auto elétrica e injeção programável.
+
+Faltam os itens e kits no orçamento, os checklists, o laudo elétrico, as instalações do veículo e a injeção programável (chicote e instalação).
+
+Próximas fases (SPEC 12, roteiro de 15/10/2026, com a Fase 3B e a Fase 8 da SPEC 1.2):
 - **4 — Mapa base.**
 - **5 — Agenda e lembretes.**
 - **6 — Acerto, relatório e biblioteca.**
 - **7 — Aprendizado e integrações.**
+- **8 — Chicote e caixa de fusíveis** (pode ser antecipada).
 
 ## Módulos
 
