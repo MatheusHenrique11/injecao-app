@@ -8,10 +8,14 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **Serviços do catálogo com categoria, descrição, garantia própria e "exige o veículo na oficina":** a categoria (Som, Vidros e travas, Partida e carga, Iluminação, Diagnóstico elétrico, Injeção programável, Preparação ou Outro) organiza a lista; a descrição vira o texto da linha do orçamento; a garantia própria (em dias) vale no lugar da garantia da OS; o serviço de bancada (ex.: confecção de chicote) fica marcado como feito sem o veículo. Os serviços já cadastrados aparecem como Outro, sem perder nada.
 - **Serviços sugeridos…:** a lista de partida de auto elétrica e injeção programável (24 serviços), para marcar os que a oficina faz e preencher as horas ou o preço de cada um. Nada entra sem horas ou preço, e o que já está no catálogo não se repete.
 - **Garantia própria na entrega:** a janela de entrega avisa quais serviços têm a garantia própria, e a aba Entrega e pagamento e o comprovante de entrega mostram a de cada um, com o dia em que vence. Vale a garantia que o serviço tinha quando entrou no orçamento.
+- **Itens e kits nos Catálogos:** a aba Itens (cabo, fusível, relé, a ECU..., com a unidade e o preço de referência, sem estoque) e a aba Kits (itens e serviços do catálogo, cada um com a quantidade; o kit com serviço é um pacote, como "chicote + instalação").
+- **Itens e kits no orçamento:** "+ Item do catálogo…" e "+ Kit do catálogo…". O kit vira uma linha para cada item e serviço, com o preço de agora do catálogo, e cada linha se muda ou se apaga sem mexer no kit.
+- **Peça do cliente:** a caixa "do cliente" na linha de peça (ex.: a ECU que o cliente já comprou) põe o valor em zero, fora do total; o PDF, o comprovante e o texto de WhatsApp mostram "fornecido pelo cliente".
 
 ### Mudado
 - **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.
 - **Fotos e documentos copiados em segundo plano:** anexar na OS ou na ficha do veículo e abrir a Nova OS com as fotos não travam mais a tela; a janela de espera só aparece se a cópia passar de meio segundo.
+- **"Trazer as peças do cálculo de novo"** (orçamento de preparação) mantém os itens da aba Itens, além dos serviços; as peças digitadas continuam sendo trocadas pelas do cálculo.
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
 
 ## [0.3.0] — 19/10/2026 — Fase 3

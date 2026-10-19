@@ -102,7 +102,7 @@ Depois da entrega, a OS não muda mais; os recebimentos e os anexos continuam va
 O botão **Documentos ▾**, no cabeçalho da OS:
 
 - **Via do cliente** (gerar PDF ou imprimir): a folha A4 que o cliente assina na chegada. Tem a OS, o cliente e o veículo, o serviço pedido, a previsão e o mecânico, a entrada (chegada, km, tanque, a vistoria item a item e os objetos deixados), o texto de Configurações › OS e as linhas de assinatura do cliente e do responsável pela oficina. Com algo mudado e não salvo na aba Entrada, a via não sai: a mensagem diz o que salvar. Assim nenhuma observação da vistoria fica de fora da folha assinada.
-- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence (e, embaixo, a linha "Garantia própria" com os serviços que têm a própria, quando houver), os itens e o total do orçamento aprovado, os recebimentos (o cancelado aparece marcado e não conta), o que falta (ou o recebido a mais), a situação e a assinatura de quem recebeu o veículo.
+- **Comprovante de entrega** (gerar PDF ou imprimir, depois da entrega): a entrega, o km de saída, a garantia com a data em que vence (e, embaixo, a linha "Garantia própria" com os serviços que têm a própria, quando houver), os itens e o total do orçamento aprovado (a peça do cliente sai marcada, com R$ 0,00), os recebimentos (o cancelado aparece marcado e não conta), o que falta (ou o recebido a mais), a situação e a assinatura de quem recebeu o veículo.
 - **Copiar texto para WhatsApp:** "OS aberta" (o número, o veículo, quando chegou ou "orçamento a fazer", o serviço pedido e a previsão) e "pronto para retirar" (com a OS pronta: o valor, o recebido e o que falta, ou o recebido a mais). O app só copia: cole na conversa (Ctrl+V), confira e envie você mesmo.
 - **Imprimir…** abre a janela de impressão do Windows. As páginas são preparadas em segundo plano; a primeira impressão demora alguns segundos (o app procura as fontes do Windows). Sem impressora, gere o PDF ou use a "Microsoft Print to PDF".
 
@@ -212,16 +212,18 @@ Se você mudar qualquer campo depois de calcular, o resultado fica **desatualiza
 
 ## 8. Catálogos
 
-**Catálogos** (menu à esquerda) guarda as peças, os dados técnicos e os serviços da oficina, em abas: Bicos, Bombas, Injeções, Turbos, Combustíveis, Intercoolers, Sensores, Câmbios, Motores e montagens, e Serviços.
+**Catálogos** (menu à esquerda) guarda as peças, os dados técnicos, os serviços, os itens e os kits da oficina, em abas: Bicos, Bombas, Injeções, Turbos, Combustíveis, Intercoolers, Sensores, Câmbios, Motores e montagens, Serviços, Itens e Kits.
 
-- **As peças e os serviços começam vazios:** cadastre as peças a partir do manual ou do site do fabricante, e os serviços pela tabela da oficina. Combustíveis e motores já vêm cadastrados (os motores marcados "a verificar").
+- **As peças, os serviços, os itens e os kits começam vazios:** cadastre as peças a partir do manual ou do site do fabricante, e o resto pela tabela da oficina. Combustíveis e motores já vêm cadastrados (os motores marcados "a verificar").
 - **Serviços:** o nome, a categoria, as horas (o tempo padrão) e, se o serviço tiver preço próprio, o preço de referência. Sem preço, as horas são obrigatórias. A fonte já vem "Tabela da oficina". No orçamento, entram pelo "+ Serviço do catálogo…" (item 9). Cada serviço tem também:
   - **Categoria** (obrigatória): Preparação, Som, Vidros e travas, Partida e carga, Iluminação, Diagnóstico elétrico, Injeção programável ou Outro. Os serviços cadastrados antes do 0.3.1 aparecem como Outro; troque na edição. Clique no título da coluna "Categoria" para ordenar a lista por ela;
   - **Descrição no orçamento** (opcional, uma linha): o texto que entra na linha do orçamento e daí no PDF, no WhatsApp e no comprovante. Em branco, entra o nome;
   - **Garantia própria (dias)** (opcional, de 0 a 3650): em branco, o serviço fica com a garantia da OS; 0 quer dizer sem garantia para aquele serviço (ex.: um diagnóstico). Ela aparece na entrega e no comprovante (itens 5.4 e 5.5);
   - **Exige o veículo na oficina** (vem marcado): desmarque no serviço de bancada, feito sem o veículo, como a confecção de chicote.
 - **Serviços sugeridos…** (na aba Serviços, ao lado de "Cadastrar…"): uma lista de partida de auto elétrica e injeção programável (som, vidros e travas, partida e carga, iluminação, diagnóstico elétrico e injeção programável). Marque os que a oficina faz e preencha as **horas ou o preço** de cada um (digitar já marca a linha): a lista vem sem os dois, porque o Calibra não inventa tempo de serviço. "Adicionar ao catálogo" grava todos de uma vez; se faltar algo, a janela mostra o que e não grava nenhum. O que já existe no catálogo com o mesmo nome aparece como "já cadastrado". Depois, edite cada um como os outros (descrição, garantia própria).
-- **Todo item tem fonte** (obrigatória), data, a marca **"a verificar"** (para dado ainda não confirmado), preço de referência (vai para o orçamento) e observações.
+- **Itens:** o material que entra no orçamento, como cabo, fusível, relé, conector ou a ECU: o nome, a **unidade** (vem "un"; mude para m, par, kit...) e o preço de referência. A fonte já vem "Tabela da oficina". Não há saldo nem estoque. No orçamento, entram pelo "+ Item do catálogo…" (item 9).
+- **Kits:** um conjunto de itens e serviços do catálogo, cada um com a quantidade (ex.: "Alimentação do som": 5 m de cabo, 1 fusível e a instalação). O kit com serviço é um **pacote** (ex.: "chicote + instalação"). Na janela do kit, "+ Item do catálogo…" e "+ Serviço do catálogo…" põem as linhas; mude a quantidade de cada uma ou tire com o ✕. O kit não tem preço próprio: no orçamento, ele vira as linhas, com o preço de agora de cada uma (item 9). A lista mostra as linhas ("2 itens, 1 serviço") e se é pacote.
+- **Todo item tem fonte** (obrigatória), data, a marca **"a verificar"** (para dado ainda não confirmado), preço de referência (vai para o orçamento; o kit não tem) e observações.
 - **Editar cria uma versão nova**; "Versões…" compara as versões campo a campo, com a mudança em amarelo. Gravar sem mudar nada não cria versão.
 - **Arquivar** tira o item das escolhas, mas ele continua nos cálculos antigos. Nada é apagado.
 - **Duplicar** faz uma cópia para cadastrar uma peça parecida.
@@ -244,23 +246,25 @@ A escala dos eixos precisa ser linear (é a dos mapas de compressor comuns).
 O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a OS tem projeto de preparação, também na aba **Peças e orçamento** do projeto: é o mesmo orçamento nas duas (no projeto, o da OS em andamento; item 6.4). Com a OS entregue ou cancelada, ele fica só para ver.
 
 - **De preparação** (a OS tem projeto): sai do último cálculo salvo do projeto, que precisa estar em dia.
-- **Comum** (sem projeto, ex.: revisão, freios, suspensão): os itens são digitados ou vêm do catálogo de serviços. O PDF e o texto de WhatsApp dele saem sem o motor, a meta, o resumo técnico e a nota do mapa base.
+- **Comum** (sem projeto, ex.: revisão, freios, suspensão, auto elétrica): os itens são digitados ou vêm do catálogo (serviços, itens e kits). O PDF e o texto de WhatsApp dele saem sem o motor, a meta, o resumo técnico e a nota do mapa base.
 
 1. **Itens:**
    - no de preparação, as peças do cálculo vêm com o preço de referência do catálogo (bicos × número de cilindros, bomba, turbo, intercooler, sensor MAP e injeção); peça sem preço vem com o valor em branco;
    - "+ Serviço (mão de obra)" traz o valor da hora de Configurações; ajuste a quantidade de horas;
    - "+ Serviço do catálogo…" escolhe um serviço da aba Serviços dos Catálogos: com preço próprio, entra 1 serviço pelo preço; sem preço, entram as horas × o valor da hora de Configurações (sem o valor da hora configurado, o valor fica em branco para preencher). O texto da linha é a descrição do serviço no catálogo (sem descrição, o nome), e dá para mudar aqui;
+   - "+ Item do catálogo…" escolhe um item da aba Itens: entra como peça, 1 × a unidade dele, pelo preço de referência (sem preço, o valor fica em branco para preencher);
+   - "+ Kit do catálogo…" escolhe um kit da aba Kits, que vira uma linha para cada item e serviço dele, com a quantidade do kit e o preço de agora do catálogo (o serviço pela regra dele: preço próprio, ou horas × o valor da hora). Depois, mude ou apague cada linha à vontade (ex.: o cliente leva só o chicote, sem a instalação): o kit no catálogo não muda. Se um item ou serviço do kit estiver arquivado, ele entra mesmo assim, com um aviso em amarelo para conferir;
    - "+ Peça" acrescenta uma peça digitada.
 
-   Os valores continuam editáveis, e os totais aparecem enquanto você digita.
+   Os valores continuam editáveis, e os totais aparecem enquanto você digita. Na peça que o cliente traz (ex.: a ECU que ele já comprou), marque **"do cliente"**: ela entra com valor zero e não soma no total; desmarcar devolve o valor de antes.
 2. **Desconto, prazo e condições:** desconto em reais ou em %, prazo em dias úteis (0 = a combinar), validade em dias, condições de pagamento e observações. Os padrões vêm de Configurações.
 3. **Salvar rascunho:** grava o orçamento com o número `ORC-ano-sequência` (ex.: ORC-2026-0001). O rascunho pode ser editado à vontade.
-4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo e a validade; no de preparação, também o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O Calibra não envia nada. Se o Windows não deixar copiar naquele instante (outro programa usando a área de transferência), a tela avisa: clique de novo.
+4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo e a validade; no de preparação, também o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. A peça do cliente sai com "(fornecido pelo cliente)" e R$ 0,00; no WhatsApp, "1 un, fornecido pelo cliente". O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O Calibra não envia nada. Se o Windows não deixar copiar naquele instante (outro programa usando a área de transferência), a tela avisa: clique de novo.
 5. **Marcar como enviado:** depois de mandar ao cliente. A validade conta a partir daí; a OS passa para Aguardando aprovação e o projeto, se houver, para Orçado.
 6. **Aprovado pelo cliente…** ou **Recusado…:** informe a data, a hora e como o cliente respondeu (pessoalmente, WhatsApp ou telefone). Aprovado leva a OS para Aprovada e o projeto para Aprovado. **Orçamento aprovado não muda mais.**
 7. **Nova revisão:** para mudar um orçamento enviado, aprovado ou recusado. A revisão nova sai com o mesmo número ("ORC-2026-0001 rev. 2"), em rascunho, e a anterior fica como substituída. A tabela "Revisões" mostra todas.
 
-Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento aparece como **desatualizado** e não pode ser enviado. No rascunho, "Usar o cálculo mais novo" resolve; depois confira os itens ("Trazer as peças do cálculo de novo" refaz as peças e mantém os serviços).
+Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento aparece como **desatualizado** e não pode ser enviado. No rascunho, "Usar o cálculo mais novo" resolve; depois confira os itens ("Trazer as peças do cálculo de novo" refaz as peças e mantém os serviços e os itens da aba Itens, como cabos e relés; as peças digitadas são trocadas pelas do cálculo).
 
 ## 10. Backup e restauração
 

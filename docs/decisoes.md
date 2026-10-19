@@ -694,3 +694,27 @@ Plano aprovado em 19/10/2026, em 4 passos.
     - o plano previa uma seção "Por serviço", com uma tabela de todos os serviços (serviço, garantia e vencimento). No PDF de exemplo, numa OS de três serviços, a tabela empurrou a assinatura de quem recebe o veículo para uma segunda página;
     - ficou a linha "Garantia própria", só com os serviços que têm a própria. O comprovante de quem não usa garantia própria fica igual ao do 0.3.0, e o de três serviços cabe numa página, com a assinatura (teste novo);
     - o resumo do checklist por serviço (3B.3) terá o próprio desenho, no plano daquele bloco.
+
+### Bloco 3B.2: itens, kits e pacotes no orçamento (19/10/2026)
+
+Plano aprovado em 19/10/2026, em 5 passos.
+
+233. **Itens** (aba Itens dos Catálogos, SPEC 6.6.4):
+    - **campos:** o nome, a unidade (obrigatória; o item novo vem com "un") e o preço de referência, comum a todo item do catálogo. Sem saldo nem estoque (decisão 220);
+    - **a fonte vem preenchida** com "Tabela da oficina", como nos serviços. A SPEC dizia que ela é opcional no item, mas todo item do catálogo tem fonte (regra 2.7); vindo preenchida, não dá trabalho;
+    - **sem migração:** os itens são um tipo novo do catálogo que já existe (`ITEM`, com os dados em JSON), com versões, arquivar, busca e a janela de escolha.
+234. **Kits** (aba Kits):
+    - **linhas:** cada linha é um item ou um serviço do catálogo, com a quantidade. O kit com serviço é um pacote (ex.: "chicote + instalação"). As linhas se escolhem dentro da janela do kit ("+ Item do catálogo…" e "+ Serviço do catálogo…"), e o formulário do catálogo ganhou esse tipo de campo (`EditorLinhasKit`);
+    - **regras ao gravar:** pelo menos uma linha, quantidade maior que zero e o mesmo item uma vez só (some as quantidades). Cada linha precisa apontar para um item ou serviço que exista no catálogo; o serviço não vale como item, nem o item como serviço;
+    - **sem preço próprio:** o valor sai das linhas, no orçamento. A janela do kit não tem o campo do preço, e a lista não tem a coluna. A lista mostra as linhas ("2 itens, 1 serviço") e se é pacote;
+    - **o nome de cada linha** é guardado só para mostrar (nas versões, "2 × Relé 12 V 40 A (item)"). Ao abrir e ao gravar o kit, ele vem do catálogo como está agora, e o item arquivado aparece marcado.
+235. **O kit no orçamento** ("+ Kit do catálogo…"):
+    - **expande:** vira uma linha para cada item e serviço do kit, com a versão de agora de cada um e a quantidade do kit. O item entra como peça (quantidade × preço de referência; sem preço, o valor fica em branco). O serviço entra pela regra dele (preço próprio, ou horas × o valor da hora), vezes a quantidade (2 × um serviço de 0,5 h = 1 h);
+    - **linhas soltas:** depois, cada linha se muda ou se apaga, e o kit no catálogo não muda (testes nº 5 e nº 11 da Fase 3B). A linha guarda o item e a versão do catálogo, então o serviço que entra por um kit tem a garantia própria do 3B.1;
+    - **arquivado:** o item ou serviço arquivado no catálogo entra mesmo assim, com um aviso em amarelo para conferir;
+    - **"+ Item do catálogo…"** põe uma linha de peça: 1 × a unidade do item, pelo preço de referência.
+236. **Peça fornecida pelo cliente:**
+    - **no núcleo:** só linha de peça; o valor fica sempre zero e não soma no total (teste nº 12 da Fase 3B). Os orçamentos gravados antes da Fase 3B são lidos como "não fornecido", sem migração (teste com o JSON de um orçamento do 0.3.0);
+    - **na tela:** a caixa "do cliente" em cada linha de peça. Marcada, o valor vai a 0,00 e trava; desmarcada, volta o valor de antes;
+    - **nos documentos:** no PDF do orçamento e no comprovante de entrega, a linha sai com "(fornecido pelo cliente)" na descrição e R$ 0,00; no texto de WhatsApp, sem conta: "• ECU … — 1 un, fornecido pelo cliente".
+237. **"Trazer as peças do cálculo de novo"** (orçamento de preparação) passa a manter as linhas do catálogo de Itens (cabos, relés...), que não saem do cálculo, além dos serviços. As peças digitadas continuam sendo trocadas pelas do cálculo, como antes.
