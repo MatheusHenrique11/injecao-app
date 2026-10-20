@@ -95,7 +95,7 @@ class AnexoRepositorioTest {
         Fixture f = abrir(base);
         Migracoes.Resultado resultado = Migracoes.migrar(base.banco, base.backup);
         assertEquals("6", resultado.versaoAntes());
-        assertEquals("7", resultado.versaoDepois());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoDepois(), "a V7 e as que vêm depois");
         AnexoRepositorio anexos = new AnexoRepositorio(base.relogio);
         assertEquals(List.of(), base.banco.ler(c -> anexos.daOs(c, f.os())));
         assertThrows(ErroDados.class, () -> base.banco.transacao(c -> anexos.inserir(c, 999, null, TipoAnexo.OUTRO,
