@@ -36,7 +36,7 @@ public final class OrdemServicoRepositorio {
     private static final String COLUNAS = "id, ano, sequencial, cliente_id, veiculo_id, projeto_id, status, "
             + "servico_pedido, mecanico_id, previsao_entrega, entrada_em, uso_entrada, combustivel_entrada, "
             + "vistoria_json, pronta_em, entregue_em, uso_saida, garantia_dias, garantia_ate, motivo_cancelamento, "
-            + "observacoes, criado_em, atualizado_em";
+            + "observacoes, retirado_por, criado_em, atualizado_em";
     /** As linhas das listas de OS (a tela Oficina, o Painel e a ficha do veículo), com o cliente e o veículo. */
     private static final String SELECT_RESUMO = "SELECT o.id, o.ano, o.sequencial, o.status, o.servico_pedido, "
             + "o.projeto_id, o.entrada_em, o.previsao_entrega, o.atualizado_em, c.nome, v.tipo, v.marca, v.modelo, "
@@ -148,14 +148,15 @@ public final class OrdemServicoRepositorio {
         LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement atualizacao = conexao.prepareStatement(
                 "UPDATE ordem_servico SET status = ?, entregue_em = ?, uso_saida = ?, garantia_dias = ?, "
-                        + "garantia_ate = ?, atualizado_em = ? WHERE id = ?")) {
+                        + "garantia_ate = ?, retirado_por = ?, atualizado_em = ? WHERE id = ?")) {
             atualizacao.setString(1, StatusOs.ENTREGUE.name());
             atualizacao.setString(2, Sql.texto(entrega.quando().withNano(0)));
             Sql.numero(atualizacao, 3, entrega.usoSaida());
             atualizacao.setInt(4, entrega.garantia().dias());
             atualizacao.setString(5, Sql.texto(entrega.garantiaVence()));
-            atualizacao.setString(6, Sql.texto(agora));
-            atualizacao.setLong(7, id);
+            atualizacao.setString(6, entrega.quemRetirou());
+            atualizacao.setString(7, Sql.texto(agora));
+            atualizacao.setLong(8, id);
             atualizacao.executeUpdate();
         }
         registrarStatus(conexao, id, StatusOs.ENTREGUE, agora, "");
@@ -353,7 +354,7 @@ public final class OrdemServicoRepositorio {
                 Json.ler(linha.getString("vistoria_json"), Vistoria.class));
         LocalDateTime entregueEm = Sql.dataHora(linha, "entregue_em");
         Entrega entrega = entregueEm == null ? null : new Entrega(entregueEm, Sql.numero(linha, "uso_saida"),
-                new Garantia(linha.getInt("garantia_dias")));
+                new Garantia(linha.getInt("garantia_dias")), linha.getString("retirado_por"));
         return new OrdemServicoSalva(linha.getLong("id"), new NumeroOs(linha.getInt("ano"), linha.getInt("sequencial")),
                 linha.getLong("cliente_id"), linha.getLong("veiculo_id"), Sql.longo(linha, "projeto_id"),
                 Sql.constante(linha, "status", StatusOs.class), linha.getString("servico_pedido"),

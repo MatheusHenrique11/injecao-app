@@ -125,14 +125,16 @@ public final class CasosOficina {
     }
 
     /**
-     * A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum), o pagamento e a garantia de
-     * cada serviço da revisão aprovada (vazia sem orçamento aprovado).
+     * A OS com o que a tela mostra junto: o cliente, o veículo, o mecânico (null = nenhum), o pagamento, a garantia de
+     * cada serviço da revisão aprovada (vazia sem orçamento aprovado) e o que os serviços pedem do veículo (Fase 3B).
      */
     public record OsAberta(OrdemServicoSalva os, ClienteSalvo cliente, VeiculoSalvo veiculo, MecanicoSalvo mecanico,
-            SituacaoDoPagamento pagamento, List<GarantiaDoServico> garantias) {
+            SituacaoDoPagamento pagamento, List<GarantiaDoServico> garantias,
+            NecessidadeDoVeiculo necessidadeDoVeiculo) {
 
         public OsAberta {
             garantias = List.copyOf(garantias);
+            Objects.requireNonNull(necessidadeDoVeiculo, "necessidadeDoVeiculo");
         }
     }
 
@@ -196,10 +198,35 @@ public final class CasosOficina {
      * @param noOrcamento o serviço está na última revisão aprovada; o que saiu numa revisão nova fica guardado, mas não
      *        trava o "pronto"
      */
-    public record ChecklistDaOs(ChecklistSalvo checklist, boolean noOrcamento) {
+    public record ChecklistDaOs(ChecklistSalvo checklist, boolean noOrcamento, boolean bloqueado) {
 
         public ChecklistDaOs {
             Objects.requireNonNull(checklist, "checklist");
+        }
+    }
+
+    /**
+     * O que os serviços da OS pedem do veículo (SPEC 6.5, Fase 3B, bloco 3B.6): os serviços do catálogo da última
+     * revisão aprovada, como estão na versão do orçamento. A linha digitada não conta: ela não diz.
+     *
+     * @param bancada os ids no catálogo dos serviços feitos sem o veículo (ex.: a confecção de chicote)
+     * @param comVeiculo os nomes dos serviços que exigem a entrada do veículo, na ordem do orçamento
+     */
+    public record NecessidadeDoVeiculo(Set<Long> bancada, List<String> comVeiculo) {
+
+        public NecessidadeDoVeiculo {
+            bancada = Set.copyOf(bancada);
+            comVeiculo = List.copyOf(comVeiculo);
+        }
+
+        /** Há serviço de bancada: a OS pode começar sem a entrada do veículo. */
+        public boolean temBancada() {
+            return !bancada.isEmpty();
+        }
+
+        /** Algum serviço exige o veículo: o "pronto" só com a entrada registrada. */
+        public boolean exigeVeiculo() {
+            return !comVeiculo.isEmpty();
         }
     }
 
@@ -365,7 +392,9 @@ public final class CasosOficina {
 
     /**
      * Um passo da execução: em execução, aguardando peças ou pronta (SPEC 6.5). Os passos até APROVADA vêm do
-     * orçamento; a entrega e o cancelamento têm métodos próprios. Começar o serviço exige a entrada do veículo.
+     * orçamento; a entrega e o cancelamento têm métodos próprios. Começar o serviço exige a entrada do veículo, a não
+     * ser que a OS tenha um serviço de bancada (Fase 3B, ex.: a confecção de chicote); nesse caso, o "pronto" exige a
+     * entrada se algum serviço precisar do veículo (testes nº 9 e nº 10 da fase).
      *
      * <p>Fase 3B: ao entrar em execução, cada serviço do catálogo com checklist ganha a cópia do modelo (voltar a "em
      * execução" não copia de novo). Com item obrigatório pendente, o "pronto" só passa com a justificativa, que vai
@@ -388,9 +417,8 @@ public final class CasosOficina {
         }
         banco.transacao(c -> {
             OrdemServicoSalva os = exigir(c, osId);
-            if (destino == StatusOs.EM_EXECUCAO && !os.veiculoChegou()) {
-                throw new OperacaoRecusadaException("Registre a entrada do veículo (km, tanque e vistoria) antes de "
-                        + "começar o serviço.");
+            if (!os.veiculoChegou() && (destino == StatusOs.EM_EXECUCAO || destino == StatusOs.PRONTA)) {
+                exigirEntradaSePrecisa(c, osId, destino);
             }
             String texto = destino == StatusOs.PRONTA && os.status().podeIrPara(destino)
                     ? justificarPendencias(c, osId, observacao) : observacao;
@@ -400,6 +428,24 @@ public final class CasosOficina {
             }
             return null;
         });
+    }
+
+    /**
+     * A OS sem a entrada do veículo (SPEC 6.5, Fase 3B): começa só com um serviço de bancada, e o "pronto" é recusado
+     * se algum serviço precisa do veículo, dizendo qual.
+     */
+    private void exigirEntradaSePrecisa(Connection c, long osId, StatusOs destino) throws SQLException {
+        NecessidadeDoVeiculo necessidade = checklists.necessidadeDoVeiculo(c, osId);
+        if (destino == StatusOs.EM_EXECUCAO && !necessidade.temBancada()) {
+            throw new OperacaoRecusadaException("Registre a entrada do veículo (km, tanque e vistoria) antes de "
+                    + "começar o serviço.");
+        }
+        if (destino == StatusOs.PRONTA && necessidade.exigeVeiculo()) {
+            List<String> servicos = necessidade.comVeiculo();
+            throw new OperacaoRecusadaException("Registre a entrada do veículo (aba Entrada) antes do pronto: "
+                    + String.join(", ", servicos) + (servicos.size() == 1 ? " precisa" : " precisam")
+                    + " do veículo na oficina.");
+        }
     }
 
     /**
@@ -426,7 +472,8 @@ public final class CasosOficina {
 
     /**
      * Entrega a OS pronta, com o km de saída e a garantia. O km atualiza o uso acumulado do veículo. Depois disso a OS
-     * não muda mais (só os recebimentos).
+     * não muda mais (só os recebimentos). Na OS em que o veículo não passou pela oficina (sem a entrada, Fase 3B), a
+     * entrega registra quem retirou, no lugar do km de saída (teste nº 9 da fase).
      */
     public Gravado entregar(long osId, Entrega entrega) {
         List<String> erros = entrega == null ? List.of("Informe a entrega.") : entrega.validar(agora());
@@ -435,6 +482,9 @@ public final class CasosOficina {
         }
         return banco.transacao(c -> {
             OrdemServicoSalva os = exigir(c, osId);
+            if (os.entrada() == null && !entrega.validarSemVeiculo().isEmpty()) {
+                throw new EntradaInvalidaException(entrega.validarSemVeiculo());
+            }
             if (os.entrada() != null && entrega.quando().isBefore(os.entrada().quando())) {
                 throw new EntradaInvalidaException("A entrega não pode ser antes da entrada do veículo.");
             }
@@ -566,7 +616,8 @@ public final class CasosOficina {
             VeiculoSalvo veiculo = veiculos.buscar(c, os.veiculoId()).orElseThrow();
             MecanicoSalvo mecanico = os.mecanicoId() == null ? null
                     : mecanicos.buscar(c, os.mecanicoId()).orElse(null);
-            return new OsAberta(os, cliente, veiculo, mecanico, situacaoDoPagamento(c, osId), garantias(c, osId));
+            return new OsAberta(os, cliente, veiculo, mecanico, situacaoDoPagamento(c, osId), garantias(c, osId),
+                    checklists.necessidadeDoVeiculo(c, osId));
         });
     }
 

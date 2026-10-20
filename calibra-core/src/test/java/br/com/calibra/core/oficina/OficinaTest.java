@@ -71,6 +71,19 @@ class OficinaTest {
         assertEquals(List.of(), new Entrega(AGORA, null, new Garantia(90)).avisos(251_500.0), "km não anotado");
         assertEquals(List.of("Informe a data e a hora da entrega.", "Informe a garantia em dias (0 = sem garantia)."),
                 new Entrega(null, null, null).validar(AGORA));
+        assertEquals("", entrega.quemRetirou(), "o veículo que passou pela oficina sai sem \"quem retirou\"");
+    }
+
+    /** Fase 3B (SPEC 6.5): a OS em que o veículo não passou pela oficina é entregue com quem retirou, sem km. */
+    @Test
+    void entregaSemVeiculoPedeQuemRetirou() {
+        Entrega chicote = new Entrega(AGORA, null, new Garantia(90), "  Oficina do João  ");
+        assertEquals("Oficina do João", chicote.quemRetirou());
+        assertEquals(List.of(), chicote.validar(AGORA));
+        assertEquals(List.of(), chicote.validarSemVeiculo());
+        assertEquals(List.of("Escreva quem retirou: o veículo não passou pela oficina.",
+                "O veículo não passou pela oficina: a entrega não tem km (nem horas de motor) de saída."),
+                new Entrega(AGORA, 120_000.0, new Garantia(90), null).validarSemVeiculo());
     }
 
     @Test

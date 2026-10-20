@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,6 +31,7 @@ import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.dados.BaseDeTeste;
 import br.com.calibra.dados.Cadastros;
 import br.com.calibra.dados.ErroDados;
+import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.OperacaoRecusadaException;
 
 /** Ordens de serviço no banco (SPEC 6.5): número por ano, entrada, passos com histórico, entrega, cancelamento e lista. */
@@ -266,5 +268,52 @@ class OrdemServicoRepositorioTest {
                 .map(OrdemServicoSalva::id).toList());
         assertEquals(List.of(segunda, primeira), base.banco.ler(c -> ordens.doVeiculo(c, veiculoDoProjeto)).stream()
                 .map(OrdemServicoSalva::id).toList());
+    }
+
+    /** Fase 3B (V12): a OS em que o veículo não passou pela oficina é entregue com quem retirou, sem km. */
+    @Test
+    void entregaComQuemRetirou() {
+        long id = abrirOs(1, cliente, veiculo, null);
+        ateFicarPronta(id);
+        Entrega semVeiculo = new Entrega(LocalDateTime.of(2026, 10, 16, 17, 0), null, new Garantia(90),
+                "Oficina do João");
+        base.banco.transacao(c -> {
+            ordens.entregar(c, id, semVeiculo);
+            return null;
+        });
+        assertEquals(semVeiculo, buscar(id).entrega());
+        assertNull(buscar(id).entrada(), "o veículo não passou pela oficina");
+
+        long comVeiculo = abrirOs(2, cliente, veiculo, null);
+        ateFicarPronta(comVeiculo);
+        entregar(comVeiculo);
+        assertEquals("", buscar(comVeiculo).entrega().quemRetirou(), "com o veículo, como antes");
+    }
+
+    /** A V12 sobre um banco que já está na V11, com uma OS entregue: ela fica com "quem retirou" vazio. */
+    @Test
+    void v12SobreUmBancoNaV11() throws Exception {
+        BaseDeTeste antiga = BaseDeTeste.semMigrar(pasta.resolve("v11"));
+        Flyway.configure().dataSource(antiga.banco.fonte()).locations(Migracoes.LOCAL_PADRAO).target("11").load()
+                .migrate();
+        Cadastros.Repositorios deAntes = Cadastros.Repositorios.de(antiga);
+        long dono = antiga.banco.transacao(c -> deAntes.clientes().inserir(c, Cadastros.cliente("Ana Costa")));
+        long carro = antiga.banco.transacao(c -> deAntes.veiculos().inserir(c, dono, Cadastros.carro("CDE3F45"), null));
+        OrdemServicoRepositorio deAntesOs = new OrdemServicoRepositorio(antiga.relogio);
+        long id = antiga.banco.transacao(c -> deAntesOs.inserir(c, new NumeroOs(2026, 1),
+                new DadosAbertura(dono, carro, null, "Revisão", null, null, "")));
+        antiga.banco.transacao(c -> {
+            try (Statement comando = c.createStatement()) {
+                return comando.executeUpdate("UPDATE ordem_servico SET status = 'ENTREGUE', "
+                        + "entregue_em = '2026-10-16T17:00:00', uso_saida = 251530.0, garantia_dias = 90, "
+                        + "garantia_ate = '2027-01-14' WHERE id = " + id);
+            }
+        });
+        Migracoes.Resultado resultado = Migracoes.migrar(antiga.banco, antiga.backup);
+        assertEquals("11", resultado.versaoAntes());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoDepois());
+        OrdemServicoSalva entregue = antiga.banco.ler(c -> deAntesOs.buscar(c, id)).orElseThrow();
+        assertEquals(new Entrega(LocalDateTime.of(2026, 10, 16, 17, 0), 251_530.0, new Garantia(90)),
+                entregue.entrega(), "a entrega de antes, com \"quem retirou\" vazio");
     }
 }
