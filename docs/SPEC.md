@@ -324,21 +324,23 @@ O serviço do catálogo (nome, horas e preço de referência opcional; sem preç
 
 #### 6.6.3 Laudo de diagnóstico elétrico
 
-Pertence à OS (vários por OS). Campos:
+Pertence à OS (vários por OS). Detalhes fixados no bloco 3B.4 (20/10/2026 — ver docs/decisoes.md, itens 246 a 253). Campos:
 
 | Campo | Regra |
 | --- | --- |
-| `queixa` | texto, nas palavras do cliente |
-| `dataHora`, `mecanico` | automáticos, editáveis até a entrega |
-| `medicoes` | lista editável: `nome`, `valor`, `unidade` (texto livre), `condicao` (REPOUSO, MOTOR_LIGADO, CARGA_ACIONADA, OUTRA). **O app não traz faixa "boa" ou "ruim" pré-definida**: faixas são campo opcional por medição, preenchido por mim (`aVerificar`). |
-| `codigosFalha` | lista: `codigo`, `descricao`, `situacao` (ATIVO, HISTORICO, APAGADO) |
-| `testesRealizados` | texto |
-| `causa` | texto |
-| `solucao` | texto |
+| `queixa` | texto obrigatório, nas palavras do cliente; o laudo novo já vem com o serviço pedido da OS |
+| `dataHora`, `mecanico` | automáticos (agora; o mecânico da OS, se estiver ativo), editáveis até a entrega. A data não pode ser no futuro nem antes da abertura da OS; o mecânico pode ficar vazio |
+| `medicoes` | lista editável: `nome`, `valor`, `unidade`, `condicao` (REPOUSO, MOTOR_LIGADO, CARGA_ACIONADA, OUTRA) e `referencia`, com `referenciaAVerificar`. Na linha, o nome, o valor e a condição são obrigatórios. **O valor, a unidade e a referência são texto livre** (escolha do dono em 20/10/2026): o app não lê o número nem julga o valor. **O app não traz faixa "boa" ou "ruim" pré-definida**: a faixa é a `referencia`, campo opcional por medição, preenchido por mim (`aVerificar`). |
+| `codigosFalha` | lista: `codigo` (obrigatório), `descricao` (opcional), `situacao` (ATIVO, HISTORICO, APAGADO; obrigatória) |
+| `testesRealizados` | texto opcional |
+| `causa` | texto opcional |
+| `solucao` | texto opcional |
 | `recomendacoes` | texto opcional |
-| `resultado` | RESOLVIDO, PARCIAL, NAO_RESOLVIDO |
+| `resultado` | RESOLVIDO, PARCIAL, NAO_RESOLVIDO; vazio = "a definir", enquanto o diagnóstico não termina |
 
-Aparece como PDF A4 (via do cliente e anexo da OS) e como seção na ficha do veículo. **LGPD:** laudos são dados técnicos e permanecem quando o cliente é anonimizado. Como `queixa` é texto livre, o app avisa ao salvar: "não escreva dados pessoais do cliente neste campo".
+- **Quando:** o laudo se cria e se muda em qualquer etapa antes da entrega, também antes de o orçamento ser aprovado. Com a OS `ENTREGUE` ou `CANCELADA`, ele fica só para leitura, e o banco também recusa criar, mudar e apagar. Apagar (o laudo feito por engano) só com a OS em andamento.
+- **Onde aparece:** na área Laudos da aba Execução (seção 8, item 9); como **PDF A4 gerado na hora**, pela própria área e pelo menu Documentos da OS, sem cópia nos anexos (escolha do dono em 20/10/2026; a proposta dizia "via do cliente e anexo da OS"); e como seção na ficha do veículo, com os laudos de todas as OS dele.
+- **LGPD:** laudos são dados técnicos e permanecem quando o cliente é anonimizado; o PDF tirado depois sai com o nome anonimizado. Como `queixa` é texto livre, a janela mostra embaixo dela a dica fixa "sem dados pessoais", e o app avisa ao salvar **só quando a queixa parece ter dado pessoal**: o nome do cliente, um telefone ou documento (8 dígitos ou mais) ou um e-mail (escolha do dono em 20/10/2026; a proposta avisava sempre). O aviso não impede de gravar.
 
 #### 6.6.4 Itens e kits de material (só para orçamento)
 

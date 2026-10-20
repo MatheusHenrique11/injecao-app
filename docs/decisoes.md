@@ -755,3 +755,81 @@ Plano aprovado em 19/10/2026, em 6 passos. Duas respostas do dono no plano: os m
     - **V9 (Java):** os 7 modelos, lidos do JSON, como a V4 faz com o catálogo. O arquivo da V4 não mudou (a impressão digital dela é a mesma), e a da V9 ficou fixa num teste;
     - **ordem dos passos:** no plano, o tipo "Checklist" do catálogo entrava no passo do banco. Um teste do app exige que todo tipo de catálogo tenha formulário, então o tipo e os 7 modelos entraram no passo da tela, junto com o formulário; o passo do banco ficou só com as tabelas da OS;
     - **as duas só acrescentam:** nada do que existe muda. O teste sobe um banco na V7, com uma OS, até a V9; no 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.
+
+### Bloco 3B.4: laudo de diagnóstico elétrico (20/10/2026)
+
+Plano aprovado em 20/10/2026, em 6 passos. Três respostas do dono no plano: o PDF é feito na hora, as medições são texto livre e o aviso de LGPD só aparece quando a queixa parece ter dado pessoal.
+
+246. **O PDF do laudo é feito na hora** (resposta do dono), como a via do cliente e o comprovante, sem cópia nos anexos. A SPEC 6.6.3 dizia "via do cliente e anexo da OS":
+    - **por quê:** o laudo muda até a entrega, e uma cópia nos anexos ficaria velha a cada mudança. O PDF tirado de novo sai do que está gravado. Quem quiser guardar a folha assinada anexa na aba Anexos, como qualquer PDF;
+    - **onde sai:**
+      - na área de laudos da aba Execução, com o laudo escolhido na lista;
+      - no menu Documentos da OS, em "Laudo elétrico: gerar PDF…" e "Laudo elétrico: imprimir…". Os dois ficam desligados sem laudo; com mais de um, o app pergunta qual, com o mais novo já marcado;
+      - o arquivo se chama, por exemplo, `OS-2026-0003-laudo-1.pdf`, com a posição do laudo na OS;
+    - **o que tem:**
+      - o título e a OS, com a data e a hora do laudo;
+      - o cliente, como está no cadastro na hora do PDF (anonimizado, se for o caso), o veículo e o mecânico;
+      - a queixa e a tabela das medições, com a referência e "(a verificar)" quando ela ainda não foi conferida;
+      - a tabela dos códigos de falha;
+      - os textos do diagnóstico e o resultado ("a definir" sem ele);
+      - as assinaturas do mecânico responsável e do cliente.
+
+      A tabela e o texto em branco ficam de fora. O laudo comum cabe numa página (teste).
+247. **As medições em texto livre** (resposta do dono):
+    - **o valor, a unidade e a referência** são texto, como se escreve no papel ("12,1", "sem sinal", "12,4 a 12,7 V"). O app não lê o número, não converte unidade e não julga o valor. Assim ele não traz faixa "boa" ou "ruim" (decisão 219) nem inventa dado técnico. Como o núcleo não faz conta com a medição, a regra "unidades SI no núcleo" não se aplica a ela: a unidade é a do instrumento;
+    - **a referência** é a "faixa opcional por medição" da SPEC: um texto, com a marca "a verificar" (regra 2.7);
+    - **a linha:** o que se mediu, o valor e a condição são obrigatórios; a unidade e a referência, não. A linha sem nenhum texto fica de fora, mesmo com a condição escolhida, porque a linha nova já vem com a condição da de cima. Nos códigos de falha, o mesmo: a linha sem código e sem descrição fica de fora; o código e a situação são obrigatórios, e a descrição não.
+248. **O aviso de LGPD** (resposta do dono):
+    - **a dica fixa,** embaixo da queixa: "Nas palavras do cliente, sem dados pessoais (nome, telefone, documento, e-mail): o laudo é dado técnico e fica mesmo se o cliente for anonimizado.";
+    - **o aviso ao gravar,** só quando a queixa parece ter dado pessoal. A SPEC avisava a cada gravação, o que logo viraria um aviso que ninguém lê. Ele aparece em amarelo, embaixo, e não impede de gravar. Diz o que achou, ex.: "A queixa parece ter dado pessoal do cliente: o nome do cliente (Ana). O laudo fica mesmo se o cliente for anonimizado; se for dado pessoal, tire da queixa e salve de novo.";
+    - **o que conta:**
+      - o nome do cliente: cada palavra do nome com 3 letras ou mais (menos "das" e "dos"), sem diferença de acento ou maiúscula. O nome do cliente já anonimizado não conta;
+      - um telefone ou documento: 8 dígitos ou mais, separados só por ponto, traço, parênteses ou espaço, como em "(11) 91234-5678", "123.456.789-09" e no CNPJ;
+      - um e-mail;
+    - **o que não conta** (testado): a data ("19/10/2026"), a hora, a medição ("12,6 V"), o código de falha ("P0300"), o km ("120.500 km") e a rotação ("2.000 rpm");
+    - **só a queixa é conferida,** como a SPEC pede: é o texto que vem do cliente. Os outros são texto técnico da oficina;
+    - **pode errar nos dois sentidos:** o nome do cliente que também é palavra comum, ou o dado pessoal sem número nem nome (um endereço). É só aviso, e a dica fixa continua lá. A regra mora no núcleo (`DadosPessoais`), sem tela, e pode servir a outros textos livres depois.
+249. **O laudo, campo a campo** (SPEC 6.6.3):
+    - **data e hora:**
+      - o laudo novo vem com a hora de agora, no minuto, e ela se muda até a entrega;
+      - ela não pode estar no futuro (com um minuto de folga) nem antes da abertura da OS;
+    - **mecânico:**
+      - vem o da OS, se estiver ativo, e pode ficar vazio (oficina sem mecânico cadastrado);
+      - trocar exige um mecânico ativo. O que já estava no laudo continua valendo, mesmo se foi desativado depois, como na marcação do checklist (decisão 242);
+    - **queixa:** obrigatória. O laudo novo já vem com o serviço pedido da OS, que é a queixa do jeito que o cliente falou na chegada; é só ajustar;
+    - **testes realizados, causa, solução e recomendações:** todos opcionais. A SPEC marcava só as recomendações como opcionais. O laudo se grava durante o diagnóstico, e a causa e a solução só existem no fim;
+    - **resultado:** resolvido, resolvido em parte ou não resolvido. Fica vazio ("a definir") enquanto o diagnóstico não termina;
+    - **conferência:** os erros aparecem todos de uma vez, e a janela não fecha com erro.
+250. **Quando o laudo se faz, se muda e se apaga:**
+    - **criar e mudar:**
+      - em qualquer etapa antes da entrega, também antes de o orçamento ser aprovado, porque o diagnóstico costuma vir antes do orçamento;
+      - vários por OS, um para cada diagnóstico;
+    - **depois da entrega ou do cancelamento:**
+      - o laudo fica só para ver, e o PDF continua saindo (teste nº 6 da fase);
+      - o caso de uso recusa criar, mudar e apagar, e o banco também (gatilhos da V10);
+      - a SPEC dizia "depois de ENTREGUE"; o cancelamento entrou junto, como no checklist (decisão 242);
+    - **apagar:** só com a OS em andamento e com confirmação, para o laudo feito por engano. É o mesmo critério dos anexos;
+    - **anonimização:** o laudo fica igual (teste nº 7). O PDF tirado depois sai com o nome anonimizado, porque o cliente vem do cadastro na hora do PDF.
+251. **Onde o laudo aparece:**
+    - **aba Execução:** a área "Laudos de diagnóstico elétrico", depois dos checklists, como a SPEC pede (seção 8, item 9):
+      - a lista mostra a data e a hora, o mecânico, a primeira linha da queixa (até 90 letras) e o resultado;
+      - os botões são "Novo laudo…", "Abrir…" (ou o duplo clique), "Gerar PDF…", "Imprimir…" e "Apagar…";
+      - com a OS entregue ou cancelada, "Novo laudo…" fica desligado, "Apagar…" some e a janela abre só para ver;
+    - **menu Documentos:** os dois itens da decisão 246;
+    - **ficha do veículo:**
+      - a seção "Laudos elétricos", entre os projetos e os anexos, com os laudos de todas as OS do veículo, do mais novo para o mais antigo;
+      - o duplo clique abre a OS, como na lista das OS da ficha; o laudo se abre na aba Execução dela, e a regra do "só para ver" fica num lugar só.
+252. **O banco** (migração V10, em SQL; banco na versão 10):
+    - **a tabela `laudo`:**
+      - a OS e o mecânico. O mecânico é opcional e fica numa coluna, para o nome vir do cadastro;
+      - o conteúdo em JSON, como o do orçamento;
+      - quando foi criado e quando mudou;
+      - a lista da OS sai pela data e hora do laudo;
+    - **os gatilhos:** a OS entregue ou cancelada não ganha laudo, e o laudo dela não muda nem se apaga. O laudo também não muda de OS;
+    - **o formato do JSON** fica fixo num teste, pelo arquivo de exemplo `laudo-0.3.1.json`: mudar o nome de um campo sem querer quebra o teste. A condição, a situação e o resultado vão pelo nome em maiúsculas (`REPOUSO`, `HISTORICO`, `RESOLVIDO`), e a data e a hora como "2026-10-20T10:30";
+    - **só acrescenta:** nada do que existe muda. O teste sobe um banco na V9, com uma OS, até a V10. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.
+253. **Um editor de linhas para várias telas** (`EditorLinhas`):
+    - as medições e os códigos de falha usam o mesmo editor. Ele tem colunas de texto, de escolha e de marcar, o botão de acrescentar e o ✕ de cada linha;
+    - a escolha da linha nova repete a da linha de cima;
+    - no 3B.6, ele serve aos pontos da ficha do chicote;
+    - o editor dos itens do checklist (3B.3) ficou como estava, porque tem subir e descer.
