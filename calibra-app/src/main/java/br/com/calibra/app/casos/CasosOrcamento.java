@@ -87,6 +87,7 @@ public final class CasosOrcamento {
     private final CatalogoRepositorio catalogo;
     private final ClienteRepositorio clientes;
     private final VeiculoRepositorio veiculos;
+    private final ChecklistsDaOs checklists;
 
     public CasosOrcamento(BancoDados banco, Clock relogio, CasosProjeto projetos) {
         this.banco = Objects.requireNonNull(banco, "banco");
@@ -99,6 +100,7 @@ public final class CasosOrcamento {
         this.catalogo = new CatalogoRepositorio(relogio);
         this.clientes = new ClienteRepositorio(relogio);
         this.veiculos = new VeiculoRepositorio(relogio);
+        this.checklists = new ChecklistsDaOs(relogio);
     }
 
     // ===================== Consultas =====================
@@ -376,7 +378,8 @@ public final class CasosOrcamento {
 
     /**
      * O cliente aprovou: grava a data, a hora e o meio; a OS vai para APROVADA e o projeto, para APROVADO. Depois
-     * disso o orçamento não muda (só com revisão nova).
+     * disso o orçamento não muda (só com revisão nova). Revisão aprovada com o serviço já começado: os serviços novos
+     * ganham o checklist na hora (Fase 3B).
      */
     public void aprovar(long orcamentoId, LocalDateTime quando, MeioAprovacao meio, String observacao) {
         responder(orcamentoId, StatusOrcamento.APROVADO, quando, meio, observacao);
@@ -410,8 +413,17 @@ public final class CasosOrcamento {
             if (resposta == StatusOrcamento.APROVADO && orcamento.dePreparacao()) {
                 avancarProjeto(c, orcamento.calculo().projetoId(), StatusProjeto.APROVADO);
             }
+            if (resposta == StatusOrcamento.APROVADO && servicoComecado(c, orcamento.osId())) {
+                checklists.copiar(c, orcamento.osId());
+            }
             return null;
         });
+    }
+
+    /** A OS já passou de "em execução" (em execução, aguardando peças ou pronta). */
+    private boolean servicoComecado(Connection conexao, long osId) throws SQLException {
+        StatusOs status = ordens.buscar(conexao, osId).orElseThrow().status();
+        return status == StatusOs.EM_EXECUCAO || status == StatusOs.AGUARDANDO_PECAS || status == StatusOs.PRONTA;
     }
 
     /**

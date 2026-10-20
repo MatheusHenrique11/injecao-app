@@ -36,6 +36,7 @@ import br.com.calibra.core.motor.ConfiguracaoMotor;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.GarantiaDoServico;
+import br.com.calibra.core.oficina.Marcacao;
 import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.SituacaoPagamento;
@@ -57,6 +58,7 @@ import br.com.calibra.dados.catalogo.CatalogoRepositorio;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.oficina.AnexoRepositorio;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.ChecklistSalvo;
 import br.com.calibra.dados.oficina.DadosAbertura;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MecanicoRepositorio;
@@ -186,6 +188,36 @@ public final class CasosOficina {
     public record Anonimizacao(int documentos, int arquivosPresos) {
     }
 
+    /**
+     * O checklist de um serviço na OS, para a aba Execução (Fase 3B).
+     *
+     * @param noOrcamento o serviço está na última revisão aprovada; o que saiu numa revisão nova fica guardado, mas não
+     *        trava o "pronto"
+     */
+    public record ChecklistDaOs(ChecklistSalvo checklist, boolean noOrcamento) {
+
+        public ChecklistDaOs {
+            Objects.requireNonNull(checklist, "checklist");
+        }
+    }
+
+    /** Um item obrigatório do checklist que ainda trava o "pronto": o serviço e o texto do item. */
+    public record Pendencia(String servico, String item) {
+
+        /** "Instalação de som completa: Fotos de antes e depois". */
+        public String texto() {
+            return servico + ": " + item;
+        }
+    }
+
+    /** Uma marcação da aba Execução: o item da cópia do checklist e a marcação nova. */
+    public record MarcacaoDoItem(long itemId, Marcacao marcacao) {
+
+        public MarcacaoDoItem {
+            Objects.requireNonNull(marcacao, "marcacao");
+        }
+    }
+
     private static final Logger LOG = Logger.getLogger(CasosOficina.class.getName());
 
     /** O máximo de linhas da lista da Oficina: uma oficina só não tem tanta OS em andamento. */
@@ -209,6 +241,7 @@ public final class CasosOficina {
     private final MotorRepositorio motores;
     private final OrdensDoProjeto ordensDoProjeto;
     private final CatalogoRepositorio catalogo;
+    private final ChecklistsDaOs checklists;
 
     /** @param pastaAnexos a pasta de anexos dos dados, para onde vão as cópias das fotos e dos documentos */
     public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos, Path pastaAnexos) {
@@ -227,6 +260,7 @@ public final class CasosOficina {
         this.motores = new MotorRepositorio(relogio);
         this.ordensDoProjeto = new OrdensDoProjeto(relogio);
         this.catalogo = new CatalogoRepositorio(relogio);
+        this.checklists = new ChecklistsDaOs(relogio);
     }
 
     // ===================== Abertura e entrada =====================
@@ -330,6 +364,13 @@ public final class CasosOficina {
     /**
      * Um passo da execução: em execução, aguardando peças ou pronta (SPEC 6.5). Os passos até APROVADA vêm do
      * orçamento; a entrega e o cancelamento têm métodos próprios. Começar o serviço exige a entrada do veículo.
+     *
+     * <p>Fase 3B: ao entrar em execução, cada serviço do catálogo com checklist ganha a cópia do modelo (voltar a "em
+     * execução" não copia de novo). Com item obrigatório pendente, o "pronto" só passa com a justificativa, que vai
+     * para o histórico da OS com a lista do que faltou.
+     *
+     * @param observacao no "pronto" com itens pendentes, a justificativa
+     * @throws EntradaInvalidaException no "pronto" com item obrigatório pendente e sem justificativa, com a lista
      */
     public void mudarStatus(long osId, StatusOs destino, String observacao) {
         if (destino == null) {
@@ -349,9 +390,36 @@ public final class CasosOficina {
                 throw new OperacaoRecusadaException("Registre a entrada do veículo (km, tanque e vistoria) antes de "
                         + "começar o serviço.");
             }
-            ordens.mudarStatus(c, osId, destino, observacao);
+            String texto = destino == StatusOs.PRONTA && os.status().podeIrPara(destino)
+                    ? justificarPendencias(c, osId, observacao) : observacao;
+            ordens.mudarStatus(c, osId, destino, texto);
+            if (destino == StatusOs.EM_EXECUCAO) {
+                checklists.copiar(c, osId);
+            }
             return null;
         });
+    }
+
+    /**
+     * O "pronto" com item obrigatório do checklist pendente (teste nº 3 da Fase 3B): sem a justificativa, recusa com a
+     * lista; com ela, devolve o texto do histórico, com o que faltou e a justificativa (a data e a hora ficam no
+     * histórico). Sem pendência, a observação passa como veio.
+     */
+    private String justificarPendencias(Connection c, long osId, String justificativa) throws SQLException {
+        List<Pendencia> pendencias = checklists.pendencias(c, osId);
+        if (pendencias.isEmpty()) {
+            return justificativa;
+        }
+        String texto = justificativa == null ? "" : justificativa.strip();
+        if (texto.isEmpty()) {
+            List<String> erros = new ArrayList<>();
+            erros.add("Há itens obrigatórios do checklist pendentes. Marque-os na aba Execução ou, para deixar a OS "
+                    + "pronta assim, escreva a justificativa:");
+            pendencias.forEach(pendencia -> erros.add(pendencia.texto()));
+            throw new EntradaInvalidaException(erros);
+        }
+        return "Pronta com itens obrigatórios do checklist pendentes: "
+                + String.join("; ", pendencias.stream().map(Pendencia::texto).toList()) + ". Justificativa: " + texto;
     }
 
     /**
@@ -386,6 +454,41 @@ public final class CasosOficina {
         banco.transacao(c -> {
             ordens.cancelar(c, osId, motivo);
             return null;
+        });
+    }
+
+    // ===================== Checklists (Fase 3B) =====================
+
+    /**
+     * Os checklists da OS (as cópias feitas ao entrar em execução), na ordem em que foram feitos, cada um com os itens
+     * e a marcação de agora. Vazio antes da execução.
+     */
+    public List<ChecklistDaOs> checklists(long osId) {
+        return banco.ler(c -> checklists.daOs(c, osId));
+    }
+
+    /** Os itens obrigatórios que ainda travam o "pronto"; vazio = pode ficar pronta sem justificativa. */
+    public List<Pendencia> pendencias(long osId) {
+        return banco.ler(c -> checklists.pendencias(c, osId));
+    }
+
+    /**
+     * Grava as marcações dos itens do checklist (aba Execução): só as que mudaram, com quem marcou e agora. "Não se
+     * aplica" sem justificativa é recusado (teste nº 4 da Fase 3B), e nada é gravado. Depois da entrega ou do
+     * cancelamento, o checklist não muda (teste nº 6).
+     *
+     * @param mecanicoId quem está marcando; null se a oficina não tem mecânico cadastrado
+     * @return quantos itens mudaram
+     */
+    public int marcar(long osId, List<MarcacaoDoItem> marcacoes, Long mecanicoId) {
+        return banco.transacao(c -> {
+            OrdemServicoSalva os = exigir(c, osId);
+            if (os.status().finalizada()) {
+                throw new OperacaoRecusadaException("A OS " + os.numero().texto() + " está \"" + os.status().rotulo()
+                        + "\": o checklist não muda mais.");
+            }
+            exigirMecanicoAtivo(c, mecanicoId);
+            return checklists.marcar(c, osId, marcacoes, mecanicoId);
         });
     }
 
