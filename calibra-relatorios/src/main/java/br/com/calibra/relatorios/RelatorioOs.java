@@ -56,7 +56,8 @@ public final class RelatorioOs {
 
     /**
      * O comprovante de entrega: a entrega e a garantia (com a dos serviços que têm a própria, Fase 3B), os itens e o
-     * total da revisão aprovada, os recebimentos e a assinatura de quem recebeu o veículo.
+     * total da revisão aprovada, o resumo do checklist de cada serviço (Fase 3B), os recebimentos e a assinatura de
+     * quem recebeu o veículo.
      *
      * @throws IllegalArgumentException se a OS ainda não foi entregue
      */
@@ -180,6 +181,21 @@ public final class RelatorioOs {
         itens.addAll(o.servicos());
         RelatorioOrcamento.tabelaDeItens(pdf, itens);
         RelatorioOrcamento.totais(pdf, o);
+        String checklists = checklists(dados);
+        if (!checklists.isEmpty()) {
+            pdf.espaco(4f);
+            pdf.item("Checklist", checklists);
+        }
+    }
+
+    /**
+     * O resumo do checklist de cada serviço (Fase 3B, SPEC 6.5): "Instalação de som completa: 9 de 9 itens feitos;
+     * Troca de alto-falantes: 5 de 6 itens feitos, 1 não se aplica". O que ficou pendente aparece como pendente. Uma
+     * linha só, como a da garantia própria, para o comprovante continuar numa página na OS comum. Vazio sem checklist.
+     */
+    private static String checklists(DadosOs dados) {
+        return dados.checklists().stream().map(checklist -> checklist.servico() + ": " + checklist.resumo().texto())
+                .collect(Collectors.joining("; "));
     }
 
     /**

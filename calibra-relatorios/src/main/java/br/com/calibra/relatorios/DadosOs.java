@@ -11,6 +11,7 @@ import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.ResumoChecklist;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.orcamento.Dinheiro;
@@ -35,6 +36,8 @@ import br.com.calibra.core.orcamento.Orcamento;
  *        orçamento aprovado
  * @param recebimentos todos, na ordem em que foram recebidos; os cancelados ficam e não contam
  * @param textoVia o texto acima das assinaturas na via do cliente (Configurações › OS); vazio = só as assinaturas
+ * @param checklists o resumo do checklist de cada serviço da revisão aprovada que tem um (Fase 3B); vazia sem
+ *        checklist
  */
 public record DadosOs(
         DadosOficina oficina,
@@ -56,7 +59,8 @@ public record DadosOs(
         List<Recebimento> recebimentos,
         String textoVia,
         String versaoApp,
-        LocalDateTime geradoEm) {
+        LocalDateTime geradoEm,
+        List<ChecklistDoServico> checklists) {
 
     /**
      * A revisão aprovada do orçamento.
@@ -79,6 +83,19 @@ public record DadosOs(
         }
     }
 
+    /**
+     * O checklist de um serviço, resumido: quantos itens feitos, quantos não se aplicam e quantos ficaram pendentes.
+     *
+     * @param servico o nome do serviço, como ficou na cópia do checklist
+     */
+    public record ChecklistDoServico(String servico, ResumoChecklist resumo) {
+
+        public ChecklistDoServico {
+            Objects.requireNonNull(servico, "servico");
+            Objects.requireNonNull(resumo, "resumo");
+        }
+    }
+
     public DadosOs {
         oficina = oficina == null ? DadosOficina.vazia() : oficina;
         Objects.requireNonNull(numero, "numero");
@@ -94,6 +111,7 @@ public record DadosOs(
         textoVia = textoVia == null ? "" : textoVia.strip();
         Objects.requireNonNull(versaoApp, "versaoApp");
         Objects.requireNonNull(geradoEm, "geradoEm");
+        checklists = checklists == null ? List.of() : List.copyOf(checklists);
     }
 
     /** O valor da OS: o total da revisão aprovada; null sem orçamento aprovado. */

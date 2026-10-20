@@ -17,6 +17,7 @@ import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.ResumoChecklist;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.Vistoria;
 import br.com.calibra.core.orcamento.Desconto;
@@ -77,14 +78,14 @@ final class ExemplosOs {
                 LocalDate.of(2026, 10, 15), "Carlos (fictício)", entrada(),
                 new Entrega(ENTREGUE, 120_530.0, new Garantia(90)), aprovado(),
                 List.of(new GarantiaDoServico("Troca dos amortecedores dianteiros", null)), recebimentos(),
-                PadroesOs.TEXTO_VIA_PADRAO, "0.3.0-teste", ENTREGUE.plusMinutes(5));
+                PadroesOs.TEXTO_VIA_PADRAO, "0.3.0-teste", ENTREGUE.plusMinutes(5), List.of());
     }
 
     /** Recém-aberta: o veículo ainda não chegou e não há orçamento, recebimento nem texto da via. */
     static DadosOs semOVeiculo() {
         return new DadosOs(DadosOficina.vazia(), null, "OS-2026-0008", StatusOs.ABERTA, ABERTA, "Bruno Dias (fictício)",
                 "", "VW Gol GTi 1994 · BCD2E34", false, "Embreagem patinando", null, "", null, null, null, List.of(),
-                List.of(), "", "0.3.0-teste", ABERTA.plusMinutes(1));
+                List.of(), "", "0.3.0-teste", ABERTA.plusMinutes(1), List.of());
     }
 
     /** Pronta para retirar, com o sinal recebido. */
@@ -93,7 +94,7 @@ final class ExemplosOs {
         return new DadosOs(d.oficina(), null, d.numero(), StatusOs.PRONTA, d.abertaEm(), d.cliente(),
                 d.telefoneCliente(), d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(),
                 null, d.aprovado(), d.garantias(), d.recebimentos().subList(0, 1), d.textoVia(), d.versaoApp(),
-                d.geradoEm());
+                d.geradoEm(), d.checklists());
     }
 
     /** Entregue, com R$ 75,00 recebidos a mais (um PIX lançado sem cancelar o errado). */
@@ -104,7 +105,7 @@ final class ExemplosOs {
                 Dinheiro.ler("75,00"), "Lançado a mais"), false));
         return new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(), d.telefoneCliente(),
                 d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(), d.entrega(),
-                d.aprovado(), d.garantias(), recebimentos, d.textoVia(), d.versaoApp(), d.geradoEm());
+                d.aprovado(), d.garantias(), recebimentos, d.textoVia(), d.versaoApp(), d.geradoEm(), d.checklists());
     }
 
     /** Uma lancha: o uso em horas de motor. */
@@ -115,7 +116,7 @@ final class ExemplosOs {
                 "Lancha Focker 215 · Estrela do Mar", true, "Motor falhando em alta", null, "",
                 new EntradaVeiculo(e.quando(), 1_250.0, e.combustivel(), e.vistoria()),
                 new Entrega(ENTREGUE, 1_252.0, Garantia.SEM_GARANTIA), d.aprovado(), d.garantias(), d.recebimentos(),
-                "", d.versaoApp(), d.geradoEm());
+                "", d.versaoApp(), d.geradoEm(), d.checklists());
     }
 
     /**
@@ -136,7 +137,22 @@ final class ExemplosOs {
                 List.of(new GarantiaDoServico("Troca dos amortecedores dianteiros", null),
                         new GarantiaDoServico("Reparo ou troca de alternador", 365),
                         new GarantiaDoServico("Diagnóstico de falha elétrica", 0)),
-                d.recebimentos(), d.textoVia(), d.versaoApp(), d.geradoEm());
+                d.recebimentos(), d.textoVia(), d.versaoApp(), d.geradoEm(), d.checklists());
+    }
+
+    /**
+     * A de três serviços com garantia por serviço e, nos dois do catálogo, o checklist (Fase 3B): o do alternador com
+     * tudo feito; o do diagnóstico com um item que não se aplica e um que ficou pendente (o "pronto" teve a
+     * justificativa).
+     */
+    static DadosOs comChecklist() {
+        DadosOs d = comGarantiaPorServico();
+        return new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(), d.telefoneCliente(),
+                d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(), d.entrega(),
+                d.aprovado(), d.garantias(), d.recebimentos(), d.textoVia(), d.versaoApp(), d.geradoEm(), List.of(
+                        new DadosOs.ChecklistDoServico("Reparo ou troca de alternador", new ResumoChecklist(6, 6, 0, 0)),
+                        new DadosOs.ChecklistDoServico("Diagnóstico de falha elétrica", new ResumoChecklist(5, 3, 1,
+                                1))));
     }
 
     /** Entregue, com um orçamento aprovado só de peças: nenhum serviço, nenhuma garantia por serviço. */
@@ -147,6 +163,6 @@ final class ExemplosOs {
         return new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(), d.telefoneCliente(),
                 d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(), d.entrega(),
                 new DadosOs.OrcamentoAprovado("ORC-2026-0007 rev. 1", pecas), List.of(), d.recebimentos(),
-                d.textoVia(), d.versaoApp(), d.geradoEm());
+                d.textoVia(), d.versaoApp(), d.geradoEm(), d.checklists());
     }
 }

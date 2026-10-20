@@ -138,6 +138,29 @@ class RelatorioOsTest {
         assertFalse(texto(soPecas).contains("Garantia própria"), "sem serviço no orçamento, nada a mais");
     }
 
+    /**
+     * Fase 3B (SPEC 6.5): o comprovante traz o resumo do checklist de cada serviço numa linha, com o que ficou
+     * pendente como pendente, e a OS de três serviços continua numa página só, com a assinatura. Sem checklist, a linha
+     * não aparece.
+     */
+    @Test
+    void comprovanteMostraOResumoDoChecklist() throws IOException {
+        Path destino = pasta.resolve("comprovante-checklist.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.comChecklist(), destino);
+        String texto = texto(destino);
+        assertTrue(texto.contains("Checklist: Reparo ou troca de alternador: 6 de 6 itens feitos; Diagnóstico de falha "
+                + "elétrica: 3 de 5 itens feitos, 1 não se aplica, 1 pendente"), texto);
+        assertTrue(texto.indexOf("Checklist:") > texto.indexOf("Serviço feito")
+                && texto.indexOf("Checklist:") < texto.indexOf("Pagamento"), "na seção \"Serviço feito\"");
+        try (PDDocument documento = Loader.loadPDF(destino.toFile())) {
+            assertEquals(1, documento.getNumberOfPages(), "a assinatura fica na mesma página");
+        }
+
+        Path semChecklist = pasta.resolve("comprovante-sem-checklist.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.comGarantiaPorServico(), semChecklist);
+        assertFalse(texto(semChecklist).contains("Checklist"), "sem checklist, nada a mais");
+    }
+
     /** Fase 3B (SPEC 6.6.4): no comprovante, a peça do cliente também sai marcada e com R$ 0,00. */
     @Test
     void comprovanteComPecaDoCliente() throws IOException {
@@ -149,7 +172,7 @@ class RelatorioOsTest {
         DadosOs dados = new DadosOs(d.oficina(), null, d.numero(), d.status(), d.abertaEm(), d.cliente(),
                 d.telefoneCliente(), d.veiculo(), false, d.servicoPedido(), d.previsao(), d.mecanico(), d.entrada(),
                 d.entrega(), new DadosOs.OrcamentoAprovado("ORC-2026-0009 rev. 1", comEcu), List.of(), List.of(), "",
-                d.versaoApp(), d.geradoEm());
+                d.versaoApp(), d.geradoEm(), d.checklists());
         Path destino = pasta.resolve("comprovante-peca-do-cliente.pdf");
         RelatorioOs.comprovanteDeEntrega(dados, destino);
         String texto = texto(destino);
@@ -208,6 +231,7 @@ class RelatorioOsTest {
                 alvo.resolve("exemplo-comprovante-de-entrega.pdf"));
         RelatorioOs.comprovanteDeEntrega(ExemplosOs.comGarantiaPorServico(),
                 alvo.resolve("exemplo-comprovante-garantia-por-servico.pdf"));
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.comChecklist(), alvo.resolve("exemplo-comprovante-checklist.pdf"));
         Files.writeString(alvo.resolve("exemplo-os-whatsapp.txt"), TextoWhatsAppOs.osAberta(ExemplosOs.entregue(null))
                 + "\n\n----------\n\n" + TextoWhatsAppOs.prontaParaRetirar(ExemplosOs.pronta()));
         assertTrue(Files.size(alvo.resolve("exemplo-via-do-cliente.pdf")) > 1_500);

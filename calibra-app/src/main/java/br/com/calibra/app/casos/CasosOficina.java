@@ -39,6 +39,7 @@ import br.com.calibra.core.oficina.GarantiaDoServico;
 import br.com.calibra.core.oficina.Marcacao;
 import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.ResumoChecklist;
 import br.com.calibra.core.oficina.SituacaoPagamento;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -61,6 +62,7 @@ import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.ChecklistSalvo;
 import br.com.calibra.dados.oficina.DadosAbertura;
 import br.com.calibra.dados.oficina.FiltroOs;
+import br.com.calibra.dados.oficina.ItemChecklistSalvo;
 import br.com.calibra.dados.oficina.MecanicoRepositorio;
 import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
@@ -604,8 +606,16 @@ public final class CasosOficina {
                     cliente.telefone(), CasosOrcamento.textoVeiculo(veiculo),
                     veiculo.tipo() != null && veiculo.tipo().nautico(), os.servicoPedido(), os.previsaoEntrega(),
                     mecanico, os.entrada(), os.entrega(), aprovado, garantias(c, osId), recebimentos, textoVia,
-                    versaoApp, agora);
+                    versaoApp, agora, resumosDosChecklists(c, osId));
         });
+    }
+
+    /** O resumo do checklist de cada serviço da revisão aprovada (o do serviço que saiu do orçamento fica de fora). */
+    private List<DadosOs.ChecklistDoServico> resumosDosChecklists(Connection c, long osId) throws SQLException {
+        return checklists.daOs(c, osId).stream().filter(ChecklistDaOs::noOrcamento)
+                .map(lido -> new DadosOs.ChecklistDoServico(lido.checklist().servico(), ResumoChecklist.de(
+                        lido.checklist().itens().stream().map(ItemChecklistSalvo::item).toList())))
+                .toList();
     }
 
     private List<GarantiaDoServico> garantias(Connection c, long osId) throws SQLException {

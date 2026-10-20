@@ -907,6 +907,18 @@ class OficinaUiTest {
                 assertTrue(execucao.observacao(0, 0).isDisabled(), "entregue, nada muda");
                 assertFalse(execucao.botaoSalvar().getParent().isVisible(), "sem \"Salvar marcações\"");
                 salvar(cena, "oficina-27-aba-execucao-entregue.png");
+
+                // O comprovante pelo mesmo caminho do menu Documentos (em target/, para conferir).
+                Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+                Files.createDirectories(alvo);
+                Path comprovante = alvo.resolve("exemplo-comprovante-checklist-app.pdf");
+                os.escreverComprovante(comprovante);
+                try (PDDocument documento = Loader.loadPDF(comprovante.toFile())) {
+                    String pdf = new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
+                    assertTrue(pdf.contains("Checklist: Instalação de som teste: 7 de 9 itens feitos, 1 não se aplica, "
+                            + "1 pendente"), pdf);
+                    assertEquals(1, documento.getNumberOfPages());
+                }
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {

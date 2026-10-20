@@ -28,6 +28,7 @@ import br.com.calibra.app.casos.CasosOficina.Pendencia;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
 import br.com.calibra.core.EntradaInvalidaException;
+import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
@@ -38,6 +39,7 @@ import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.Marcacao;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.ResumoChecklist;
 import br.com.calibra.core.oficina.SituacaoItem;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -63,6 +65,7 @@ import br.com.calibra.dados.oficina.ChecklistSalvo;
 import br.com.calibra.dados.oficina.ItemChecklistSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.orcamento.OrcamentoSalvo;
+import br.com.calibra.relatorios.DadosOs;
 
 /**
  * A execução da OS com os checklists (Fase 3B, bloco 3B.3; SPEC 6.5): a cópia ao começar o serviço, as marcações, a
@@ -317,6 +320,9 @@ class ExecucaoDaOsTest {
                 List.of(new MarcacaoDoItem(item, new Marcacao(SituacaoItem.PENDENTE, "", ""))), null));
         assertEquals("A OS OS-2026-0001 está \"Entregue\": o checklist não muda mais.", erro.getMessage());
         assertFalse(itens(os, 0).getFirst().item().pendente(), "continua feito");
+        assertEquals(List.of(new DadosOs.ChecklistDoServico(SOM, new ResumoChecklist(9, 9, 0, 0))),
+                oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "").checklists(),
+                "o resumo vai para o comprovante");
 
         oficina.registrarPagamento(os, new Pagamento(agora(), FormaPagamento.PIX, Dinheiro.ler("360,00"), "resto"));
         assertEquals(1, oficina.pagamento(os).recebimentos().size(), "o pagamento continua");
@@ -356,5 +362,8 @@ class ExecucaoDaOsTest {
         assertEquals(6, oficina.pendencias(os).size(), "só os itens do alternador travam o \"pronto\"");
         assertTrue(oficina.pendencias(os).stream().allMatch(p -> p.servico().equals(ALTERNADOR)));
         assertNull(oficina.buscar(os).os().prontaEm());
+        assertEquals(List.of(new DadosOs.ChecklistDoServico(ALTERNADOR, new ResumoChecklist(6, 0, 0, 6))),
+                oficina.documento(os, DadosOficina.vazia(), null, "0.3.0-teste", "").checklists(),
+                "no comprovante, só o do serviço que ficou no orçamento");
     }
 }
