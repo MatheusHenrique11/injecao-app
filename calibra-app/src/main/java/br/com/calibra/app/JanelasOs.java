@@ -129,16 +129,19 @@ final class JanelasOs {
 
     /**
      * A entrega: o dia e a hora, o km (ou as horas de motor) na saída e a garantia em dias. Os serviços com garantia
-     * própria (do catálogo) aparecem embaixo da garantia, que vale para os outros.
+     * própria (do catálogo) aparecem embaixo da garantia, que vale para os outros. Na OS em que o veículo não passou
+     * pela oficina (Fase 3B), a janela pede quem retirou, no lugar do km de saída.
      *
      * @param rotuloUso "Km" ou "Horas de motor"
      * @param garantiaPadrao a garantia de Configurações › OS, que já vem preenchida
      * @param garantias a garantia de cada serviço da revisão aprovada
+     * @param semVeiculo a OS não tem a entrada do veículo (ex.: só a confecção de chicote)
      */
     static Optional<Entrega> entrega(Window dono, LocalDateTime agora, String rotuloUso, int garantiaPadrao,
-            List<GarantiaDoServico> garantias) {
-        Dialog<Entrega> dialogo = dialogo(dono, "Entregar o veículo", "Entrega ao cliente: quando, com quanto no painel "
-                + "e com quantos dias de garantia?");
+            List<GarantiaDoServico> garantias, boolean semVeiculo) {
+        Dialog<Entrega> dialogo = dialogo(dono, "Entregar o veículo", semVeiculo
+                ? "Entrega ao cliente: quando, quem retirou e com quantos dias de garantia?"
+                : "Entrega ao cliente: quando, com quanto no painel e com quantos dias de garantia?");
         DatePicker data = new DatePicker(agora.toLocalDate());
         Datas.emPortugues(data);
         TextField hora = new TextField(HORA.format(agora));
@@ -146,6 +149,10 @@ final class JanelasOs {
         TextField uso = new TextField();
         uso.setId("entregaUso");
         uso.setPromptText("opcional");
+        TextField quemRetirou = new TextField();
+        quemRetirou.setId("entregaQuemRetirou");
+        quemRetirou.setPrefColumnCount(24);
+        quemRetirou.setPromptText("ex.: o próprio cliente, Oficina do João");
         TextField garantia = new TextField(Integer.toString(garantiaPadrao));
         garantia.setId("entregaGarantia");
         garantia.setPromptText("0 = sem garantia");
@@ -153,7 +160,11 @@ final class JanelasOs {
         GridPane grade = grade();
         grade.addRow(0, new Label("Data"), data);
         grade.addRow(1, new Label("Hora (hh:mm)"), hora);
-        grade.addRow(2, new Label(rotuloUso + " na saída"), uso);
+        if (semVeiculo) {
+            grade.addRow(2, new Label("Quem retirou"), quemRetirou);
+        } else {
+            grade.addRow(2, new Label(rotuloUso + " na saída"), uso);
+        }
         grade.addRow(3, new Label("Garantia (dias)"), garantia);
         String proprias = garantiasProprias(garantias);
         if (!proprias.isEmpty()) {
@@ -166,13 +177,29 @@ final class JanelasOs {
             aviso.setMinHeight(Region.USE_PREF_SIZE);
             grade.add(aviso, 0, 4, 2, 1);
         }
-        grade.add(erro, 0, 5, 2, 1);
+        if (semVeiculo) {
+            Label semEntrada = new Label("O veículo não passou pela oficina (a OS não tem a entrada): anote quem "
+                    + "retirou o serviço, no lugar do km de saída.");
+            semEntrada.setId("entregaSemVeiculo");
+            semEntrada.getStyleClass().add("dica");
+            semEntrada.setWrapText(true);
+            semEntrada.setPrefWidth(440);
+            semEntrada.setMinHeight(Region.USE_PREF_SIZE);
+            grade.add(semEntrada, 0, 5, 2, 1);
+        }
+        grade.add(erro, 0, 6, 2, 1);
         dialogo.getDialogPane().setContent(grade);
         ButtonType gravar = botoes(dialogo);
         dialogo.getDialogPane().lookupButton(gravar).addEventFilter(ActionEvent.ACTION, evento -> {
             List<String> erros = new ArrayList<>();
             quando(data, hora, erros);
-            numero(uso.getText(), rotuloUso + " na saída", erros);
+            if (semVeiculo) {
+                if (quemRetirou.getText().isBlank()) {
+                    erros.add("Quem retirou: escreva o nome (o veículo não passou pela oficina).");
+                }
+            } else {
+                numero(uso.getText(), rotuloUso + " na saída", erros);
+            }
             dias(garantia.getText(), erros);
             if (!erros.isEmpty()) {
                 erro.setText(String.join("\n", erros));
@@ -184,10 +211,10 @@ final class JanelasOs {
                 return null;
             }
             List<String> ignorados = new ArrayList<>();
-            return new Entrega(quando(data, hora, ignorados), numero(uso.getText(), "", ignorados),
-                    new Garantia(dias(garantia.getText(), ignorados)));
+            return new Entrega(quando(data, hora, ignorados), semVeiculo ? null : numero(uso.getText(), "", ignorados),
+                    new Garantia(dias(garantia.getText(), ignorados)), semVeiculo ? quemRetirou.getText() : "");
         });
-        Platform.runLater(uso::requestFocus);
+        Platform.runLater(semVeiculo ? quemRetirou::requestFocus : uso::requestFocus);
         return dialogo.showAndWait();
     }
 

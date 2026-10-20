@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -48,6 +49,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TabPane;
@@ -69,6 +71,7 @@ import org.junit.jupiter.api.io.TempDir;
 import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosOficina;
+import br.com.calibra.app.casos.CasosOficina.ChecklistDaOs;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosOrcamento;
@@ -94,6 +97,7 @@ import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.FormaPagamento;
 import br.com.calibra.core.oficina.Garantia;
 import br.com.calibra.core.oficina.ItemVistoria;
+import br.com.calibra.core.oficina.Marcacao;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
@@ -1159,6 +1163,166 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.5, bloco 3B.6; testes nº 9 e nº 10 da fase). A OS de chicote e instalação, aprovada sem o carro,
+     * começa pela bancada; na aba Execução, o checklist da instalação aparece bloqueado até a entrada, e o do chicote
+     * se marca; o pronto sem a entrada pede a entrada. A OS só de chicote, pronta na bancada, é entregue pela janela de
+     * entrega com "quem retirou", no lugar do km de saída, e o comprovante diz quem retirou.
+     */
+    @Test
+    void bancadaSemOVeiculo() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::chicoteEInstalacaoSemOCarro);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                OsController os = principal.osAberta();
+                assertEquals("Orçamento aprovado: a bancada pode começar sem o veículo. Os serviços que precisam dele "
+                        + "esperam a entrada (aba Entrada).", texto("proximoPasso"));
+                os.comecar();
+                assertEquals("Em execução", texto("status"), "começou sem a entrada");
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                ChecklistDaOs chicote = checklistDe(ana, "Confecção de chicote teste");
+                ChecklistDaOs instalacao = checklistDe(ana, "Instalação de injeção programável teste");
+                Label bloqueado = achar(cena, "bloqueadoChecklist" + instalacao.checklist().id());
+                assertTrue(bloqueado.getText().startsWith("Bloqueado até a entrada do veículo (aba Entrada)"));
+                assertTrue(TelaDeTeste.<RadioButton>achar(cena, "item" + instalacao.checklist().itens().getFirst().id()
+                        + "-FEITO").isDisabled(), "o checklist da instalação espera o veículo");
+                assertFalse(TelaDeTeste.<RadioButton>achar(cena, "item" + chicote.checklist().itens().getFirst().id()
+                        + "-FEITO").isDisabled(), "o do chicote se marca na bancada");
+                rolarAte(bloqueado);
+                salvar(cena, "oficina-38-bancada-sem-o-veiculo.png");
+
+                os.pronta();
+                assertEquals("• Registre a entrada do veículo (aba Entrada) antes do pronto: Instalação de injeção "
+                        + "programável teste precisa do veículo na oficina.", os.mensagens().getFirst(),
+                        "o pronto pede a entrada, sem a janela das pendências");
+                assertEquals("Em execução", texto("status"));
+            });
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(bruno);
+                assertTrue(texto("proximoPasso").endsWith("com quem retirou (o veículo não passou pela oficina)."),
+                        texto("proximoPasso"));
+            });
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoEntregar").fire(), falha);
+            Stage entrega = TelaDeTeste.esperarJanela("Entregar o veículo", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(entrega);
+                assertNull(painel.lookup("#entregaUso"), "sem o km de saída");
+                assertNotNull(painel.lookup("#entregaSemVeiculo"));
+                apertarOk(painel);
+                assertTrue(entrega.isShowing(), "sem quem retirou, a janela fica aberta");
+                assertTrue(contemTexto(painel, "Quem retirou: escreva o nome (o veículo não passou pela oficina)."));
+                salvar(entrega.getScene(), "oficina-39-entrega-sem-o-veiculo.png");
+                ((TextField) painel.lookup("#entregaQuemRetirou")).setText("Oficina do João (fictícia)");
+                apertarOk(painel);
+            });
+            TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Entregar o veículo") == null
+                    && "Entregue".equals(texto("status")), "a entrega gravar");
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                OsController os = principal.osAberta();
+                assertEquals("Oficina do João (fictícia)", oficina.buscar(bruno).os().entrega().quemRetirou());
+                assertNull(oficina.buscar(bruno).os().entrega().usoSaida());
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaEntrega"));
+                assertTrue(texto("situacaoEntrega").contains(", retirado por Oficina do João (fictícia), com garantia "
+                        + "de 90 dias"), texto("situacaoEntrega"));
+                salvar(cena, "oficina-40-entregue-sem-o-veiculo.png");
+
+                Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+                Files.createDirectories(alvo);
+                Path pdf = alvo.resolve("exemplo-comprovante-sem-o-veiculo-app.pdf");
+                os.escreverComprovante(pdf);
+                try (PDDocument documento = Loader.loadPDF(pdf.toFile())) {
+                    String texto = new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
+                    assertTrue(texto.contains("Retirado por: Oficina do João (fictícia) (o veículo não passou pela "
+                            + "oficina)"), texto);
+                    assertTrue(texto.contains("Quem retirou (nome e assinatura)"), texto);
+                    assertFalse(texto.contains("Km na saída"), texto);
+                    assertEquals(1, documento.getNumberOfPages());
+                }
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Fase 3B: Ana encomendou o chicote e a instalação da injeção programável, aprovados sem o carro ter chegado;
+     * Bruno, só o chicote, que já ficou pronto na bancada, com o checklist feito.
+     */
+    private void chicoteEInstalacaoSemOCarro() {
+        CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+        ItemCatalogo<ServicoPadrao> chicote = servicoDeInjecao(catalogo, "Confecção de chicote teste", false,
+                ServicosSugeridos.CHECKLIST_CHICOTE);
+        ItemCatalogo<ServicoPadrao> instalacao = servicoDeInjecao(catalogo, "Instalação de injeção programável teste",
+                true, ServicosSugeridos.CHECKLIST_INSTALACAO_INJECAO);
+        ana = oficina.abrir(nova("Ana Costa (fictícia)", "ABC1D23", "Chicote e instalação da injeção programável",
+                null, null)).osId();
+        aprovarServicos(ana, chicote, instalacao);
+        bruno = oficina.abrir(nova("Bruno Dias (fictício)", "BCD2E34", "Chicote para a injeção programável, retirar "
+                + "na oficina", null, null)).osId();
+        aprovarServicos(bruno, chicote);
+        oficina.mudarStatus(bruno, StatusOs.EM_EXECUCAO, "");
+        List<CasosOficina.MarcacaoDoItem> feitos = new ArrayList<>();
+        checklistDe(bruno, "Confecção de chicote teste").checklist().itens().forEach(item -> feitos.add(
+                new CasosOficina.MarcacaoDoItem(item.id(), new Marcacao(SituacaoItem.FEITO, "", ""))));
+        oficina.marcar(bruno, feitos, null);
+        oficina.mudarStatus(bruno, StatusOs.PRONTA, "");
+    }
+
+    /** Um serviço de injeção programável no catálogo, com o checklist que vem com o app. */
+    private static ItemCatalogo<ServicoPadrao> servicoDeInjecao(CasosCatalogo catalogo, String nome,
+            boolean exigeVeiculo, String chaveDoChecklist) {
+        ServicoPadrao servico = new ServicoPadrao(nome, 4.0, "Tabela da oficina", null,
+                CategoriaServico.INJECAO_PROGRAMAVEL, "", exigeVeiculo, null,
+                catalogo.checklistsDasSementes().get(chaveDoChecklist));
+        return catalogo.criar(TipoCatalogo.SERVICO, servico, new InfoCatalogo(nome, "Tabela da oficina", null, false,
+                null, "Dados fictícios."));
+    }
+
+    /** O orçamento da OS com estes serviços do catálogo, enviado e aprovado agora. */
+    @SafeVarargs
+    private void aprovarServicos(long os, ItemCatalogo<ServicoPadrao>... servicos) {
+        List<ItemOrcamento> linhas = new ArrayList<>();
+        for (ItemCatalogo<ServicoPadrao> servico : servicos) {
+            linhas.add(ItemOrcamento.doServico(servico.dados().textoNoOrcamento(), servico.dados().horas(), null,
+                    Dinheiro.ler("180,00"), servico.id(), servico.versao()));
+        }
+        CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()));
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(os, new Orcamento(linhas, Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(orcamento.id());
+        orcamentos.aprovar(orcamento.id(), LocalDateTime.now().withNano(0), MeioAprovacao.WHATSAPP, "Pode fazer.");
+    }
+
+    /** Rola a tela até o nó ficar no alto da área visível (para a imagem mostrar o que o teste confere). */
+    private static void rolarAte(Node no) {
+        Node pai = no.getParent();
+        while (pai != null && !(pai instanceof ScrollPane)) {
+            pai = pai.getParent();
+        }
+        ScrollPane rolagem = (ScrollPane) Objects.requireNonNull(pai, "o nó não está numa área com rolagem");
+        Node conteudo = rolagem.getContent();
+        double y = conteudo.sceneToLocal(no.localToScene(0, 0)).getY();
+        double sobra = conteudo.getBoundsInLocal().getHeight() - rolagem.getViewportBounds().getHeight();
+        rolagem.setVvalue(sobra <= 0 ? 0 : Math.max(0, Math.min(1, (y - 60) / sobra)));
+        rolagem.layout();
+    }
+
+    /** O checklist da OS do serviço com este nome. */
+    private ChecklistDaOs checklistDe(long os, String servico) {
+        return oficina.checklists(os).stream().filter(c -> c.checklist().servico().equals(servico)).findFirst()
+                .orElseThrow();
     }
 
     /** Ana trouxe o carro para instalar o som, com o mecânico Carlos na OS (sem orçamento ainda). */

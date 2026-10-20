@@ -155,6 +155,24 @@ final class ExemplosOs {
                                 1))));
     }
 
+    /**
+     * Fase 3B: só a confecção de chicote, feita na bancada; o veículo não passou pela oficina (sem a entrada), e a
+     * entrega registrou quem retirou, sem km de saída.
+     */
+    static DadosOs chicoteSemOVeiculo() {
+        DadosOs d = entregue(null);
+        Orcamento chicote = new Orcamento(List.of(ItemOrcamento.doServico(
+                "Confecção de chicote para injeção programável", 8.0, null, Dinheiro.ler("125,00"), 51, 1)),
+                Desconto.NENHUM, 1, "", 15, "", "");
+        return new DadosOs(d.oficina(), null, "OS-2026-0009", d.status(), d.abertaEm(), d.cliente(),
+                d.telefoneCliente(), d.veiculo(), false, "Chicote para FuelTech, entregar na oficina do João",
+                d.previsao(), d.mecanico(), null, new Entrega(ENTREGUE, null, new Garantia(90), "Oficina do João "
+                        + "(fictícia)"), new DadosOs.OrcamentoAprovado("ORC-2026-0009 rev. 1", chicote),
+                List.of(new GarantiaDoServico("Confecção de chicote para injeção programável", null)),
+                d.recebimentos(), d.textoVia(), d.versaoApp(), d.geradoEm(), List.of(new DadosOs.ChecklistDoServico(
+                        "Confecção de chicote para injeção programável", new ResumoChecklist(12, 12, 0, 0))));
+    }
+
     /** Entregue, com um orçamento aprovado só de peças: nenhum serviço, nenhuma garantia por serviço. */
     static DadosOs soComPecas() {
         DadosOs d = entregue(null);

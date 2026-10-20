@@ -57,7 +57,8 @@ public final class RelatorioOs {
     /**
      * O comprovante de entrega: a entrega e a garantia (com a dos serviços que têm a própria, Fase 3B), os itens e o
      * total da revisão aprovada, o resumo do checklist de cada serviço (Fase 3B), os recebimentos e a assinatura de
-     * quem recebeu o veículo.
+     * quem recebeu o veículo. Na OS em que o veículo não passou pela oficina (Fase 3B), a linha do km de saída vira
+     * "Retirado por", e a assinatura é de quem retirou.
      *
      * @throws IllegalArgumentException se a OS ainda não foi entregue
      */
@@ -72,7 +73,8 @@ public final class RelatorioOs {
                     entrega(pdf, dados, entrega);
                     servicoFeito(pdf, dados);
                     pagamento(pdf, dados);
-                    pdf.assinaturas(List.of("Quem recebeu o veículo (nome e assinatura)"));
+                    pdf.assinaturas(List.of(entrega.quemRetirou().isEmpty()
+                            ? "Quem recebeu o veículo (nome e assinatura)" : "Quem retirou (nome e assinatura)"));
                 }, "comprovante de entrega" + SEPARADOR + "gerado em ");
     }
 
@@ -137,7 +139,11 @@ public final class RelatorioOs {
     private static void entrega(EscritorPdf pdf, DadosOs dados, Entrega entrega) throws IOException {
         pdf.secao("Entrega");
         pdf.item("Entregue em", entrega.quando().format(DATA_HORA));
-        pdf.item(dados.embarcacao() ? "Horas de motor na saída" : "Km na saída", uso(entrega.usoSaida(), dados));
+        if (entrega.quemRetirou().isEmpty()) {
+            pdf.item(dados.embarcacao() ? "Horas de motor na saída" : "Km na saída", uso(entrega.usoSaida(), dados));
+        } else {
+            pdf.item("Retirado por", entrega.quemRetirou() + " (o veículo não passou pela oficina)");
+        }
         int dias = entrega.garantia().dias();
         pdf.item("Garantia", dias == 0 ? "sem garantia" : dias(dias) + ", até "
                 + entrega.garantiaVence().format(TextoOrcamento.DIA));

@@ -42,6 +42,7 @@ import br.com.calibra.app.casos.AnexosDaOficina;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
+import br.com.calibra.app.casos.CasosOficina.NecessidadeDoVeiculo;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosOficina.Pendencia;
@@ -338,8 +339,9 @@ public class OsController {
         status.setText(os.status().rotulo());
         List<String> partes = new ArrayList<>();
         partes.add("Aberta em " + Datas.diaHora(os.criadoEm()));
-        partes.add(os.entrada() == null ? "o veículo ainda não chegou" : "chegou em " + Datas.diaHora(os.entrada()
-                .quando()));
+        String semEntrada = os.status() == StatusOs.ENTREGUE ? "o veículo não passou pela oficina"
+                : "o veículo ainda não chegou";
+        partes.add(os.entrada() == null ? semEntrada : "chegou em " + Datas.diaHora(os.entrada().quando()));
         if (os.previsaoEntrega() != null) {
             partes.add("previsão de entrega " + Datas.dia(os.previsaoEntrega()));
         }
@@ -370,24 +372,42 @@ public class OsController {
         itemTextoPronta.setDisable(atual != StatusOs.PRONTA);
     }
 
-    /** O que fazer agora, em português, pelo status (e pelo que falta: o orçamento aprovado, a entrada). */
+    /**
+     * O que fazer agora, em português, pelo status (e pelo que falta: o orçamento aprovado, a entrada). Na OS com
+     * serviço de bancada (Fase 3B), o serviço começa sem o veículo, e o texto diz o que espera a entrada.
+     */
     private String proximoPasso(List<MudancaStatusOs> mudancas) {
         OrdemServicoSalva os = aberta.os();
         boolean chegou = os.veiculoChegou();
+        NecessidadeDoVeiculo necessidade = aberta.necessidadeDoVeiculo();
         return switch (os.status()) {
             case ABERTA -> "Próximo passo: monte o orçamento e marque como enviado (aba Orçamento)."
                     + (chegou ? "" : " O veículo ainda não chegou: registre a entrada quando ele chegar (aba Entrada).");
             case AGUARDANDO_APROVACAO -> "Aguardando a resposta do cliente ao orçamento: registre-a na aba Orçamento.";
-            case APROVADA -> chegou ? "Orçamento aprovado: pode começar o serviço."
-                    : "Orçamento aprovado. Registre a entrada do veículo (aba Entrada) para começar o serviço.";
-            case EM_EXECUCAO -> "Em execução. Quando terminar, marque o serviço como pronto.";
+            case APROVADA -> {
+                if (chegou) {
+                    yield "Orçamento aprovado: pode começar o serviço.";
+                }
+                if (!necessidade.temBancada()) {
+                    yield "Orçamento aprovado. Registre a entrada do veículo (aba Entrada) para começar o serviço.";
+                }
+                yield necessidade.exigeVeiculo() ? "Orçamento aprovado: a bancada pode começar sem o veículo. Os "
+                        + "serviços que precisam dele esperam a entrada (aba Entrada)."
+                        : "Orçamento aprovado: pode começar o serviço, sem o veículo (serviço de bancada).";
+            }
+            case EM_EXECUCAO -> !chegou && necessidade.exigeVeiculo() ? "Em execução na bancada. Quando o veículo "
+                    + "chegar, registre a entrada (aba Entrada): o pronto precisa dela."
+                    : "Em execução. Quando terminar, marque o serviço como pronto.";
             case AGUARDANDO_PECAS -> {
                 String quais = mudancas.isEmpty() ? "" : mudancas.getLast().observacao();
                 yield "Aguardando peças" + (quais == null || quais.isBlank() ? "" : ": " + quais)
                         + ". Quando chegarem, retome o serviço.";
             }
-            case PRONTA -> "Pronto para retirar. Avise o cliente e registre a entrega.";
-            case ENTREGUE -> "Entregue em " + Datas.diaHora(os.entrega().quando()) + ", " + garantia(os) + ".";
+            case PRONTA -> chegou ? "Pronto para retirar. Avise o cliente e registre a entrega."
+                    : "Pronto para retirar. Avise o cliente e registre a entrega, com quem retirou (o veículo não "
+                            + "passou pela oficina).";
+            case ENTREGUE -> "Entregue em " + Datas.diaHora(os.entrega().quando()) + (os.entrega().quemRetirou()
+                    .isEmpty() ? "" : ", retirado por " + os.entrega().quemRetirou()) + ", " + garantia(os) + ".";
             case CANCELADA -> "Cancelada: " + os.motivoCancelamento();
         };
     }
@@ -416,14 +436,16 @@ public class OsController {
 
     /**
      * O serviço pronto. Com item obrigatório do checklist pendente, a janela mostra o que falta e pede a justificativa
-     * (SPEC 6.5, Fase 3B); com marcações não salvas na aba Execução, avisa antes.
+     * (SPEC 6.5, Fase 3B); com marcações não salvas na aba Execução, avisa antes. Sem a entrada e com um serviço que
+     * precisa do veículo, a mensagem pede a entrada (a justificativa não resolveria).
      */
     @FXML
     void pronta() {
         if (!tudoSalvo(Momento.PRONTO)) {
             return;
         }
-        List<Pendencia> pendencias = recursos.oficina().pendencias(osId);
+        boolean faltaOVeiculo = !aberta.os().veiculoChegou() && aberta.necessidadeDoVeiculo().exigeVeiculo();
+        List<Pendencia> pendencias = faltaOVeiculo ? List.of() : recursos.oficina().pendencias(osId);
         if (pendencias.isEmpty()) {
             passo(StatusOs.PRONTA, "", "Serviço pronto. Avise o cliente que o veículo pode ser retirado.");
         } else {
@@ -448,7 +470,8 @@ public class OsController {
     private void entregar() {
         if (tudoSalvo(Momento.ENTREGA)) {
             JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
-                    recursos.padroes().get().garantiaDias(), aberta.garantias()).ifPresent(this::entregar);
+                    recursos.padroes().get().garantiaDias(), aberta.garantias(), !aberta.os().veiculoChegou())
+                    .ifPresent(this::entregar);
         }
     }
 
@@ -598,6 +621,7 @@ public class OsController {
             case ENTREGUE -> "Entregue em " + Datas.diaHora(os.entrega().quando())
                     + (os.entrega().usoSaida() == null ? "" : ", com " + NumeroBr.formatar(os.entrega().usoSaida(), 0)
                             + (nautico() ? " h" : " km") + " na saída")
+                    + (os.entrega().quemRetirou().isEmpty() ? "" : ", retirado por " + os.entrega().quemRetirou())
                     + ", " + garantia(os) + "." + garantiasProprias(os, aberta.garantias());
             case CANCELADA -> "OS cancelada: não há entrega.";
             case PRONTA -> "Pronto para retirar: registre a entrega quando o cliente buscar.";

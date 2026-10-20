@@ -180,6 +180,14 @@ public class ExecucaoController {
         origem.getStyleClass().add("dica");
         VBox bloco = new VBox(6, servico, origem);
         bloco.getStyleClass().add("checklist");
+        if (lido.bloqueado()) {
+            Label semEntrada = new Label("Bloqueado até a entrada do veículo (aba Entrada): este serviço precisa do "
+                    + "veículo na oficina.");
+            semEntrada.setId("bloqueadoChecklist" + checklist.id());
+            semEntrada.getStyleClass().add("aviso-amarelo");
+            semEntrada.setWrapText(true);
+            bloco.getChildren().add(semEntrada);
+        }
         if (!lido.noOrcamento()) {
             Label fora = new Label("Este serviço saiu do orçamento aprovado: o checklist fica guardado, mas não trava "
                     + "o \"pronto\".");
@@ -192,7 +200,8 @@ public class ExecucaoController {
         bloco.getChildren().add(resumo);
         List<ItemTela> itens = new ArrayList<>();
         for (ItemChecklistSalvo salvo : checklist.itens()) {
-            ItemTela item = item(salvo, editadas.getOrDefault(salvo.id(), salvo.item().marcacao()), leitura);
+            ItemTela item = item(salvo, editadas.getOrDefault(salvo.id(), salvo.item().marcacao()),
+                    leitura || lido.bloqueado());
             item.situacao().selectedToggleProperty().addListener((obs, antes, depois) -> resumir(resumo, itens));
             itens.add(item);
             bloco.getChildren().add(linha(item));

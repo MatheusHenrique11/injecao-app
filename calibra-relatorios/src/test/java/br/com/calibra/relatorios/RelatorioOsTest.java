@@ -139,6 +139,30 @@ class RelatorioOsTest {
     }
 
     /**
+     * Fase 3B (SPEC 6.5, teste nº 9): na OS em que o veículo não passou pela oficina (só a confecção de chicote), o
+     * comprovante troca o km de saída por quem retirou, e a assinatura é de quem retirou. Continua numa página.
+     */
+    @Test
+    void comprovanteDaOsSemOVeiculo() throws IOException {
+        Path destino = pasta.resolve("comprovante-sem-o-veiculo.pdf");
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.chicoteSemOVeiculo(), destino);
+        String texto = texto(destino);
+        for (String esperado : List.of("Entregue em: 14/10/2026 17:30",
+                "Retirado por: Oficina do João (fictícia) (o veículo não passou pela oficina)",
+                "Garantia: 90 dias, até 12/01/2027", "Confecção de chicote para injeção programável 8 h",
+                "Checklist: Confecção de chicote para injeção programável: 12 de 12 itens feitos",
+                "Quem retirou (nome e assinatura)")) {
+            assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
+        }
+        assertFalse(texto.contains("Km na saída"), "sem km de saída");
+        assertFalse(texto.contains("Quem recebeu o veículo"));
+        assertFalse(texto.contains("?"), "caractere sem fonte virou '?'");
+        try (PDDocument documento = Loader.loadPDF(destino.toFile())) {
+            assertEquals(1, documento.getNumberOfPages(), "a assinatura fica na mesma página");
+        }
+    }
+
+    /**
      * Fase 3B (SPEC 6.5): o comprovante traz o resumo do checklist de cada serviço numa linha, com o que ficou
      * pendente como pendente, e a OS de três serviços continua numa página só, com a assinatura. Sem checklist, a linha
      * não aparece.
@@ -232,6 +256,8 @@ class RelatorioOsTest {
         RelatorioOs.comprovanteDeEntrega(ExemplosOs.comGarantiaPorServico(),
                 alvo.resolve("exemplo-comprovante-garantia-por-servico.pdf"));
         RelatorioOs.comprovanteDeEntrega(ExemplosOs.comChecklist(), alvo.resolve("exemplo-comprovante-checklist.pdf"));
+        RelatorioOs.comprovanteDeEntrega(ExemplosOs.chicoteSemOVeiculo(),
+                alvo.resolve("exemplo-comprovante-sem-o-veiculo.pdf"));
         Files.writeString(alvo.resolve("exemplo-os-whatsapp.txt"), TextoWhatsAppOs.osAberta(ExemplosOs.entregue(null))
                 + "\n\n----------\n\n" + TextoWhatsAppOs.prontaParaRetirar(ExemplosOs.pronta()));
         assertTrue(Files.size(alvo.resolve("exemplo-via-do-cliente.pdf")) > 1_500);
