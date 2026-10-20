@@ -19,12 +19,14 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **PDF do laudo:** a folha A4 com as assinaturas do mecânico e do cliente, feita na hora pela aba Execução ou pelo menu Documentos ("Laudo elétrico: gerar PDF…" e "imprimir…"). Com mais de um laudo, o app pergunta qual.
 - **Laudos na ficha do veículo:** os laudos de todas as OS do veículo; o duplo clique abre a OS.
 - **Aviso de dado pessoal na queixa do laudo:** a dica fica embaixo da queixa, e, ao gravar, o app avisa se ela parece ter o nome do cliente, um telefone ou documento, ou um e-mail. O laudo fica mesmo se o cliente for anonimizado.
+- **Instalações do veículo:** na ficha do veículo, o que foi instalado ou mexido no carro (som, alarme ou rastreador, iluminação, vidro ou trava, injeção programável ou outra), pela oficina, com a OS de origem, ou informado pelo cliente. Cada uma tem a descrição, a marca, o modelo, a potência ou especificação, a data e as observações, e um histórico com o antes e o depois de cada mudança. O item que sai do carro se retira e continua na lista, em cinza; apagar é só para o cadastro feito por engano.
+- **Instalações na OS:** na aba Execução, "Registrar instalação…" já vem com a OS e a data de hoje. Depois da entrega, a OS só mostra; a instalação continua mudando pela ficha.
 
 ### Mudado
 - **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.
 - **Fotos e documentos copiados em segundo plano:** anexar na OS ou na ficha do veículo e abrir a Nova OS com as fotos não travam mais a tela; a janela de espera só aparece se a cópia passar de meio segundo.
 - **"Trazer as peças do cálculo de novo"** (orçamento de preparação) mantém os itens da aba Itens, além dos serviços; as peças digitadas continuam sendo trocadas pelas do cálculo.
-- Banco de dados na versão 10 (V8: os checklists da OS; V9: os 7 modelos de checklist; V10: os laudos elétricos). As três só acrescentam; nada do que existe muda. Como sempre, a atualização faz um backup antes.
+- Banco de dados na versão 11 (V8: os checklists da OS; V9: os 7 modelos de checklist; V10: os laudos elétricos; V11: as instalações do veículo). As quatro só acrescentam; nada do que existe muda. Como sempre, a atualização faz um backup antes.
 - Os modelos de checklist ficam em Catálogos › Checklists, e não em Configurações, como a SPEC dizia: assim ganham busca, versões, duplicar e arquivar.
 - O PDF do laudo é feito na hora, como a via e o comprovante, sem cópia nos anexos (a SPEC dizia "anexo da OS"). O aviso de dado pessoal na queixa só aparece quando ela parece ter um, e não a cada gravação.
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).

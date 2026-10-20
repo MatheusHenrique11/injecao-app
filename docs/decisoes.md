@@ -833,3 +833,49 @@ Plano aprovado em 20/10/2026, em 6 passos. Três respostas do dono no plano: o P
     - a escolha da linha nova repete a da linha de cima;
     - no 3B.6, ele serve aos pontos da ficha do chicote;
     - o editor dos itens do checklist (3B.3) ficou como estava, porque tem subir e descer.
+
+### Bloco 3B.5: instalações do veículo (20/10/2026)
+
+Plano aprovado em 20/10/2026, em 5 passos. Três respostas do dono no plano: o item que sai do carro se retira (e apagar fica só para o engano), a OS entregue só mostra as instalações dela (a ficha continua mudando), e o histórico fica em cada instalação.
+
+254. **Retirar e apagar** (resposta do dono):
+    - **retirar:** o campo novo `retiradaEm`, que a SPEC não tinha. "Retirar…" pede a data (vem a de hoje), que não pode estar no futuro nem ser antes da instalação. O item continua na lista, em cinza, com "retirado em dd/mm/aaaa", porque serve ao diagnóstico ("o que já foi mexido no carro");
+    - **desfazer:** com a retirada escolhida, o botão vira "Desfazer retirada". Retirar o que já está retirado é recusado: para mudar a data, desfaz-se e retira-se de novo. Ao editar, a data da instalação também não pode ficar depois da retirada;
+    - **apagar:** só para o cadastro feito por engano, com uma confirmação que lembra de usar "Retirar…". O histórico da instalação vai junto, como no veículo apagado.
+255. **A OS entregue ou cancelada só mostra as instalações dela** (resposta do dono):
+    - **na aba Execução,** ficam a lista e o "Histórico…"; os outros botões somem, e a dica manda para a ficha;
+    - **a instalação é do veículo:** pela ficha, ela se muda sempre. A esquecida se registra lá, escolhendo como origem qualquer OS do veículo, também a entregue ou a cancelada, e aparece na OS;
+    - **quem confere:** o caso de uso recusa a instalação nova pela OS finalizada ("registre a instalação pela ficha do veículo…"). O banco não olha a etapa da OS, porque pela ficha vale; ele confere que a OS de origem é do mesmo veículo.
+256. **O histórico de cada instalação** (resposta do dono):
+    - **onde fica:** no mesmo log de auditoria do veículo (tabela `auditoria`), com a entidade `instalacao`;
+    - **o que entra:**
+      - a criação ("Cadastro: criada");
+      - cada campo mudado, com o rótulo da tela, o antes e o depois (a OS de origem pelo número, a data como dd/mm/aaaa);
+      - a retirada e o desfazer ("Retirada do veículo");
+    - **onde se vê:** "Histórico…", na lista das instalações (na ficha e na OS), na mesma janela do histórico do veículo. O "Histórico do veículo…" continua só com o cadastro do veículo.
+257. **A instalação, campo a campo** (SPEC 6.2):
+    - **obrigatórios:** o tipo e a descrição. O resto é opcional;
+    - **potência ou especificação:** texto livre, como no manual ou na nota (ex.: "800 W RMS, 4 canais", "firmware 2.3"). O app não confere, pela regra de não inventar dado técnico;
+    - **data da instalação:** não pode estar no futuro. Pela OS, vem a data do dia; pela ficha, vem vazia (o item informado pelo cliente costuma não ter data);
+    - **OS de origem:** a escolha entre as OS do veículo, com o número, o serviço pedido e a etapa. A OS de outro veículo é recusada pelo caso de uso e pelo banco (gatilho);
+    - **sem OS:** é o item informado pelo cliente ou feito antes do app. A SPEC não tem um campo para dizer quem fez, e a coluna OS da lista já mostra a diferença.
+258. **Onde as instalações aparecem:**
+    - **ficha do veículo:** a seção "Instalações", logo depois de "OS do veículo":
+      - a lista mostra as que estão no carro primeiro, da data mais nova para a mais antiga (sem data, no fim; na mesma data, a cadastrada por último antes), e as retiradas no fim, em cinza;
+      - as colunas: tipo, descrição, marca e modelo, potência ou especificação, data, OS e situação;
+      - os botões: "Nova instalação…", "Editar…" (ou o duplo clique), "Histórico…", "Retirar…" e "Apagar…";
+    - **aba Execução da OS:** a área "Instalações desta OS", depois dos laudos, com as mesmas colunas, menos a da OS, e "Registrar instalação…". A SPEC (seção 8, item 9) ganhou essa área;
+    - **a mesma área nas duas** (`InstalacoesController`), como a lista de anexos da OS e da ficha.
+259. **A janela da instalação:**
+    - **o formulário dos catálogos:** a janela usa o mesmo formulário (`FormularioTela`, com `CampoForm` e `LeituraForm`), sem tela nova desenhada à mão. O construtor de `LeituraForm` passou a ser público, para a leitura ficar nos casos de uso (`FormularioInstalacao`);
+    - **os erros de uma vez:** a data digitada errada e os campos obrigatórios aparecem juntos. Para isso, o núcleo separou `validarCampos()` (o tipo e a descrição) das regras das datas, que dependem de hoje e da retirada e ficam com quem grava;
+    - com erro, a janela fica aberta e mostra o que corrigir.
+260. **O banco** (migração V11, em SQL; banco na versão 11):
+    - **a tabela `instalacao`:**
+      - o veículo e a OS de origem (opcional);
+      - os campos, em colunas, como os do veículo;
+      - a data de retirada, e quando foi criada e mudada;
+    - **os gatilhos:** a OS de origem precisa ser do mesmo veículo (ao criar e ao mudar), e a instalação não muda de veículo;
+    - **a anonimização e o arquivamento** não mexem na tabela: os testes conferem que as instalações e o histórico delas ficam iguais (teste nº 7 da fase, no banco e no caso de uso);
+    - **só acrescenta:** o teste sobe um banco na V10, com um veículo e uma OS, até a V11. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais;
+    - **ordem dos passos:** a ligação do caso de uso no `PrincipalController` entrou no passo das telas, e não no dos casos de uso, para não deixar um campo sem uso no meio.

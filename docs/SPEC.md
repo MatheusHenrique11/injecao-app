@@ -165,15 +165,21 @@ Nome, telefone, e-mail (opcional), CPF ou CNPJ (opcional), consentimento registr
 
 | Campo | Regra |
 | --- | --- |
-| `tipo` | SOM, ALARME_RASTREADOR, ILUMINACAO, VIDRO_TRAVA, INJECAO_PROGRAMAVEL, OUTRA |
+| `tipo` | SOM, ALARME_RASTREADOR, ILUMINACAO, VIDRO_TRAVA, INJECAO_PROGRAMAVEL, OUTRA; obrigatório |
 | `descricao` | texto obrigatório (ex.: o que foi instalado e onde) |
 | `marca`, `modelo` | texto opcional |
 | `potenciaOuEspecificacao` | texto opcional; não é validado |
-| `dataInstalacao` | opcional |
-| `osId` | opcional: a OS de origem; quando existe, o item aparece na OS |
-| `observacoes` | texto |
+| `dataInstalacao` | opcional; não pode estar no futuro nem depois da retirada. Na instalação registrada pela OS, vem a data do dia |
+| `osId` | opcional: a OS de origem, do mesmo veículo; quando existe, o item aparece na OS (aba Execução). Sem OS: o item informado pelo cliente ou feito antes do app |
+| `observacoes` | texto opcional |
+| `retiradaEm` | opcional: a data em que o item saiu do veículo, nem no futuro nem antes da instalação. O item continua na lista, marcado; a retirada se desfaz (acrescentado em 20/10/2026, escolha do dono) |
 
-Serve de histórico para garantia e diagnóstico (o que já foi mexido no carro) e prepara o terreno do chicote (Fase 8). Veículo arquivado mantém as instalações. Alterado em 18/10/2026 — ver docs/decisoes.md, item 213.
+Serve de histórico para garantia e diagnóstico (o que já foi mexido no carro) e prepara o terreno do chicote (Fase 8). Veículo arquivado mantém as instalações. Alterado em 18/10/2026 — ver docs/decisoes.md, item 213. Detalhes fixados no bloco 3B.5 (20/10/2026 — ver docs/decisoes.md, itens 254 a 260):
+
+- **Onde se muda:** pela ficha do veículo, sempre, também com a OS de origem entregue. Na OS, as instalações dela se registram e se mudam até a entrega ou o cancelamento; depois, a OS só as mostra (escolha do dono em 20/10/2026), e a esquecida se registra pela ficha, com aquela OS de origem.
+- **Histórico:** cada instalação tem o seu, no mesmo log de auditoria do veículo (a criação, cada campo mudado com o antes e o depois, a retirada e o desfazer). O histórico do veículo continua só com o cadastro dele (escolha do dono em 20/10/2026).
+- **Apagar:** só a instalação cadastrada por engano, com confirmação; o histórico dela vai junto. O item que saiu do carro se retira (escolha do dono em 20/10/2026).
+- **LGPD:** a instalação não é dado pessoal e fica igual quando o cliente é anonimizado.
 
 ### 6.3 Configuração do motor — editável, versionada, de 3 a 12 cilindros
 
@@ -545,7 +551,7 @@ Os números do mapa do compressor e a linha do torque × câmbio foram alterados
    - lista de OS com busca por placa, cliente, embarcação ou número da OS e filtro por status;
    - botão "Nova OS": cliente e veículo existentes ou novos (a busca do cliente acha pela placa), serviço pedido e, se o veículo já chegou, a entrada com a vistoria e as fotos;
    - **OS:** os passos do serviço ficam no cabeçalho (começar, aguardando peças, retomar, pronto, entregar, cancelar), com o próximo passo, a ficha do veículo e o menu Documentos (via do cliente, comprovante de entrega, imprimir e os textos para o WhatsApp; na Fase 3B, também o laudo elétrico e a ficha do chicote); as abas são Entrada · Orçamento · Preparação (o projeto ligado, ou ligar ou criar um) · Execução (Fase 3B) · Entrega e pagamento · Anexos · Histórico. Alterado em 16/10/2026 e em 17/10/2026 — ver docs/decisoes.md, itens 184 e 196.
-   - **Aba Execução (Fase 3B):** três áreas: *Checklists* (um bloco por serviço), *Laudos* (lista, com "Novo laudo") e *Chicotes* (as fichas do chicote, com "Nova ficha"). Em OS sem projeto de preparação, a aba Preparação continua mostrando só "ligar ou criar um projeto".
+   - **Aba Execução (Fase 3B):** as áreas *Checklists* (um bloco por serviço), *Laudos* (lista, com "Novo laudo"), *Instalações* (as da OS, com "Registrar instalação"; bloco 3B.5, item 258) e *Chicotes* (as fichas do chicote, com "Nova ficha"). Em OS sem projeto de preparação, a aba Preparação continua mostrando só "ligar ou criar um projeto".
 10. **Ficha do veículo (fase 3):** o cliente e o veículo (editar, histórico e anonimizar), todas as OS e todos os projetos do veículo (também os arquivados) e os anexos de todas as OS, com os documentos do próprio veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto. Ver docs/decisoes.md, itens 199 a 201. Na Fase 3B, ganha a seção **Instalações** (6.2) e os laudos e as fichas de chicote de todas as OS do veículo.
 11. **Agenda (fase 5):** agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega.
 

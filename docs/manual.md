@@ -91,7 +91,7 @@ As abas:
 - **Entrada:** os dados da abertura e a entrada do veículo (registrar quando ele chegar, ou corrigir o que foi anotado errado). Corrigir só a vistoria ou o tanque não mexe no km do cadastro do veículo; corrigir o km, sim.
 - **Orçamento:** o mesmo do projeto (item 9). Na OS sem projeto de preparação, os itens são digitados. A OS acompanha o orçamento até a aprovação: enviado leva a Aguardando aprovação; aprovado, a Aprovada; recusado ou revisão nova volta a Aberta. Depois de aprovada, uma revisão nova (o cliente pediu mais coisa) não muda a etapa, e o valor da OS passa a ser o da última revisão aprovada. Com a OS entregue ou cancelada, o orçamento fica só para ver (o PDF e o texto continuam saindo).
 - **Preparação:** com projeto ligado, o resumo e "Abrir o projeto". Sem projeto: "Criar projeto de preparação…" (o assistente começa no motor, com o cliente e o veículo da OS, e o projeto já nasce ligado a ela) ou ligar um projeto do mesmo veículo.
-- **Execução:** os checklists dos serviços e, embaixo deles, os laudos elétricos. Os checklists ficam num quadro por serviço, copiados do catálogo quando o serviço começou. Mudar o modelo no catálogo depois não muda a cópia da OS. Em cada item:
+- **Execução:** os checklists dos serviços e, embaixo deles, os laudos elétricos e as instalações da OS. Os checklists ficam num quadro por serviço, copiados do catálogo quando o serviço começou. Mudar o modelo no catálogo depois não muda a cópia da OS. Em cada item:
   - marque **Pendente**, **Feito** ou **Não se aplica**; o "não se aplica" pede por que (a justificativa), e sem ela nada é gravado;
   - escreva na observação o que for preciso anotar (ex.: a tensão medida);
   - as marcas "obrigatório" e "a verificar" vêm do modelo; embaixo aparece quem marcou e quando.
@@ -106,6 +106,8 @@ As abas:
   - **resultado:** resolvido, resolvido em parte ou não resolvido; fica "a definir" enquanto o diagnóstico não termina.
 
   A data não pode ser no futuro nem antes da abertura da OS. Com algo errado, a janela não fecha e mostra o que corrigir. **Abrir…** (ou duplo clique) muda o laudo; **Gerar PDF…** e **Imprimir…** fazem a folha do laudo (item 5.5); **Apagar…** é para o laudo feito por engano, só com a OS em andamento. Depois da entrega ou do cancelamento, o laudo fica só para ver, e o PDF continua saindo.
+
+  Por último, as **instalações desta OS**: o que ficou no carro com este serviço (ex.: o módulo do som, a injeção com a versão do firmware). **Registrar instalação…** abre a janela já com esta OS e a data de hoje. O tipo (som, alarme ou rastreador, iluminação, vidro ou trava, injeção programável ou outra) e a descrição (o que foi instalado e onde) são obrigatórios. A marca, o modelo, a potência ou especificação (texto livre: o app não confere), a data e as observações são opcionais. A instalação aparece também na ficha do veículo (item 5.6), onde também se muda, se retira e se apaga. Depois da entrega ou do cancelamento, a área fica só para ver (o **Histórico…** continua); a instalação esquecida se registra pela ficha, escolhendo esta OS como a de origem, e aparece aqui.
 - **Entrega e pagamento:** depois da entrega, quando, com quantos km e a garantia, com o dia em que vence (e, para cada serviço com garantia própria, a dele, ex.: "Garantia própria: Reparo ou troca de alternador, 365 dias, até 19/10/2027"). Também o valor da OS, o recebido e o que falta (pendente, parcial ou pago). Dá para receber em partes (ex.: sinal na aprovação e o resto na entrega). Recebimento lançado errado se cancela com o motivo: ele fica na lista, em cinza, e deixa de contar. Se o recebido passar do valor, aparece "recebido a mais": confira se nenhum recebimento foi lançado duas vezes e cancele o errado.
 - **Anexos:** fotos e PDF (nota fiscal, laudos, documentos), com miniatura. "Adicionar arquivos…" ou arrastar do Explorador; a cópia roda em segundo plano, como na Nova OS. Foto vira "foto da entrada" antes de o serviço começar e "foto do serviço" depois; PDF vira "documento". "Editar…" muda o tipo, a descrição, a validade e a marca de documento pessoal. "Abrir" usa o programa do Windows. "Remover…" só com a OS em andamento.
 - **Histórico:** cada mudança de etapa, com data, hora e observação.
@@ -129,6 +131,11 @@ O botão **Documentos ▾**, no cabeçalho da OS:
 - **Cliente:** o contato e o consentimento, com "Editar cliente…", "Histórico…" e "Anonimizar…" (item 6.6).
 - **Veículo:** o resumo, com "Editar veículo…" e "Histórico do veículo…". É aqui que se edita o veículo de uma OS sem projeto.
 - **OS do veículo** e **projetos de preparação:** todas as OS e todos os projetos, também os arquivados. Duplo clique abre.
+- **Instalações:** o que foi instalado ou mexido no veículo, pela oficina (com a OS de origem) ou informado pelo cliente (sem OS). As que estão no carro vêm primeiro, da data mais nova para a mais antiga. Aqui a instalação se muda sempre, mesmo com a OS de origem entregue:
+  - **Nova instalação…** e **Editar…** (ou duplo clique): os mesmos campos da OS (item 5.4), com a escolha da OS de origem entre as OS do veículo;
+  - **Histórico…:** quando foi criada e cada mudança, com o antes e o depois;
+  - **Retirar…:** o item saiu do carro (ex.: o cliente tirou o alarme). Ele continua na lista, em cinza, com "retirado em" e a data; **Desfazer retirada** volta;
+  - **Apagar…:** só para o cadastro feito por engano; o histórico dele vai junto.
 - **Laudos elétricos:** os laudos de todas as OS do veículo, do mais novo para o mais antigo, com a data, a OS, a queixa e o resultado. Duplo clique abre a OS do laudo; o laudo fica na aba Execução dela.
 - **Anexos e documentos:** os anexos de todas as OS do veículo e os documentos do próprio veículo. "Adicionar documento do veículo…" anexa sem OS, marcado como documento pessoal (ex.: o CRLV; ponha a validade em "Editar…"). O anexo de uma OS se remove na própria OS.
 
@@ -177,7 +184,7 @@ O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ qu
 - os dados pessoais dele e dos veículos dele: o nome vira "Cliente anonimizado #N"; placa, chassi e identificação da embarcação somem;
 - os anexos marcados como documento pessoal (como CNH e CRLV), os das OS dele e os dos veículos dele. O arquivo só sai da pasta de anexos se nenhum outro anexo usar o mesmo.
 
-Fotos, laudos, notas fiscais, OS, projetos, cálculos e orçamentos ficam. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
+Fotos, laudos, notas fiscais, instalações do veículo, OS, projetos, cálculos e orçamentos ficam. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
 
 - Se um desses documentos estiver aberto em outro programa (como um PDF no leitor), o arquivo não sai da pasta na hora: o app avisa, e ele sai na próxima vez que o Calibra abrir. Feche o programa antes, se puder.
 - Depois de anonimizar, a placa, o chassi e a identificação da embarcação não voltam pela edição do veículo, e o cliente não recebe OS nova pelo orçamento do projeto nem documento pessoal novo. Se a pessoa voltar à oficina, cadastre-a de novo, com um consentimento novo.
@@ -185,7 +192,7 @@ Fotos, laudos, notas fiscais, OS, projetos, cálculos e orçamentos ficam. **Nã
 O que a anonimização não alcança:
 
 - os **backups** feitos antes dela continuam com os dados e os documentos do cliente. Os da pasta de backups saem sozinhos quando deixam de estar entre os 30 mais recentes; os copiados para pen drive ou HD ficam até você apagar;
-- os **textos livres da OS** (serviço pedido, observações, vistoria e observações dos recebimentos) e os **laudos elétricos** (a queixa e os outros textos) não mudam. Evite escrever neles dados pessoais do cliente, como CPF, endereço ou telefone. Na queixa do laudo, o app avisa ao salvar quando parece ter o nome do cliente, um telefone ou documento, ou um e-mail (item 5.4).
+- os **textos livres da OS** (serviço pedido, observações, vistoria e observações dos recebimentos), os **laudos elétricos** (a queixa e os outros textos) e as **instalações do veículo** (a descrição e as observações) não mudam. Evite escrever neles dados pessoais do cliente, como CPF, endereço ou telefone. Na queixa do laudo, o app avisa ao salvar quando parece ter o nome do cliente, um telefone ou documento, ou um e-mail (item 5.4).
 
 ## 7. Calculadora e dimensionamento
 
