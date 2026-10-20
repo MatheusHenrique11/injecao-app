@@ -2,7 +2,10 @@ package br.com.calibra.app.catalogo;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+
+import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Um campo do formulário de um tipo de catálogo: a chave, o rótulo da tela, o tipo de entrada e, nas escolhas
@@ -12,17 +15,19 @@ import java.util.function.Function;
  * @param dica texto pequeno embaixo do campo; vazio se não houver
  * @param fixoNaEdicao só pode ser digitado no item novo (ex.: o código do combustível)
  * @param mostrarSe o campo só aparece quando outra escolha tem um destes valores; null = sempre aparece
+ * @param catalogo na referência, o tipo de catálogo de onde se escolhe o item; null nos outros campos
  */
 public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigatorio, List<Opcao> opcoes,
-        List<String> colunas, String dica, boolean fixoNaEdicao, Condicao mostrarSe) {
+        List<String> colunas, String dica, boolean fixoNaEdicao, Condicao mostrarSe, TipoCatalogo<?> catalogo) {
 
     /**
      * Como o campo é digitado. OCULTO não aparece no formulário: só leva o valor junto (ex.: o mapa do turbo). LINHAS é
      * uma lista de itens e serviços do catálogo, cada um com a quantidade (as linhas do kit, Fase 3B). ITENS é a lista
-     * dos itens de um checklist, cada um com o texto e as marcas "obrigatório" e "a verificar" (Fase 3B).
+     * dos itens de um checklist, cada um com o texto e as marcas "obrigatório" e "a verificar" (Fase 3B). REFERENCIA é
+     * a escolha de um item de outro catálogo, gravado pelo id (o checklist do serviço, Fase 3B).
      */
     public enum Tipo {
-        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA, OCULTO, LINHAS, ITENS
+        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA, OCULTO, LINHAS, ITENS, REFERENCIA
     }
 
     /** Uma opção de escolha: o valor gravado (nome da constante) e o rótulo da tela. */
@@ -48,7 +53,7 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
     }
 
     private CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigatorio) {
-        this(chave, rotulo, tipo, obrigatorio, List.of(), List.of(), "", false, null);
+        this(chave, rotulo, tipo, obrigatorio, List.of(), List.of(), "", false, null, null);
     }
 
     public static CampoForm texto(String chave, String rotulo, boolean obrigatorio) {
@@ -84,12 +89,12 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
     public static <E extends Enum<E>> CampoForm escolha(String chave, String rotulo, boolean obrigatorio, E[] valores,
             Function<E, String> rotuloDe) {
         List<Opcao> opcoes = Arrays.stream(valores).map(v -> new Opcao(v.name(), rotuloDe.apply(v))).toList();
-        return new CampoForm(chave, rotulo, Tipo.ESCOLHA, obrigatorio, opcoes, List.of(), "", false, null);
+        return new CampoForm(chave, rotulo, Tipo.ESCOLHA, obrigatorio, opcoes, List.of(), "", false, null, null);
     }
 
     /** Tabela de números (ex.: tempo morto por tensão e pressão), com uma linha por ponto. */
     public static CampoForm tabela(String chave, String rotulo, List<String> colunas) {
-        return new CampoForm(chave, rotulo, Tipo.TABELA, true, List.of(), colunas, "", false, null);
+        return new CampoForm(chave, rotulo, Tipo.TABELA, true, List.of(), colunas, "", false, null, null);
     }
 
     /**
@@ -108,16 +113,26 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
         return new CampoForm(chave, rotulo, Tipo.ITENS, true);
     }
 
+    /**
+     * A escolha opcional de um item de outro catálogo (ex.: o checklist do serviço). Nos valores, o id do item, ou
+     * vazio para nenhum.
+     */
+    public static CampoForm referencia(String chave, String rotulo, TipoCatalogo<?> catalogo) {
+        return new CampoForm(chave, rotulo, Tipo.REFERENCIA, false, List.of(), List.of(), "", false, null,
+                Objects.requireNonNull(catalogo, "catalogo"));
+    }
+
     public CampoForm comDica(String texto) {
-        return new CampoForm(chave, rotulo, tipo, obrigatorio, opcoes, colunas, texto, fixoNaEdicao, mostrarSe);
+        return new CampoForm(chave, rotulo, tipo, obrigatorio, opcoes, colunas, texto, fixoNaEdicao, mostrarSe,
+                catalogo);
     }
 
     public CampoForm travarNaEdicao() {
-        return new CampoForm(chave, rotulo, tipo, obrigatorio, opcoes, colunas, dica, true, mostrarSe);
+        return new CampoForm(chave, rotulo, tipo, obrigatorio, opcoes, colunas, dica, true, mostrarSe, catalogo);
     }
 
     public CampoForm mostrarSe(String chaveEscolha, String... valores) {
         return new CampoForm(chave, rotulo, tipo, obrigatorio, opcoes, colunas, dica, fixoNaEdicao,
-                new Condicao(chaveEscolha, List.of(valores)));
+                new Condicao(chaveEscolha, List.of(valores)), catalogo);
     }
 }

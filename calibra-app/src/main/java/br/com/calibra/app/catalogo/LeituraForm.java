@@ -130,6 +130,20 @@ public final class LeituraForm {
         return Boolean.parseBoolean(texto(chave));
     }
 
+    /** O id do item escolhido em outro catálogo; vazio = nenhum (null). */
+    public Long referencia(String chave) {
+        String texto = texto(chave);
+        if (texto.isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(texto);
+        } catch (NumberFormatException erro) {
+            erros.add("\"" + rotulo(chave) + "\": escolha de novo na lista.");
+            return null;
+        }
+    }
+
     /** Data dd/mm/aaaa; vazio = null. */
     public LocalDate data(String chave) {
         String texto = texto(chave);

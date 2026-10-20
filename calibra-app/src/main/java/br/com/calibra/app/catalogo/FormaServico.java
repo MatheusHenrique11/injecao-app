@@ -9,8 +9,9 @@ import br.com.calibra.dados.catalogo.TipoCatalogo;
 
 /**
  * Serviço da oficina (bloco 3.3; SPEC 6.6.1 na Fase 3B): a categoria, o texto da linha do orçamento, o tempo padrão
- * em horas, a garantia própria e se o serviço precisa do veículo na oficina. O preço, quando há, é o preço de
- * referência comum a todo item; sem preço, as horas são obrigatórias (é por elas que o serviço entra no orçamento).
+ * em horas, a garantia própria, se o serviço precisa do veículo na oficina e o checklist. O preço, quando há, é o
+ * preço de referência comum a todo item; sem preço, as horas são obrigatórias (é por elas que o serviço entra no
+ * orçamento).
  */
 final class FormaServico implements FormaCatalogo<ServicoPadrao> {
 
@@ -19,6 +20,7 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
     static final String HORAS = "horas";
     static final String GARANTIA = "garantiaDias";
     static final String EXIGE_VEICULO = "exigeEntradaDoVeiculo";
+    static final String CHECKLIST = "checklistModeloId";
     /** A fonte que um serviço novo já traz: a tabela da própria oficina. */
     static final String FONTE_PADRAO = "Tabela da oficina";
 
@@ -41,7 +43,11 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
                         .comDica("Em branco, vale a garantia da OS (Configurações › OS). 0 = sem garantia para este "
                                 + "serviço. Sai no comprovante de entrega."),
                 CampoForm.marcar(EXIGE_VEICULO, "Exige o veículo na oficina")
-                        .comDica("Desmarque no serviço de bancada, feito sem o veículo (ex.: confecção de chicote)."));
+                        .comDica("Desmarque no serviço de bancada, feito sem o veículo (ex.: confecção de chicote)."),
+                CampoForm.referencia(CHECKLIST, "Checklist", TipoCatalogo.CHECKLIST)
+                        .comDica("A OS copia este checklist quando o serviço começa, e os itens obrigatórios travam o "
+                                + "\"pronto\" (Catálogos › Checklists). Com \"(nenhum)\", o serviço não tem "
+                                + "checklist."));
     }
 
     @Override
@@ -50,7 +56,8 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
                 .texto(DESCRICAO, servico.descricaoPadrao())
                 .texto(HORAS, TextoForm.numero(servico.horas()))
                 .texto(GARANTIA, TextoForm.inteiro(servico.garantiaDias()))
-                .texto(EXIGE_VEICULO, String.valueOf(servico.exigeEntradaDoVeiculo()));
+                .texto(EXIGE_VEICULO, String.valueOf(servico.exigeEntradaDoVeiculo()))
+                .texto(CHECKLIST, servico.checklistModeloId() == null ? "" : servico.checklistModeloId().toString());
     }
 
     @Override
@@ -58,6 +65,7 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
         CategoriaServico categoria = leitura.escolha(CATEGORIA, CategoriaServico.class, true);
         Double horas = leitura.numero(HORAS, false);
         Integer garantia = leitura.inteiro(GARANTIA, false);
+        Long checklist = leitura.referencia(CHECKLIST);
         // Só cobra quando os dois campos estão em branco: com erro de digitação, a mensagem do campo já diz o que é.
         if (leitura.texto(HORAS).isEmpty() && leitura.texto(FormularioCatalogo.PRECO).isEmpty()) {
             leitura.erro("Informe as horas ou o preço de referência do serviço.");
@@ -66,7 +74,7 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
             return null;
         }
         return new ServicoPadrao(info.nome(), horas, info.fonte(), info.data(), categoria, leitura.texto(DESCRICAO),
-                leitura.marcado(EXIGE_VEICULO), garantia, null);
+                leitura.marcado(EXIGE_VEICULO), garantia, checklist);
     }
 
     @Override
@@ -76,13 +84,13 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
 
     @Override
     public List<String> colunas() {
-        return List.of("Categoria", "Horas", "Garantia");
+        return List.of("Categoria", "Horas", "Garantia", "Checklist");
     }
 
     @Override
     public List<String> resumo(ServicoPadrao servico) {
         return List.of(servico.categoria().rotulo(), TextoForm.coluna(servico.horas(), "h"),
-                garantia(servico.garantiaDias()));
+                garantia(servico.garantiaDias()), servico.checklistModeloId() == null ? "—" : "sim");
     }
 
     @Override

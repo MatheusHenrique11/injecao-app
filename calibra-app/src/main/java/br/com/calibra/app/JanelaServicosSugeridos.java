@@ -113,13 +113,14 @@ final class JanelaServicosSugeridos {
     }
 
     /**
-     * Lê as linhas marcadas e grava todas de uma vez. Com erro, nada é gravado, a mensagem fica na janela e ela não
-     * fecha.
+     * Lê as linhas marcadas e grava todas de uma vez, cada serviço com o checklist da categoria dele. Com erro, nada é
+     * gravado, a mensagem fica na janela e ela não fecha.
      *
      * @return true se gravou
      */
     boolean gravar() {
-        FormularioSugeridos.Leitura leitura = FormularioSugeridos.ler(linhas.stream().map(LinhaTela::lida).toList());
+        FormularioSugeridos.Leitura leitura = FormularioSugeridos.ler(linhas.stream().map(LinhaTela::lida).toList(),
+                casos.checklistsDasSementes());
         if (!leitura.ok()) {
             erro.setText(String.join("\n", leitura.erros()));
             return false;

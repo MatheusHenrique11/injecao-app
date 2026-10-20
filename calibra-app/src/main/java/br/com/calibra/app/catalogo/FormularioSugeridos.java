@@ -2,6 +2,7 @@ package br.com.calibra.app.catalogo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import br.com.calibra.core.orcamento.Dinheiro;
@@ -55,14 +56,18 @@ public final class FormularioSugeridos {
 
     /**
      * Lê as linhas marcadas; as desmarcadas ficam de fora. Cada serviço entra com a fonte "Tabela da oficina", sem
-     * descrição, com a garantia da OS e com a categoria e o "exige o veículo" da lista.
+     * descrição, com a garantia da OS, com a categoria e o "exige o veículo" da lista e com o checklist da categoria
+     * (Fase 3B).
+     *
+     * @param checklists o id de cada modelo de checklist ativo que veio com o app, pela chave (ex.: "checklist:som");
+     *        a sugestão cujo modelo não está aqui (arquivado) entra sem checklist
      */
-    public static Leitura ler(List<Linha> linhas) {
+    public static Leitura ler(List<Linha> linhas, Map<String, Long> checklists) {
         List<Novo> servicos = new ArrayList<>();
         List<String> erros = new ArrayList<>();
         for (Linha linha : linhas) {
             if (linha.marcada()) {
-                ler(linha, servicos, erros);
+                ler(linha, checklists, servicos, erros);
             }
         }
         if (servicos.isEmpty() && erros.isEmpty()) {
@@ -76,7 +81,7 @@ public final class FormularioSugeridos {
         return TextoBusca.normalizar(nome);
     }
 
-    private static void ler(Linha linha, List<Novo> servicos, List<String> erros) {
+    private static void ler(Linha linha, Map<String, Long> checklists, List<Novo> servicos, List<String> erros) {
         Sugestao sugestao = linha.sugestao();
         String nome = sugestao.nome();
         if (linha.horas().isEmpty() && linha.preco().isEmpty()) {
@@ -110,7 +115,9 @@ public final class FormularioSugeridos {
             return;
         }
         String fonte = FormaServico.FONTE_PADRAO;
+        Long checklist = sugestao.checklist() == null ? null : checklists.get(sugestao.checklist());
         servicos.add(new Novo(new ServicoPadrao(nome, horas, fonte, null, sugestao.categoria(), "",
-                sugestao.exigeEntradaDoVeiculo(), null, null), new InfoCatalogo(nome, fonte, null, false, preco, "")));
+                sugestao.exigeEntradaDoVeiculo(), null, checklist),
+                new InfoCatalogo(nome, fonte, null, false, preco, "")));
     }
 }

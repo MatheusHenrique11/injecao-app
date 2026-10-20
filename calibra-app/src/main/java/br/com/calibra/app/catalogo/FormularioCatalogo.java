@@ -161,16 +161,30 @@ public final class FormularioCatalogo<T> {
         }
     }
 
+    /** O nome de um item de outro catálogo, pelo id, para o histórico; null se não achar. */
+    @FunctionalInterface
+    public interface NomeNoCatalogo {
+
+        String nome(TipoCatalogo<?> tipo, long id);
+    }
+
+    /** O histórico sem os nomes do catálogo: a referência aparece pelo número (ex.: "checklist #31"). */
+    public List<LinhaHistorico> historico(List<VersaoCatalogo<T>> versoes) {
+        return historico(versoes, (tipo, id) -> null);
+    }
+
     /**
      * A comparação campo a campo entre as versões (da mais nova para a mais antiga). Campos vazios em todas as
      * versões ficam de fora; o campo que não se aplica numa versão (ex.: AFR fixo numa gasolina) aparece em branco.
+     *
+     * @param nomes o nome do item escolhido numa referência (ex.: o checklist do serviço), como está no catálogo
      */
-    public List<LinhaHistorico> historico(List<VersaoCatalogo<T>> versoes) {
+    public List<LinhaHistorico> historico(List<VersaoCatalogo<T>> versoes, NomeNoCatalogo nomes) {
         List<ValoresForm> valores = versoes.stream().map(v -> escrever(v.dados(), v.info())).toList();
         List<LinhaHistorico> linhas = new ArrayList<>();
         for (CampoForm campo : campos()) {
             List<String> textos = valores.stream()
-                    .map(v -> campo.mostrarSe() == null || campo.mostrarSe().atende(v) ? exibir(campo, v) : "")
+                    .map(v -> campo.mostrarSe() == null || campo.mostrarSe().atende(v) ? exibir(campo, v, nomes) : "")
                     .toList();
             if (textos.stream().allMatch(texto -> texto.isEmpty() || texto.equals(VAZIO))) {
                 continue;
@@ -185,12 +199,13 @@ public final class FormularioCatalogo<T> {
     }
 
     /**
-     * O valor de um campo como aparece no histórico: o rótulo da escolha, "sim"/"não", as linhas da tabela e, no campo
-     * oculto, o resumo que o tipo der.
+     * O valor de um campo como aparece no histórico: o rótulo da escolha, "sim"/"não", as linhas da tabela, o nome do
+     * item escolhido na referência e, no campo oculto, o resumo que o tipo der.
      */
-    String exibir(CampoForm campo, ValoresForm valores) {
+    String exibir(CampoForm campo, ValoresForm valores, NomeNoCatalogo nomes) {
         String texto = valores.texto(campo.chave()).strip();
         return switch (campo.tipo()) {
+            case REFERENCIA -> texto.isEmpty() ? VAZIO : referencia(campo, texto, nomes);
             case OCULTO -> texto.isEmpty() ? VAZIO : forma.exibirOculto(campo.chave(), texto);
             case MARCAR -> Boolean.parseBoolean(texto) ? "sim" : "não";
             case ESCOLHA -> campo.opcoes().stream().filter(opcao -> opcao.valor().equals(texto))
@@ -211,5 +226,17 @@ public final class FormularioCatalogo<T> {
             }
             default -> texto.isEmpty() ? VAZIO : texto;
         };
+    }
+
+    /** O nome do item escolhido; sem o nome, "checklist #31". */
+    private static String referencia(CampoForm campo, String texto, NomeNoCatalogo nomes) {
+        long id;
+        try {
+            id = Long.parseLong(texto);
+        } catch (NumberFormatException erro) {
+            return texto;
+        }
+        String nome = nomes.nome(campo.catalogo(), id);
+        return nome == null ? campo.catalogo().singular() + " #" + id : nome;
     }
 }

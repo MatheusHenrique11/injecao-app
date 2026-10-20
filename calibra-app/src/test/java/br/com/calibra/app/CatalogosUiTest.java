@@ -134,6 +134,8 @@ class CatalogosUiTest {
                 assertEquals(List.of("Injeção programável", "Partida e carga", "Som"), coluna(tabela, "Categoria"));
                 assertEquals(List.of("—", "2 h", "1,5 h"), coluna(tabela, "Horas"));
                 assertEquals(List.of("da OS", "da OS", "da OS"), coluna(tabela, "Garantia"));
+                assertEquals(List.of("sim", "sim", "sim"), coluna(tabela, "Checklist"),
+                        "cada sugerido entra com o checklist da categoria");
                 salvar(cena, "captura-catalogo-servicos.png");
 
                 JanelaServicosSugeridos deNovo = new JanelaServicosSugeridos(null, casos);
@@ -146,14 +148,26 @@ class CatalogosUiTest {
                 JanelaItemCatalogo<ServicoPadrao> edicao = servicos().janelaEditar(chicote);
                 assertFalse(((CheckBox) edicao.tela().controle("exigeEntradaDoVeiculo")).isSelected(),
                         "a confecção de chicote é de bancada");
+                EditorReferencia checklist = (EditorReferencia) edicao.tela().controle("checklistModeloId");
+                assertEquals("Confecção de chicote para injeção programável", checklist.getValue().nome());
+                assertEquals(8, checklist.getItems().size(), "\"(nenhum)\" e os 7 modelos");
                 texto(edicao.tela(), "descricaoPadrao").setText("Chicote novo para a injeção do cliente");
                 texto(edicao.tela(), "garantiaDias").setText("365");
                 fotografar(edicao.dialogo(), "captura-catalogo-servico-edicao.png");
+                checklist.escolher("");
                 assertTrue(edicao.gravar(), edicao.erros()::toString);
                 assertEquals("Gravado: Confecção de chicote para injeção programável (v2).", edicao.mensagem());
                 ServicoPadrao gravado = casos.buscar(TipoCatalogo.SERVICO, chicote.id()).orElseThrow().dados();
                 assertEquals("Chicote novo para a injeção do cliente", gravado.textoNoOrcamento());
                 assertEquals(365, gravado.garantiaDias());
+                assertNull(gravado.checklistModeloId(), "\"(nenhum)\" tira o checklist do serviço");
+
+                Dialog<ButtonType> versoes = servicos().janelaVersoes(chicote);
+                LinhaHistorico linha = TelaDeTeste.<TableView<LinhaHistorico>>achar(versoes.getDialogPane()
+                        .getScene(), "versoes").getItems().stream().filter(l -> l.campo().equals("Checklist"))
+                        .findFirst().orElseThrow();
+                assertEquals(List.of("—", "Confecção de chicote para injeção programável"), linha.valores(),
+                        "as versões mostram o nome do modelo");
             });
             assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
         } finally {

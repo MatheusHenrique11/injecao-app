@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -81,6 +82,20 @@ public final class CasosCatalogo {
     /** Todas as versões do item, da mais nova para a mais antiga. */
     public <T> List<VersaoCatalogo<T>> versoes(TipoCatalogo<T> tipo, long id) {
         return banco.ler(c -> catalogo.versoes(c, tipo, id));
+    }
+
+    /** O nome do item como está agora no catálogo, com "(arquivado)" se for o caso; vazio se não existir. */
+    public Optional<String> nome(TipoCatalogo<?> tipo, long id) {
+        return buscar(tipo, id).map(item -> item.info().nome() + (item.arquivado() ? " (arquivado)" : ""));
+    }
+
+    /**
+     * Os modelos de checklist que vieram com o app e estão ativos, pela chave da semente (ex.: "checklist:som"): os
+     * serviços sugeridos entram com o da categoria deles (Fase 3B).
+     */
+    public Map<String, Long> checklistsDasSementes() {
+        return ativos(TipoCatalogo.CHECKLIST).stream().filter(item -> item.chaveSemente() != null)
+                .collect(Collectors.toMap(ItemCatalogo::chaveSemente, ItemCatalogo::id));
     }
 
     /**
@@ -206,11 +221,20 @@ public final class CasosCatalogo {
 
     /**
      * No kit (Fase 3B), cada linha precisa apontar para um item ou um serviço do catálogo, e o nome guardado em cada
-     * linha (só para mostrar) passa a ser o de agora. Os outros tipos passam como vieram.
+     * linha (só para mostrar) passa a ser o de agora. O checklist escolhido no serviço precisa estar no catálogo (o
+     * arquivado vale: só sai das escolhas novas). Os outros tipos passam como vieram.
      *
-     * @throws EntradaInvalidaException com as linhas que não estão no catálogo
+     * @throws EntradaInvalidaException com as linhas ou o checklist que não estão no catálogo
      */
     private <T> T comOCatalogoDeAgora(Connection c, TipoCatalogo<T> tipo, T dados) throws SQLException {
+        if (dados instanceof ServicoPadrao servico) {
+            Long checklist = servico.checklistModeloId();
+            if (checklist != null && catalogo.buscar(c, TipoCatalogo.CHECKLIST, checklist).isEmpty()) {
+                throw new EntradaInvalidaException("O checklist escolhido para o serviço não está no catálogo; "
+                        + "escolha de novo.");
+            }
+            return dados;
+        }
         if (!(dados instanceof Kit kit)) {
             return dados;
         }
@@ -268,7 +292,8 @@ public final class CasosCatalogo {
             }
             List<ItemCatalogo<ServicoPadrao>> gravados = new ArrayList<>();
             for (FormularioSugeridos.Novo novo : novos) {
-                gravados.add(catalogo.inserir(c, TipoCatalogo.SERVICO, novo.dados(), novo.info(), null));
+                gravados.add(catalogo.inserir(c, TipoCatalogo.SERVICO,
+                        comOCatalogoDeAgora(c, TipoCatalogo.SERVICO, novo.dados()), novo.info(), null));
             }
             return gravados;
         });

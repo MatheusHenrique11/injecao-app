@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,9 @@ import br.com.calibra.dados.catalogo.TipoCatalogo;
 /** A janela de serviços sugeridos (SPEC 6.6.1) sem a tela: só as linhas marcadas, com horas ou preço. */
 class FormularioSugeridosTest {
 
+    /** Nenhum modelo de checklist ativo: os sugeridos entram sem checklist. */
+    private static final Map<String, Long> SEM_CHECKLISTS = Map.of();
+
     private static Sugestao sugestao(String nome) {
         return ServicosSugeridos.todos().stream().filter(s -> s.nome().equals(nome)).findFirst().orElseThrow();
     }
@@ -31,7 +36,8 @@ class FormularioSugeridosTest {
         Leitura leitura = FormularioSugeridos.ler(List.of(
                 new Linha(sugestao("Troca de alto-falantes"), true, " 1,5 ", ""),
                 new Linha(sugestao("Instalação de kit de trava elétrica"), false, "3", ""),
-                new Linha(sugestao("Confecção de chicote para injeção programável"), true, "", "1.800,00")));
+                new Linha(sugestao("Confecção de chicote para injeção programável"), true, "", "1.800,00")),
+                SEM_CHECKLISTS);
         assertEquals(List.of(), leitura.erros());
         assertEquals(2, leitura.servicos().size(), "a linha desmarcada fica de fora, mesmo preenchida");
 
@@ -59,7 +65,7 @@ class FormularioSugeridosTest {
                 new Linha(sugestao("Instalação de subwoofer e caixa"), true, "0", ""),
                 new Linha(sugestao("Instalação de multimídia ou central"), true, "", "-10,00"),
                 new Linha(sugestao("Instalação de som completa"), true, "", "duzentos"),
-                new Linha(sugestao("Reparo de chave ou botoeira"), true, "1", "")));
+                new Linha(sugestao("Reparo de chave ou botoeira"), true, "1", "")), SEM_CHECKLISTS);
         assertEquals(List.of(
                 "Troca de alto-falantes: informe as horas ou o preço.",
                 "Instalação de módulo de potência, horas: \"1.5\" não é um número válido: use vírgula para decimais "
@@ -74,8 +80,29 @@ class FormularioSugeridosTest {
 
     @Test
     void semNenhumaMarcadaAvisa() {
-        Leitura leitura = FormularioSugeridos.ler(List.of(new Linha(sugestao("Troca de alto-falantes"), false, "", "")));
+        Leitura leitura = FormularioSugeridos.ler(List.of(new Linha(sugestao("Troca de alto-falantes"), false, "", "")),
+                SEM_CHECKLISTS);
         assertEquals(List.of("Marque ao menos um serviço e preencha as horas ou o preço dele."), leitura.erros());
+    }
+
+    /**
+     * Bloco 3B.3: cada sugerido entra com o modelo de checklist da categoria dele, pela chave da semente; o modelo que
+     * não está ativo (arquivado) fica de fora, e o diagnóstico de injeção programável não tem modelo.
+     */
+    @Test
+    void cadaUmComOChecklistDaCategoria() {
+        Map<String, Long> checklists = Map.of(ServicosSugeridos.CHECKLIST_SOM, 41L,
+                ServicosSugeridos.CHECKLIST_CHICOTE, 45L);
+        Leitura leitura = FormularioSugeridos.ler(List.of(
+                new Linha(sugestao("Troca de alto-falantes"), true, "1,5", ""),
+                new Linha(sugestao("Confecção de chicote para injeção programável"), true, "", "1.800,00"),
+                new Linha(sugestao("Instalação de LED ou xenon em farol"), true, "1", ""),
+                new Linha(sugestao("Diagnóstico de injeção programável (falhas, leitura de sensores e log)"), true,
+                        "2", "")), checklists);
+        assertEquals(List.of(), leitura.erros());
+        assertEquals(Arrays.asList(41L, 45L, null, null),
+                leitura.servicos().stream().map(novo -> novo.dados().checklistModeloId()).toList(),
+                "som e chicote com o modelo; iluminação sem (modelo fora da lista); diagnóstico sem modelo");
     }
 
     @Test

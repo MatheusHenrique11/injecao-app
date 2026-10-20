@@ -151,7 +151,7 @@ final class PainelCatalogo<T> extends VBox {
             coluna.setPrefWidth(240);
             comparacao.getColumns().add(coluna);
         }
-        comparacao.getItems().setAll(formulario.historico(todas));
+        comparacao.getItems().setAll(formulario.historico(todas, (tipo, id) -> casos.nome(tipo, id).orElse(null)));
         comparacao.setPrefSize(Math.min(1200, 260 + 250 * todas.size()), 520);
         Label legenda = new Label("Em amarelo, o que mudou em relação à versão anterior. Os cálculos guardam a versão "
                 + "que usaram.");

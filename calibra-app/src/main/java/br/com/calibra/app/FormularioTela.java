@@ -48,7 +48,10 @@ final class FormularioTela {
     private final GridPane grade = new GridPane();
     private final Map<String, CampoTela> campos = new LinkedHashMap<>();
 
-    /** @param casos o catálogo, para escolher as linhas do kit; null se nenhum campo for de linhas */
+    /**
+     * @param casos o catálogo, para escolher as linhas do kit e o item de uma referência (o checklist do serviço);
+     *        null se nenhum campo precisar dele
+     */
     FormularioTela(List<CampoForm> lista, CasosCatalogo casos) {
         grade.getStyleClass().add("grade");
         ColumnConstraints rotulos = new ColumnConstraints();
@@ -212,6 +215,10 @@ final class FormularioTela {
             case ITENS -> {
                 EditorItensChecklist itens = new EditorItensChecklist();
                 return new CampoTela(campo, () -> "", texto -> { }, itens, nos, itens);
+            }
+            case REFERENCIA -> {
+                EditorReferencia referencia = new EditorReferencia(casos, campo.catalogo(), campo.rotulo());
+                return new CampoTela(campo, referencia::valor, referencia::escolher, null, nos, referencia);
             }
             case OCULTO -> {
                 // Só guarda o valor: não entra na grade (o controle fica fora da tela e desligado).

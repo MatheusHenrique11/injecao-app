@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -222,7 +223,10 @@ class CasosCatalogoTest {
         assertEquals(Set.of(rele.id()), casos.doTipo(TipoCatalogo.ITEM, List.of(rele.id(), limpeza.id(), 99_999L)));
     }
 
-    /** Serviços sugeridos (SPEC 6.6.1): todos numa gravação só, cada um na versão 1, com a categoria da lista. */
+    /**
+     * Serviços sugeridos (SPEC 6.6.1): todos numa gravação só, cada um na versão 1, com a categoria da lista e, desde o
+     * bloco 3B.3, com o modelo de checklist da categoria que veio com o app.
+     */
     @Test
     void servicosSugeridosEntramTodosDeUmaVez() {
         List<ItemCatalogo<ServicoPadrao>> gravados = casos.adicionarServicosSugeridos(sugeridos(
@@ -236,6 +240,50 @@ class CasosCatalogoTest {
                 lista.stream().map(item -> item.dados().categoria()).toList());
         assertEquals(List.of(1, 1), lista.stream().map(ItemCatalogo::versao).toList());
         assertFalse(lista.getFirst().dados().exigeEntradaDoVeiculo(), "o chicote é de bancada");
+        Map<String, Long> modelos = casos.checklistsDasSementes();
+        assertEquals(List.of(modelos.get(ServicosSugeridos.CHECKLIST_CHICOTE),
+                modelos.get(ServicosSugeridos.CHECKLIST_PARTIDA_E_ALTERNADOR)),
+                lista.stream().map(item -> item.dados().checklistModeloId()).toList(), "o checklist da categoria");
+    }
+
+    /**
+     * Bloco 3B.3: o checklist escolhido no serviço precisa estar no catálogo; o arquivado continua valendo (só sai das
+     * escolhas novas e dos serviços sugeridos), e o nome dele aparece marcado.
+     */
+    @Test
+    void checklistDoServicoPrecisaEstarNoCatalogo() {
+        Map<String, Long> modelos = casos.checklistsDasSementes();
+        assertEquals(7, modelos.size(), "os 7 modelos que vêm com o app");
+        long som = modelos.get(ServicosSugeridos.CHECKLIST_SOM);
+        Exemplo<ServicoPadrao> exemplo = ExemplosCatalogo.servicoPorHora();
+        ServicoPadrao comChecklist = comChecklist(exemplo.dados(), som);
+        ItemCatalogo<ServicoPadrao> servico = casos.criar(TipoCatalogo.SERVICO, comChecklist, exemplo.info());
+        assertEquals(som, servico.dados().checklistModeloId());
+        assertEquals("Som", casos.nome(TipoCatalogo.CHECKLIST, som).orElseThrow());
+
+        EntradaInvalidaException sumiu = assertThrows(EntradaInvalidaException.class, () -> casos.salvar(
+                TipoCatalogo.SERVICO, servico.id(), comChecklist(exemplo.dados(), 999L), exemplo.info()));
+        assertEquals(List.of("O checklist escolhido para o serviço não está no catálogo; escolha de novo."),
+                sumiu.erros());
+        long rele = casos.criar(TipoCatalogo.ITEM, ExemplosCatalogo.item().dados(), ExemplosCatalogo.item().info())
+                .id();
+        assertThrows(EntradaInvalidaException.class, () -> casos.salvar(TipoCatalogo.SERVICO, servico.id(),
+                comChecklist(exemplo.dados(), rele), exemplo.info()), "um item que não é checklist não vale");
+
+        casos.arquivar(som, true);
+        assertFalse(casos.checklistsDasSementes().containsKey(ServicosSugeridos.CHECKLIST_SOM),
+                "o arquivado sai dos sugeridos");
+        assertEquals("Som (arquivado)", casos.nome(TipoCatalogo.CHECKLIST, som).orElseThrow());
+        InfoCatalogo conferido = new InfoCatalogo(exemplo.info().nome(), exemplo.info().fonte(),
+                exemplo.info().data(), true, exemplo.info().precoReferencia(), exemplo.info().observacoes());
+        assertTrue(casos.salvar(TipoCatalogo.SERVICO, servico.id(), comChecklist, conferido).versaoNova(),
+                "o serviço que já apontava para o arquivado continua gravando");
+        assertTrue(casos.nome(TipoCatalogo.CHECKLIST, 999L).isEmpty());
+    }
+
+    private static ServicoPadrao comChecklist(ServicoPadrao s, Long checklist) {
+        return new ServicoPadrao(s.nome(), s.horas(), s.fonte(), s.data(), s.categoria(), s.descricaoPadrao(),
+                s.exigeEntradaDoVeiculo(), s.garantiaDias(), checklist);
     }
 
     /**
@@ -286,8 +334,8 @@ class CasosCatalogoTest {
         return ServicosSugeridos.todos().stream().filter(s -> s.nome().equals(nome)).findFirst().orElseThrow();
     }
 
-    private static List<FormularioSugeridos.Novo> sugeridos(Linha... linhas) {
-        FormularioSugeridos.Leitura leitura = FormularioSugeridos.ler(List.of(linhas));
+    private List<FormularioSugeridos.Novo> sugeridos(Linha... linhas) {
+        FormularioSugeridos.Leitura leitura = FormularioSugeridos.ler(List.of(linhas), casos.checklistsDasSementes());
         assertEquals(List.of(), leitura.erros());
         return leitura.servicos();
     }

@@ -278,14 +278,49 @@ class FormulariosCatalogoTest {
         assertEquals(List.of("\"Garantia própria (dias)\": use um número inteiro."), servicos.ler(novoServico(servicos)
                 .texto(FormaServico.HORAS, "1").texto(FormaServico.GARANTIA, "90,5")).erros());
 
-        assertEquals(List.of("Categoria", "Horas", "Garantia"), servicos.colunas());
-        assertEquals(List.of("Preparação", "1,5 h", "180 dias"), servicos.resumo(ExemplosCatalogo.servicoPorHora()
+        assertEquals(List.of("Categoria", "Horas", "Garantia", "Checklist"), servicos.colunas());
+        assertEquals(List.of("Preparação", "1,5 h", "180 dias", "—"), servicos.resumo(ExemplosCatalogo.servicoPorHora()
                 .dados()));
-        assertEquals(List.of("Diagnóstico elétrico", "—", "da OS"), servicos.resumo(ExemplosCatalogo.servicoComPreco()
-                .dados()));
-        assertEquals(List.of("Injeção programável", "12 h", "365 dias"), servicos.resumo(chicote.dados()));
+        assertEquals(List.of("Diagnóstico elétrico", "—", "da OS", "—"), servicos.resumo(ExemplosCatalogo
+                .servicoComPreco().dados()));
+        assertEquals(List.of("Injeção programável", "12 h", "365 dias", "—"), servicos.resumo(chicote.dados()));
         assertEquals("sem garantia", FormaServico.garantia(0));
         assertEquals("1 dia", FormaServico.garantia(1));
+    }
+
+    /**
+     * Bloco 3B.3: o checklist do serviço é a escolha de um modelo do catálogo, gravada pelo id (em branco, sem
+     * checklist). Nas versões aparece o nome do modelo, como está no catálogo.
+     */
+    @Test
+    void servicoComChecklist() {
+        FormularioCatalogo<ServicoPadrao> servicos = FormasCatalogo.de(TipoCatalogo.SERVICO);
+        CampoForm campo = servicos.campos().stream().filter(c -> c.chave().equals(FormaServico.CHECKLIST)).findFirst()
+                .orElseThrow();
+        assertEquals(CampoForm.Tipo.REFERENCIA, campo.tipo());
+        assertEquals(TipoCatalogo.CHECKLIST, campo.catalogo());
+
+        Leitura<ServicoPadrao> som = servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "4")
+                .texto(FormaServico.CHECKLIST, "41"));
+        assertEquals(List.of(), som.erros());
+        assertEquals(41L, som.dados().checklistModeloId());
+        assertEquals(List.of("Outro", "4 h", "da OS", "sim"), servicos.resumo(som.dados()));
+        assertEquals("41", servicos.escrever(som.dados(), som.info()).texto(FormaServico.CHECKLIST), "ida e volta");
+        assertNull(servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "4")).dados().checklistModeloId(),
+                "em branco: sem checklist");
+        assertEquals(List.of("\"Checklist\": escolha de novo na lista."), servicos.ler(novoServico(servicos)
+                .texto(FormaServico.HORAS, "4").texto(FormaServico.CHECKLIST, "Som")).erros());
+
+        List<VersaoCatalogo<ServicoPadrao>> versoes = List.of(
+                new VersaoCatalogo<>(1, 2, som.dados(), som.info(), LocalDateTime.of(2026, 10, 19, 11, 0)),
+                new VersaoCatalogo<>(1, 1, servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "4")).dados(),
+                        som.info(), LocalDateTime.of(2026, 10, 19, 10, 0)));
+        LinhaHistorico comNome = servicos.historico(versoes, (tipo, id) -> tipo == TipoCatalogo.CHECKLIST && id == 41
+                ? "Som" : null).stream().filter(l -> l.campo().equals("Checklist")).findFirst().orElseThrow();
+        assertEquals(List.of("Som", "—"), comNome.valores());
+        assertEquals(List.of(true, false), comNome.mudou());
+        assertEquals(List.of("checklist #41", "—"), servicos.historico(versoes).stream()
+                .filter(l -> l.campo().equals("Checklist")).findFirst().orElseThrow().valores(), "sem o catálogo");
     }
 
     /** Item de material (Fase 3B): a unidade é obrigatória; o novo já vem com "un" e com a fonte da oficina. */
