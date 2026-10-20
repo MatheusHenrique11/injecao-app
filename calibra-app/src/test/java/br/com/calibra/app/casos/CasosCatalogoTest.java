@@ -246,7 +246,7 @@ class CasosCatalogoTest {
     void sugeridoComNomeQueJaExisteNaoGravaNada() {
         Exemplo<ServicoPadrao> exemplo = ExemplosCatalogo.servicoPorHora();
         ServicoPadrao parecido = new ServicoPadrao("TROCA DE REGULADOR (MAQUINA DE VIDRO)", 1.0, "Tabela da oficina",
-                null, CategoriaServico.VIDROS_TRAVAS, "", true, null);
+                null, CategoriaServico.VIDROS_TRAVAS, "", true, null, null);
         ItemCatalogo<ServicoPadrao> antigo = casos.criar(TipoCatalogo.SERVICO, parecido, new InfoCatalogo(
                 parecido.nome(), "Tabela da oficina", null, false, null, ""));
         casos.arquivar(antigo.id(), true);
@@ -270,7 +270,7 @@ class CasosCatalogoTest {
     @Test
     void sugeridoForaDasRegrasNaoGrava() {
         ServicoPadrao semHoras = new ServicoPadrao("Teste de bateria e do sistema de carga", 0.0, "Tabela da oficina",
-                null, CategoriaServico.PARTIDA_CARGA, "", true, null);
+                null, CategoriaServico.PARTIDA_CARGA, "", true, null, null);
         EntradaInvalidaException erro = assertThrows(EntradaInvalidaException.class,
                 () -> casos.adicionarServicosSugeridos(List.of(new FormularioSugeridos.Novo(semHoras,
                         new InfoCatalogo(semHoras.nome(), "Tabela da oficina", null, false, null, "")))));

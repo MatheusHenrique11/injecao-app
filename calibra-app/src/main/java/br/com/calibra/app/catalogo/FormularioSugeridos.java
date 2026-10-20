@@ -111,6 +111,6 @@ public final class FormularioSugeridos {
         }
         String fonte = FormaServico.FONTE_PADRAO;
         servicos.add(new Novo(new ServicoPadrao(nome, horas, fonte, null, sugestao.categoria(), "",
-                sugestao.exigeEntradaDoVeiculo(), null), new InfoCatalogo(nome, fonte, null, false, preco, "")));
+                sugestao.exigeEntradaDoVeiculo(), null, null), new InfoCatalogo(nome, fonte, null, false, preco, "")));
     }
 }

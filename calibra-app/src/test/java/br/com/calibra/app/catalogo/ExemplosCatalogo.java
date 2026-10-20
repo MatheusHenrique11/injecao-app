@@ -145,7 +145,7 @@ public final class ExemplosCatalogo {
      */
     public static Exemplo<ServicoPadrao> servicoPorHora() {
         return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Limpeza de bicos teste", 1.5, FONTE, DATA,
-                CategoriaServico.PREPARACAO, "", true, 180),
+                CategoriaServico.PREPARACAO, "", true, 180, null),
                 new InfoCatalogo("Limpeza de bicos teste", FONTE, DATA, false, null, "Dados fictícios."));
     }
 
@@ -155,7 +155,8 @@ public final class ExemplosCatalogo {
      */
     public static Exemplo<ServicoPadrao> servicoComPreco() {
         return new Exemplo<>(TipoCatalogo.SERVICO, new ServicoPadrao("Diagnóstico teste", null, FONTE, DATA,
-                CategoriaServico.DIAGNOSTICO_ELETRICO, "Diagnóstico com scanner e relatório (teste)", true, null),
+                CategoriaServico.DIAGNOSTICO_ELETRICO, "Diagnóstico com scanner e relatório (teste)", true, null,
+                null),
                 new InfoCatalogo("Diagnóstico teste", FONTE, DATA, false, new Dinheiro(25_000), "Dados fictícios."));
     }
 

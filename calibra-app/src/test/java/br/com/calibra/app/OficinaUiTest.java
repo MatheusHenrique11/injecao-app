@@ -547,12 +547,12 @@ class OficinaUiTest {
                         "ECU programável teste", "un", "Tabela da oficina", null), new InfoCatalogo(
                         "ECU programável teste", "Tabela da oficina", null, false, Dinheiro.ler("4.900,00"), ""));
                 ServicoPadrao chicote = new ServicoPadrao("Confecção de chicote teste", null, "Tabela da oficina",
-                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null);
+                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null, null);
                 ItemCatalogo<ServicoPadrao> chicoteNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, chicote,
                         new InfoCatalogo(chicote.nome(), "Tabela da oficina", null, false, Dinheiro.ler("1.800,00"),
                                 ""));
                 ServicoPadrao instalacao = new ServicoPadrao("Instalação de injeção teste", 8.0, "Tabela da oficina",
-                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null);
+                        null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null, null);
                 ItemCatalogo<ServicoPadrao> instalacaoNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, instalacao,
                         new InfoCatalogo(instalacao.nome(), "Tabela da oficina", null, false, null, ""));
                 catalogo.criar(TipoCatalogo.KIT, new Kit("Injeção completa teste", List.of(
@@ -833,7 +833,7 @@ class OficinaUiTest {
     private void prontaComGarantiaPropria() {
         CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
         ServicoPadrao alternador = new ServicoPadrao("Reparo de alternador teste", 2.0, "Tabela da oficina", null,
-                CategoriaServico.PARTIDA_CARGA, "", true, 365);
+                CategoriaServico.PARTIDA_CARGA, "", true, 365, null);
         InfoCatalogo info = new InfoCatalogo(alternador.nome(), "Tabela da oficina", null, false, null,
                 "Dados fictícios.");
         ItemCatalogo<ServicoPadrao> servico = catalogo.criar(TipoCatalogo.SERVICO, alternador, info);
@@ -851,7 +851,7 @@ class OficinaUiTest {
         orcamentos.marcarEnviado(orcamento.id());
         orcamentos.aprovar(orcamento.id(), agora.minusHours(2), MeioAprovacao.WHATSAPP, "Pode fazer.");
         catalogo.salvar(TipoCatalogo.SERVICO, servico.id(), new ServicoPadrao(alternador.nome(), 2.0,
-                "Tabela da oficina", null, CategoriaServico.PARTIDA_CARGA, "", true, 30), info);
+                "Tabela da oficina", null, CategoriaServico.PARTIDA_CARGA, "", true, 30, null), info);
         oficina.mudarStatus(ana, StatusOs.EM_EXECUCAO, "");
         oficina.mudarStatus(ana, StatusOs.PRONTA, "");
     }

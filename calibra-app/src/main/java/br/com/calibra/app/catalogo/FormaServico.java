@@ -66,7 +66,7 @@ final class FormaServico implements FormaCatalogo<ServicoPadrao> {
             return null;
         }
         return new ServicoPadrao(info.nome(), horas, info.fonte(), info.data(), categoria, leitura.texto(DESCRICAO),
-                leitura.marcado(EXIGE_VEICULO), garantia);
+                leitura.marcado(EXIGE_VEICULO), garantia, null);
     }
 
     @Override

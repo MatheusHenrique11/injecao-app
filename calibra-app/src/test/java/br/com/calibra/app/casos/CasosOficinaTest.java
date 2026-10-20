@@ -313,11 +313,11 @@ class CasosOficinaTest {
     void kitEPacoteNoOrcamentoDaOs() {
         Dinheiro hora = Dinheiro.ler("180,00");
         ServicoPadrao chicote = new ServicoPadrao("Confecção de chicote para injeção programável", null,
-                "Tabela da oficina", null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null);
+                "Tabela da oficina", null, CategoriaServico.INJECAO_PROGRAMAVEL, "", false, null, null);
         ItemCatalogo<ServicoPadrao> chicoteNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, chicote,
                 new InfoCatalogo(chicote.nome(), "Tabela da oficina", null, false, Dinheiro.ler("1.800,00"), ""));
         ServicoPadrao instalacao = new ServicoPadrao("Instalação de injeção programável", 8.0, "Tabela da oficina",
-                null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null);
+                null, CategoriaServico.INJECAO_PROGRAMAVEL, "", true, null, null);
         ItemCatalogo<ServicoPadrao> instalacaoNoCatalogo = catalogo.criar(TipoCatalogo.SERVICO, instalacao,
                 info(instalacao));
         ItemCatalogo<Kit> pacote = catalogo.criar(TipoCatalogo.KIT, new Kit("Chicote + instalação", List.of(
@@ -363,7 +363,7 @@ class CasosOficinaTest {
 
     private static ServicoPadrao servico(String nome, Integer garantiaDias) {
         return new ServicoPadrao(nome, 1.0, "Tabela da oficina", null, CategoriaServico.PARTIDA_CARGA, "", true,
-                garantiaDias);
+                garantiaDias, null);
     }
 
     private static InfoCatalogo info(ServicoPadrao servico) {

@@ -22,7 +22,7 @@ class ServicoPadraoTest {
     private static final String FONTE = "Tabela da oficina";
 
     private static ServicoPadrao servico(Double horas, Integer garantiaDias) {
-        return new ServicoPadrao("Revisão", horas, FONTE, null, CategoriaServico.OUTRO, "", true, garantiaDias);
+        return new ServicoPadrao("Revisão", horas, FONTE, null, CategoriaServico.OUTRO, "", true, garantiaDias, null);
     }
 
     @Test
@@ -49,12 +49,13 @@ class ServicoPadraoTest {
     /** O que o JSON do 0.3.0 não tem chega vazio: Outro, exige o veículo, sem descrição e a garantia da OS. */
     @Test
     void camposVaziosViramOPadrao() {
-        ServicoPadrao antigo = new ServicoPadrao("Limpeza de bicos", 1.5, FONTE, null, null, null, null, null);
+        ServicoPadrao antigo = new ServicoPadrao("Limpeza de bicos", 1.5, FONTE, null, null, null, null, null, null);
         assertEquals(CategoriaServico.OUTRO, antigo.categoria());
         assertEquals("", antigo.descricaoPadrao());
         assertTrue(antigo.exigeEntradaDoVeiculo());
         assertNull(antigo.garantiaDias());
-        assertEquals(new ServicoPadrao("Limpeza de bicos", 1.5, FONTE, null, CategoriaServico.OUTRO, "", true, null),
+        assertEquals(new ServicoPadrao("Limpeza de bicos", 1.5, FONTE, null, CategoriaServico.OUTRO, "", true, null,
+                null),
                 antigo, "igual ao serviço salvo com os valores padrão: salvar sem mudar não cria versão nova");
     }
 
@@ -62,9 +63,9 @@ class ServicoPadraoTest {
     void descricaoEmBrancoEntraONomeNoOrcamento() {
         assertEquals("Revisão", servico(1.0, null).textoNoOrcamento());
         ServicoPadrao comDescricao = new ServicoPadrao("Troca de alto-falantes", 1.0, FONTE, null, CategoriaServico.SOM,
-                "  Troca do par de alto-falantes dianteiros, com teste de som  ", true, null);
+                "  Troca do par de alto-falantes dianteiros, com teste de som  ", true, null, null);
         assertEquals("Troca do par de alto-falantes dianteiros, com teste de som", comDescricao.textoNoOrcamento());
-        assertEquals("Revisão", new ServicoPadrao("Revisão", 1.0, FONTE, null, null, "   ", null, null)
+        assertEquals("Revisão", new ServicoPadrao("Revisão", 1.0, FONTE, null, null, "   ", null, null, null)
                 .textoNoOrcamento(), "só espaços conta como em branco");
     }
 
@@ -91,6 +92,40 @@ class ServicoPadraoTest {
                 .filter(s -> !s.exigeEntradaDoVeiculo()).map(Sugestao::nome).toList(), "só o chicote é de bancada");
         assertFalse(porCategoria.containsKey(CategoriaServico.PREPARACAO));
         assertFalse(porCategoria.containsKey(CategoriaServico.OUTRO));
+    }
+
+    /**
+     * Bloco 3B.3: cada sugerido já vem com o modelo de checklist da categoria dele; na injeção programável, só a
+     * confecção de chicote e a instalação, cada uma com o seu.
+     */
+    @Test
+    void sugeridosComOChecklistDaCategoria() {
+        Map<CategoriaServico, String> daCategoria = Map.of(CategoriaServico.SOM, ServicosSugeridos.CHECKLIST_SOM,
+                CategoriaServico.VIDROS_TRAVAS, ServicosSugeridos.CHECKLIST_VIDRO_E_TRAVA,
+                CategoriaServico.PARTIDA_CARGA, ServicosSugeridos.CHECKLIST_PARTIDA_E_ALTERNADOR,
+                CategoriaServico.ILUMINACAO, ServicosSugeridos.CHECKLIST_ILUMINACAO,
+                CategoriaServico.DIAGNOSTICO_ELETRICO, ServicosSugeridos.CHECKLIST_DIAGNOSTICO);
+        for (Sugestao s : ServicosSugeridos.todos()) {
+            if (s.categoria() != CategoriaServico.INJECAO_PROGRAMAVEL) {
+                assertEquals(daCategoria.get(s.categoria()), s.checklist(), s.nome());
+            }
+        }
+        Map<String, String> injecao = new LinkedHashMap<>();
+        ServicosSugeridos.todos().stream().filter(s -> s.categoria() == CategoriaServico.INJECAO_PROGRAMAVEL)
+                .forEach(s -> injecao.put(s.nome(), s.checklist() == null ? "sem" : s.checklist()));
+        assertEquals(Map.of("Confecção de chicote para injeção programável", ServicosSugeridos.CHECKLIST_CHICOTE,
+                "Instalação de injeção programável", ServicosSugeridos.CHECKLIST_INSTALACAO_INJECAO,
+                "Revisão ou correção de chicote de injeção programável", "sem",
+                "Diagnóstico de injeção programável (falhas, leitura de sensores e log)", "sem"), injecao,
+                "a revisão do chicote e o diagnóstico ficam sem: o dono escolhe");
+    }
+
+    /** O serviço gravado antes do bloco 3B.3 (sem o campo) fica sem checklist. */
+    @Test
+    void servicoSemChecklist() {
+        assertNull(servico(1.0, null).checklistModeloId());
+        assertEquals(31L, new ServicoPadrao("Som", 4.0, FONTE, null, CategoriaServico.SOM, "", true, null, 31L)
+                .checklistModeloId());
     }
 
     @Test

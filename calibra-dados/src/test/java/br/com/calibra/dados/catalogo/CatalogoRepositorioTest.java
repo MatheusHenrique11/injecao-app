@@ -184,7 +184,7 @@ class CatalogoRepositorioTest {
         ServicoPadrao horas = base.banco.ler(c -> catalogo.buscar(c, TipoCatalogo.SERVICO, limpeza)).orElseThrow()
                 .dados();
         assertEquals(new ServicoPadrao("Limpeza de bicos", 1.5, "Tabela da oficina", LocalDate.of(2026, 10, 17),
-                CategoriaServico.OUTRO, "", true, null), horas);
+                CategoriaServico.OUTRO, "", true, null, null), horas);
         ServicoPadrao semHoras = base.banco.ler(c -> catalogo.versao(c, TipoCatalogo.SERVICO, diagnostico, 1))
                 .orElseThrow().dados();
         assertEquals(CategoriaServico.OUTRO, semHoras.categoria());

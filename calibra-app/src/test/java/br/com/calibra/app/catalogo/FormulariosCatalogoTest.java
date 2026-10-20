@@ -263,7 +263,7 @@ class FormulariosCatalogoTest {
                 .texto(FormaServico.EXIGE_VEICULO, "false"));
         assertEquals(List.of(), chicote.erros());
         assertEquals(new ServicoPadrao("Confecção de chicote teste", 12.0, "Tabela da oficina", null,
-                CategoriaServico.INJECAO_PROGRAMAVEL, "Chicote novo para a injeção do cliente", false, 365),
+                CategoriaServico.INJECAO_PROGRAMAVEL, "Chicote novo para a injeção do cliente", false, 365, null),
                 chicote.dados());
 
         Leitura<ServicoPadrao> semGarantia = servicos.ler(novoServico(servicos).texto(FormaServico.HORAS, "1")

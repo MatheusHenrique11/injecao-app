@@ -11,8 +11,9 @@ import br.com.calibra.core.oficina.Garantia;
  * Um serviço do catálogo de serviços (SPEC 6.5 e 6.6.1): a mão de obra padrão da oficina, com o tempo de
  * referência. O preço, quando há, é o preço de referência do item do catálogo (a informação comum de todo item).
  *
- * <p>A categoria, a descrição, o "exige o veículo" e a garantia entraram na Fase 3B. O serviço gravado antes deles
- * (no 0.3.0) é lido como Outro, exigindo o veículo, sem descrição e com a garantia da OS (decisão 215).
+ * <p>A categoria, a descrição, o "exige o veículo", a garantia e o checklist entraram na Fase 3B. O serviço gravado
+ * antes deles (no 0.3.0) é lido como Outro, exigindo o veículo, sem descrição, com a garantia da OS e sem checklist
+ * (decisão 215).
  *
  * @param horas o tempo padrão; null = não informado (o serviço precisa ter preço)
  * @param categoria null = {@link CategoriaServico#OUTRO}
@@ -20,9 +21,11 @@ import br.com.calibra.core.oficina.Garantia;
  * @param exigeEntradaDoVeiculo false no serviço de bancada, feito sem o veículo (ex.: confecção de chicote);
  *        null = sim
  * @param garantiaDias a garantia própria do serviço, em dias (0 = sem garantia); null = a garantia da OS
+ * @param checklistModeloId o modelo de checklist do serviço no catálogo (bloco 3B.3), copiado para a OS quando o
+ *        serviço começa; null = sem checklist
  */
 public record ServicoPadrao(String nome, Double horas, String fonte, LocalDate data, CategoriaServico categoria,
-        String descricaoPadrao, Boolean exigeEntradaDoVeiculo, Integer garantiaDias) {
+        String descricaoPadrao, Boolean exigeEntradaDoVeiculo, Integer garantiaDias, Long checklistModeloId) {
 
     public ServicoPadrao {
         Objects.requireNonNull(nome, "nome");

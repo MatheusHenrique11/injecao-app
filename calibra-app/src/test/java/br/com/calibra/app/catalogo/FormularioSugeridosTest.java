@@ -37,7 +37,7 @@ class FormularioSugeridosTest {
 
         FormularioSugeridos.Novo falantes = leitura.servicos().get(0);
         assertEquals(new ServicoPadrao("Troca de alto-falantes", 1.5, "Tabela da oficina", null, CategoriaServico.SOM,
-                "", true, null), falantes.dados());
+                "", true, null, null), falantes.dados());
         assertEquals(new InfoCatalogo("Troca de alto-falantes", "Tabela da oficina", null, false, null, ""),
                 falantes.info());
 
