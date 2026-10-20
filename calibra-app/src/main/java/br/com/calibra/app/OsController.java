@@ -40,6 +40,7 @@ import br.com.calibra.app.casos.AnexosDaOficina;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
+import br.com.calibra.app.casos.CasosOficina.Pendencia;
 import br.com.calibra.app.casos.CasosOficina.ProjetoDoVeiculo;
 import br.com.calibra.app.casos.CasosOficina.SituacaoDoPagamento;
 import br.com.calibra.app.casos.CasosProjeto;
@@ -69,8 +70,8 @@ import br.com.calibra.relatorios.TextoWhatsAppOs;
 
 /**
  * Tela da OS (SPEC 8.9): o cabeçalho com o cliente, o veículo, o status e os passos do serviço (começar, aguardar
- * peças, retomar, pronto, entregar, cancelar) e as abas Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e
- * Histórico. Depois de cada ação, tudo é lido de novo do banco.
+ * peças, retomar, pronto, entregar, cancelar) e as abas Entrada, Orçamento, Preparação, Execução (Fase 3B), Entrega e
+ * pagamento, Anexos e Histórico. Depois de cada ação, tudo é lido de novo do banco.
  */
 public class OsController {
 
@@ -116,6 +117,7 @@ public class OsController {
     @FXML private EntradaFormController formEntradaController;
     @FXML private Button botaoSalvarEntrada;
     // ---------- Preparação ----------
+    @FXML private Tab abaPreparacao;
     @FXML private Label resumoPreparacao;
     @FXML private HBox caixaComProjeto;
     @FXML private VBox caixaSemProjeto;
@@ -147,6 +149,7 @@ public class OsController {
     private Recursos recursos;
     private CaixaMecanico caixaMecanico;
     private OrcamentoController orcamento;
+    private ExecucaoController execucao;
     private long osId;
     private OsAberta aberta;
 
@@ -190,6 +193,7 @@ public class OsController {
         atualizar();
         preencherFormularios();
         montarOrcamento();
+        montarExecucao();
     }
 
     /** A aba Orçamento, logo depois da Entrada: o mesmo editor do projeto, com o orçamento da OS. */
@@ -215,6 +219,28 @@ public class OsController {
     }
 
     /**
+     * A aba Execução (Fase 3B), depois da Preparação: os checklists dos serviços. "Quem está marcando" já vem com o
+     * mecânico da OS, se ele estiver ativo.
+     */
+    private void montarExecucao() {
+        FXMLLoader carregador = new FXMLLoader(OsController.class.getResource("execucao.fxml"));
+        Parent tela;
+        try {
+            tela = carregador.load();
+        } catch (IOException erro) {
+            throw new UncheckedIOException("Tela do app não abriu: execucao.fxml", erro);
+        }
+        Tab aba = new Tab("Execução", tela);
+        aba.setId("abaExecucao");
+        abas.getTabs().add(abas.getTabs().indexOf(abaPreparacao) + 1, aba);
+        execucao = carregador.getController();
+        MecanicoSalvo mecanicoDaOs = aberta.mecanico();
+        execucao.iniciar(recursos.oficina(), osId, this::executarComMensagem,
+                mecanicoDaOs != null && mecanicoDaOs.ativo() ? mecanicoDaOs.id() : null);
+        execucao.atualizar(aberta.os());
+    }
+
+    /**
      * Lê a OS de novo e mostra tudo. Os campos da abertura e da entrada ficam como estão (podem estar sendo editados);
      * eles voltam ao gravado depois de salvar.
      */
@@ -229,6 +255,9 @@ public class OsController {
         historico.getItems().setAll(mudancas.reversed());
         if (orcamento != null) {
             orcamento.atualizar();
+        }
+        if (execucao != null) {
+            execucao.atualizar(aberta.os());
         }
     }
 
@@ -303,7 +332,9 @@ public class OsController {
 
     @FXML
     void comecar() {
-        passo(StatusOs.EM_EXECUCAO, "", "Serviço começado.");
+        if (passo(StatusOs.EM_EXECUCAO, "", "Serviço começado.") && execucao.temChecklist()) {
+            mensagem("Os checklists dos serviços estão na aba Execução.", "ok");
+        }
     }
 
     @FXML
@@ -321,13 +352,34 @@ public class OsController {
         passo(StatusOs.EM_EXECUCAO, "", "Serviço retomado.");
     }
 
+    /**
+     * O serviço pronto. Com item obrigatório do checklist pendente, a janela mostra o que falta e pede a justificativa
+     * (SPEC 6.5, Fase 3B); com marcações não salvas na aba Execução, avisa antes.
+     */
     @FXML
     void pronta() {
-        passo(StatusOs.PRONTA, "", "Serviço pronto. Avise o cliente que o veículo pode ser retirado.");
+        if (!tudoSalvo(Momento.PRONTO)) {
+            return;
+        }
+        List<Pendencia> pendencias = recursos.oficina().pendencias(osId);
+        if (pendencias.isEmpty()) {
+            passo(StatusOs.PRONTA, "", "Serviço pronto. Avise o cliente que o veículo pode ser retirado.");
+        } else {
+            JanelasOs.prontaComPendencias(janela(), pendencias.stream().map(Pendencia::texto).toList())
+                    .ifPresent(this::pronta);
+        }
     }
 
-    private void passo(StatusOs destino, String observacao, String sucesso) {
-        executar(() -> recursos.oficina().mudarStatus(osId, destino, observacao), sucesso);
+    /** O "pronto" com itens obrigatórios pendentes: a justificativa fica no histórico da OS, com a data e a hora. */
+    void pronta(String justificativa) {
+        if (tudoSalvo(Momento.PRONTO)) {
+            passo(StatusOs.PRONTA, justificativa, "Serviço pronto; o que faltou no checklist e a justificativa ficaram "
+                    + "no histórico da OS. Avise o cliente que o veículo pode ser retirado.");
+        }
+    }
+
+    private boolean passo(StatusOs destino, String observacao, String sucesso) {
+        return executar(() -> recursos.oficina().mudarStatus(osId, destino, observacao), sucesso);
     }
 
     @FXML
@@ -680,34 +732,52 @@ public class OsController {
                 recursos.padroes().get().textoVia());
     }
 
-    /** Quando a aba Entrada precisa estar salva, com o começo e o fim do aviso. */
+    /**
+     * Quando a aba Entrada e as marcações do checklist (aba Execução) precisam estar salvas, com o começo e o fim do
+     * aviso.
+     */
     private enum Momento {
-        DOCUMENTO("Antes do documento", "O documento usa o que está gravado."),
-        ENTREGA("Antes de entregar", "Depois da entrega, a OS não muda mais."),
-        CANCELAMENTO("Antes de cancelar", "Depois do cancelamento, a OS não muda mais.");
+        DOCUMENTO("Antes do documento", "O documento usa o que está gravado.", true, false),
+        PRONTO("Antes do pronto", "A trava do pronto confere as marcações gravadas.", false, true),
+        ENTREGA("Antes de entregar", "Depois da entrega, a OS não muda mais.", true, true),
+        CANCELAMENTO("Antes de cancelar", "Depois do cancelamento, a OS não muda mais.", true, true);
 
         private final String antes;
         private final String porque;
+        private final boolean entrada;
+        private final boolean marcacoes;
 
-        Momento(String antes, String porque) {
+        Momento(String antes, String porque, boolean entrada, boolean marcacoes) {
             this.antes = antes;
             this.porque = porque;
+            this.entrada = entrada;
+            this.marcacoes = marcacoes;
         }
     }
 
     /**
      * Os documentos usam o que está gravado: com a abertura ou a entrada mudadas na tela e não salvas, a via sairia
-     * sem elas. Na entrega e no cancelamento, a mudança se perderia (depois, a OS não muda mais). Nesses casos, avisa
-     * o que salvar e não continua.
+     * sem elas. Na entrega e no cancelamento, a mudança se perderia (depois, a OS não muda mais); no pronto, a trava
+     * olha as marcações gravadas. Nesses casos, avisa o que salvar e não continua.
      */
     private boolean tudoSalvo(Momento momento) {
-        List<String> pendentes = pendentes();
-        if (pendentes.isEmpty()) {
-            return true;
+        List<String> pendentes = momento.entrada ? pendentes() : List.of();
+        if (!pendentes.isEmpty()) {
+            mostrarErros(List.of(momento.antes + ", salve o que mudou na aba Entrada: " + String.join(" e ", pendentes)
+                    + ". " + momento.porque));
+            return false;
         }
-        mostrarErros(List.of(momento.antes + ", salve o que mudou na aba Entrada: " + String.join(" e ", pendentes)
-                + ". " + momento.porque));
-        return false;
+        if (momento.marcacoes && marcacoesPendentes()) {
+            mostrarErros(List.of(momento.antes + ", salve as marcações do checklist (aba Execução, Salvar "
+                    + "marcações). " + momento.porque));
+            return false;
+        }
+        return true;
+    }
+
+    /** Marcações do checklist mudadas na aba Execução e não salvas (com a OS finalizada, não há o que salvar). */
+    boolean marcacoesPendentes() {
+        return execucao != null && !aberta.os().status().finalizada() && execucao.mudou();
     }
 
     /**
@@ -737,6 +807,11 @@ public class OsController {
     /** A aba Orçamento. */
     OrcamentoController orcamento() {
         return orcamento;
+    }
+
+    /** A aba Execução. */
+    ExecucaoController execucao() {
+        return execucao;
     }
 
     /** O menu Documentos do cabeçalho. */
@@ -771,6 +846,23 @@ public class OsController {
             acao.run();
             return List.of();
         }, sucesso);
+    }
+
+    /** Para as abas: faz a ação, lê tudo de novo e mostra a mensagem que ela devolveu; com erro, a mensagem do erro. */
+    private boolean executarComMensagem(Supplier<String> acao) {
+        String sucesso;
+        try {
+            sucesso = acao.get();
+        } catch (EntradaInvalidaException erro) {
+            mostrarErros(erro.erros());
+            return false;
+        } catch (ErroDados erro) {
+            mostrarErros(List.of(erro.getMessage()));
+            return false;
+        }
+        atualizar();
+        mostrarOk(sucesso);
+        return true;
     }
 
     /** Como {@link #executar}, para a ação que devolve avisos (gravou, mas vale conferir). */

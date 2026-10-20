@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -60,5 +61,24 @@ class ChecklistTest {
                 .pendente(), "não se aplica sem justificativa ainda trava");
         assertFalse(ItemDoChecklist.copia(new ChecklistModelo.Item("Fotos", false, false)).pendente(),
                 "item que não é obrigatório não trava");
+    }
+
+    /** O resumo da aba Execução e do comprovante: feitos de quantos, os que não se aplicam e os que faltam. */
+    @Test
+    void resumoDoChecklist() {
+        ItemDoChecklist feito = item(SituacaoItem.FEITO, "");
+        ItemDoChecklist naoSeAplica = item(SituacaoItem.NAO_SE_APLICA, "Sem rádio no carro.");
+        ItemDoChecklist pendente = item(SituacaoItem.PENDENTE, "");
+        assertEquals("9 de 9 itens feitos", ResumoChecklist.de(Collections.nCopies(9, feito)).texto());
+        assertEquals("5 de 6 itens feitos, 1 não se aplica",
+                ResumoChecklist.de(List.of(feito, feito, feito, naoSeAplica, feito, feito)).texto());
+        ResumoChecklist misturado = ResumoChecklist.de(List.of(feito, pendente, naoSeAplica, naoSeAplica, pendente));
+        assertEquals(new ResumoChecklist(5, 1, 2, 2), misturado);
+        assertEquals("1 de 5 itens feitos, 2 não se aplicam, 2 pendentes", misturado.texto());
+        assertEquals("0 de 1 item feito, 1 pendente", ResumoChecklist.de(List.of(pendente)).texto());
+    }
+
+    private static ItemDoChecklist item(SituacaoItem situacao, String justificativa) {
+        return new ItemDoChecklist("Item", true, false, new Marcacao(situacao, "", justificativa));
     }
 }

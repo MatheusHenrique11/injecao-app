@@ -20,6 +20,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
@@ -38,8 +39,9 @@ import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 
 /**
- * As janelas da tela da OS: o motivo (da espera por peças, do cancelamento), a entrega, o recebimento e os dados do
- * anexo. Cada uma confere a digitação antes de fechar; as regras ficam com o caso de uso.
+ * As janelas da tela da OS: o motivo (da espera por peças, do cancelamento), o "pronto" com itens do checklist
+ * pendentes, a entrega, o recebimento e os dados do anexo. Cada uma confere a digitação antes de fechar; as regras
+ * ficam com o caso de uso.
  */
 final class JanelasOs {
 
@@ -76,6 +78,51 @@ final class JanelasOs {
             }
         });
         dialogo.setResultConverter(botao -> botao == gravar ? texto.getText().strip() : null);
+        Platform.runLater(texto::requestFocus);
+        return dialogo.showAndWait();
+    }
+
+    /**
+     * O "pronto" com itens obrigatórios do checklist pendentes (SPEC 6.5, Fase 3B): mostra o que falta e pede a
+     * justificativa, que vai para o histórico da OS com a data e a hora.
+     *
+     * @param pendencias "serviço: item", na ordem dos checklists
+     * @return a justificativa; vazio se a pessoa desistiu
+     */
+    static Optional<String> prontaComPendencias(Window dono, List<String> pendencias) {
+        Dialog<String> dialogo = dialogo(dono, "Serviço pronto com itens pendentes", "Estes itens obrigatórios do "
+                + "checklist ainda não estão feitos nem marcados \"não se aplica\":");
+        Label lista = new Label(pendencias.stream().map(pendencia -> "• " + pendencia)
+                .collect(Collectors.joining("\n")));
+        lista.setId("pendencias");
+        lista.setWrapText(true);
+        ScrollPane rolagem = new ScrollPane(lista);
+        rolagem.setFitToWidth(true);
+        rolagem.setPrefViewportHeight(Math.min(200, 22.0 * pendencias.size() + 8));
+        Label pergunta = new Label("Para deixar a OS pronta assim, escreva a justificativa. Ela fica no histórico da "
+                + "OS, com a data e a hora, junto com a lista acima.");
+        pergunta.setWrapText(true);
+        pergunta.setMinHeight(Region.USE_PREF_SIZE);
+        TextArea texto = new TextArea();
+        texto.setId("justificativa");
+        texto.setPrefRowCount(3);
+        texto.setWrapText(true);
+        texto.setPromptText("ex.: o cliente vai testar o volume na retirada");
+        Label erro = erro();
+        texto.textProperty().addListener((obs, antes, depois) -> erro.setText(""));
+        VBox conteudo = new VBox(8.0, rolagem, pergunta, texto, erro);
+        conteudo.setPrefWidth(620);
+        dialogo.getDialogPane().setContent(conteudo);
+        ButtonType pronta = new ButtonType("Deixar pronta", ButtonBar.ButtonData.OK_DONE);
+        dialogo.getDialogPane().getButtonTypes().setAll(pronta, new ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE));
+        dialogo.getDialogPane().lookupButton(pronta).addEventFilter(ActionEvent.ACTION, evento -> {
+            if (texto.getText().isBlank()) {
+                erro.setText("Escreva a justificativa.");
+                evento.consume();
+            }
+        });
+        dialogo.setResultConverter(botao -> botao == pronta ? texto.getText().strip() : null);
         Platform.runLater(texto::requestFocus);
         return dialogo.showAndWait();
     }

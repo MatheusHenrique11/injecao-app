@@ -216,3 +216,26 @@
     -fx-background-color: #fff3cd;
     -fx-font-weight: bold;
 }
+
+/* Aba Execução da OS (Fase 3B): um quadro por checklist, uma linha por item e as marcas "obrigatório" e
+   "a verificar". */
+.checklist {
+    -fx-background-color: white;
+    -fx-background-radius: 6px;
+    -fx-border-color: #cfd8dc;
+    -fx-border-radius: 6px;
+    -fx-padding: 10px 14px;
+}
+
+.item-checklist {
+    -fx-padding: 6px 0;
+    -fx-border-color: #eceff1 transparent transparent transparent;
+}
+
+.marca {
+    -fx-font-size: 12px;
+    -fx-padding: 1px 6px;
+    -fx-background-color: #eceff1;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #37474f;
+}

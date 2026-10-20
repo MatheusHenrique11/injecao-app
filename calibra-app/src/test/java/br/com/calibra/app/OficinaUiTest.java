@@ -93,6 +93,7 @@ import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.SituacaoItem;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.oficina.Vistoria;
@@ -106,6 +107,7 @@ import br.com.calibra.core.orcamento.MeioAprovacao;
 import br.com.calibra.core.orcamento.Orcamento;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
 import br.com.calibra.core.orcamento.ServicoPadrao;
+import br.com.calibra.core.orcamento.ServicosSugeridos;
 import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
@@ -823,6 +825,120 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.5, bloco 3B.3): a aba Execução. Antes de começar, ela explica que o checklist vem com o serviço;
+     * ao começar, aparece a cópia do checklist Som, com o mecânico da OS em "Quem está marcando". "Não se aplica" sem
+     * justificativa não grava; o "pronto" com marcação não salva pede para salvar antes; com item obrigatório pendente,
+     * a janela mostra o que falta e só deixa pronta com a justificativa, que vai para o histórico. Entregue, a aba fica
+     * só para ver.
+     */
+    @Test
+    void checklistNaExecucao() throws Throwable {
+        AtomicReference<Throwable> falha = new AtomicReference<>();
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::aprovadaComChecklist);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                OsController os = principal.osAberta();
+                TabPane abas = achar(cena, "abas");
+                assertEquals(abas.getTabs().indexOf(aba(abas, "abaPreparacao")) + 1,
+                        abas.getTabs().indexOf(aba(abas, "abaExecucao")), "a Execução vem depois da Preparação");
+                ExecucaoController execucao = os.execucao();
+                assertTrue(execucao.situacao().getText().startsWith("Os checklists aparecem quando o serviço começar"),
+                        execucao.situacao().getText());
+                os.comecar();
+                assertTrue(os.mensagens().contains("Os checklists dos serviços estão na aba Execução."),
+                        os.mensagens()::toString);
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                assertEquals(List.of(9), execucao.itensPorChecklist());
+                assertEquals("Carlos (fictício)", execucao.quem().getValue().nome(), "o mecânico da OS");
+
+                for (int item = 0; item < 7; item++) {
+                    execucao.marcar(0, item, SituacaoItem.FEITO, item == 0 ? "12,6 V" : "", "");
+                }
+                execucao.marcar(0, 7, SituacaoItem.NAO_SE_APLICA, "", "");
+                execucao.salvar();
+                assertEquals(List.of("• Teste de volume e balanço com o cliente (Instalação de som teste): escreva "
+                        + "por que o item não se aplica."), os.mensagens());
+                assertTrue(oficina.checklists(ana).getFirst().checklist().itens().stream()
+                        .allMatch(item -> item.item().pendente()), "nada foi gravado");
+
+                execucao.marcar(0, 7, SituacaoItem.NAO_SE_APLICA, "", "O cliente testa na retirada.");
+                os.pronta();
+                assertEquals(List.of("• Antes do pronto, salve as marcações do checklist (aba Execução, Salvar "
+                        + "marcações). A trava do pronto confere as marcações gravadas."), os.mensagens());
+                execucao.salvar();
+                assertEquals(List.of("8 itens do checklist marcados."), os.mensagens());
+                assertTrue(contemTexto(cena.getRoot(), "Marcado por Carlos (fictício) em "), "quem marcou e quando");
+                assertTrue(contemTexto(cena.getRoot(), "7 de 9 itens feitos, 1 não se aplica, 1 pendente · 1 "
+                        + "obrigatório pendente"), "o resumo do quadro");
+                salvar(cena, "oficina-25-aba-execucao.png");
+            });
+
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoPronta").fire(), falha);
+            Stage janela = TelaDeTeste.esperarJanela("Serviço pronto com itens pendentes", falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                DialogPane painel = TelaDeTeste.painel(janela);
+                assertEquals("• Instalação de som teste: Fotos de antes e depois",
+                        ((Label) painel.lookup("#pendencias")).getText());
+                TelaDeTeste.apertar(painel, "Deixar pronta");
+                assertTrue(janela.isShowing(), "sem a justificativa, a janela fica aberta");
+                ((TextArea) painel.lookup("#justificativa")).setText("O cliente manda as fotos do som instalado.");
+                salvar(janela.getScene(), "oficina-26-janela-pronta-com-pendencias.png");
+                TelaDeTeste.apertar(painel, "Deixar pronta");
+            });
+            TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Serviço pronto com itens pendentes") == null
+                    && "Pronta".equals(texto("status")), "o pronto gravar");
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertEquals("Pronta com itens obrigatórios do checklist pendentes: Instalação de som teste: Fotos de "
+                        + "antes e depois. Justificativa: O cliente manda as fotos do som instalado.",
+                        oficina.historico(ana).getLast().observacao(), "no histórico, com data e hora");
+                oficina.entregar(ana, new Entrega(LocalDateTime.now().withNano(0), 120_100.0, new Garantia(90)));
+                OsController os = principal.osAberta();
+                os.atualizar();
+                ExecucaoController execucao = os.execucao();
+                assertEquals("OS entregue: o checklist fica só para ver.", execucao.situacao().getText());
+                assertEquals("12,6 V", execucao.observacao(0, 0).getText());
+                assertTrue(execucao.observacao(0, 0).isDisabled(), "entregue, nada muda");
+                assertFalse(execucao.botaoSalvar().getParent().isVisible(), "sem \"Salvar marcações\"");
+                salvar(cena, "oficina-27-aba-execucao-entregue.png");
+            });
+            assertNull(falha.get(), () -> "erro numa janela: " + falha.get());
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Ana, com o orçamento aprovado e o serviço ainda não começado: a "Instalação de som teste" do catálogo, com o
+     * checklist Som que vem com o app, e o mecânico Carlos na OS.
+     */
+    private void aprovadaComChecklist() {
+        CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+        ServicoPadrao som = new ServicoPadrao("Instalação de som teste", 4.0, "Tabela da oficina", null,
+                CategoriaServico.SOM, "", true, null,
+                catalogo.checklistsDasSementes().get(ServicosSugeridos.CHECKLIST_SOM));
+        ItemCatalogo<ServicoPadrao> servico = catalogo.criar(TipoCatalogo.SERVICO, som, new InfoCatalogo(som.nome(),
+                "Tabela da oficina", null, false, null, "Dados fictícios."));
+        long carlos = oficina.novoMecanico("Carlos (fictício)");
+        LocalDateTime agora = LocalDateTime.now().withNano(0);
+        NovaOs nova = nova("Ana Costa (fictícia)", "ABC1D23", "Instalação de som", null, agora.minusHours(3));
+        ana = oficina.abrir(new NovaOs(nova.cliente(), nova.veiculo(), nova.servicoPedido(), carlos,
+                nova.previsaoEntrega(), nova.observacoes(), nova.entrada())).osId();
+        CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()));
+        OrcamentoSalvo orcamento = orcamentos.criarNaOs(ana, new Orcamento(List.of(ItemOrcamento.doServico(
+                som.textoNoOrcamento(), som.horas(), null, Dinheiro.ler("180,00"), servico.id(), servico.versao())),
+                Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(orcamento.id());
+        orcamentos.aprovar(orcamento.id(), agora.minusHours(2), MeioAprovacao.WHATSAPP, "Pode fazer.");
     }
 
     /**
