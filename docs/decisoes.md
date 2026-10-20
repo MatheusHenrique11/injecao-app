@@ -718,3 +718,40 @@ Plano aprovado em 19/10/2026, em 5 passos.
     - **na tela:** a caixa "do cliente" em cada linha de peça. Marcada, o valor vai a 0,00 e trava; desmarcada, volta o valor de antes;
     - **nos documentos:** no PDF do orçamento e no comprovante de entrega, a linha sai com "(fornecido pelo cliente)" na descrição e R$ 0,00; no texto de WhatsApp, sem conta: "• ECU … — 1 un, fornecido pelo cliente".
 237. **"Trazer as peças do cálculo de novo"** (orçamento de preparação) passa a manter as linhas do catálogo de Itens (cabos, relés...), que não saem do cálculo, além dos serviços. As peças digitadas continuam sendo trocadas pelas do cálculo, como antes.
+
+### Bloco 3B.3: checklists, aba Execução e a trava do pronto (19/10/2026)
+
+Plano aprovado em 19/10/2026, em 6 passos. Duas respostas do dono no plano: os modelos ficam nos Catálogos, e os itens dos 7 modelos iniciais começam todos obrigatórios.
+
+238. **Os modelos de checklist ficam em Catálogos › Checklists** (resposta do dono), e não em Configurações › Checklists, como a SPEC 6.6.2 dizia:
+    - **por quê:** nos Catálogos, o modelo ganha de graça o que todo item tem: lista, busca, versões (mudar o modelo grava a v2, e as cópias já feitas nas OS não mudam), duplicar e arquivar;
+    - **o modelo:** o nome e os itens, na ordem; cada item tem o texto e as marcas "obrigatório" e "a verificar". Pelo menos um item, sem texto repetido (sem diferença de maiúscula); o item sem texto fica de fora. Sem preço. O editor dos itens tem "+ Item" (o item novo entra obrigatório e sem o "a verificar": quem escreve é o dono), subir, descer e remover;
+    - **no serviço:** o campo "Checklist" é a escolha de um modelo ativo, ou "(nenhum)". O já escolhido aparece mesmo arquivado, marcado. O formulário do catálogo ganhou esse tipo de campo (a referência a um item de outro catálogo, gravada pelo id); nas versões do serviço aparece o nome do modelo como está no catálogo. Gravar um serviço com um checklist que não existe é recusado; o arquivado continua valendo para quem já apontava para ele.
+239. **Os 7 modelos iniciais** (migração V9, arquivo `sementes/checklists.json`):
+    - **os textos são os da SPEC 6.6.2,** na ordem dela, todos "a verificar" (o item e o modelo) e, como o dono escolheu, todos obrigatórios. Ao conferir, ele desmarca o que for opcional;
+    - **duas adaptações:** onde a SPEC diz "campo para anotar" (e "anotar a fonte"), o texto pede "anote na observação", porque todo item da OS já tem a observação; o "(a verificar)" de um item virou a marca "a verificar" dele. O resto ficou igual, inclusive "Primeira partida conforme o checklist da seção 7.5", que aponta para a SPEC: o checklist de primeira partida entra na fase 4;
+    - **a chave de cada modelo** (ex.: `checklist:som`) é a que os serviços sugeridos usam: o sugerido entra com o modelo da categoria dele (na injeção programável, só a confecção de chicote e a instalação; a revisão do chicote e o diagnóstico de injeção ficam sem, para o dono escolher). O modelo arquivado não é usado pelos sugeridos.
+240. **A cópia (instantâneo) na OS:**
+    - **quando:** ao entrar em execução. Voltar a "em execução" (depois de aguardar peças ou do pronto) só cria as cópias que faltam;
+    - **de quê:** de cada serviço do catálogo da última revisão aprovada, uma cópia por serviço. A linha digitada não tem checklist;
+    - **qual modelo:** o que o serviço tem no catálogo na hora em que a OS entra em execução, na versão de agora do modelo (o modelo arquivado também é copiado: o serviço ainda aponta para ele). É diferente da garantia (decisão 231), que vale como estava no orçamento: a garantia é um compromisso com o cliente; o checklist é o procedimento da oficina na hora do serviço. Assim, ligar um checklist a um serviço vale para a próxima OS que começar, mesmo com o orçamento aprovado antes;
+    - **o que a cópia guarda:** o serviço e o nome dele, o modelo, a versão e o nome dele, e cada item com o texto, "obrigatório" e "a verificar". O banco recusa mudar esse texto e apagar a cópia (teste nº 2 da fase).
+241. **Revisão aprovada no meio do serviço:**
+    - com a OS em execução, aguardando peças ou pronta, aprovar uma revisão nova dá a cópia aos serviços novos na hora;
+    - a cópia do serviço que saiu do orçamento fica guardada e aparece na aba Execução, marcada; ela não trava o pronto e não sai no comprovante.
+242. **A marcação** (aba Execução):
+    - **cada item:** pendente, feito ou não se aplica; a observação; e, no não se aplica, a justificativa, obrigatória (teste nº 4). O banco também recusa o "não se aplica" sem justificativa;
+    - **quem e quando:** "Quem está marcando" vem com o mecânico da OS, se ele estiver ativo; pode ficar vazio (oficina sem mecânico cadastrado), e aí grava só a hora. "Salvar marcações" grava só os itens que mudaram: o que já estava assim fica com quem marcou antes. Com um erro, nada é gravado;
+    - **desfazer:** dá para voltar um item a pendente até a entrega. Fica a última marcação de cada item, com quem e quando (sem o histórico de cada mudança);
+    - **depois da entrega ou do cancelamento,** a aba fica só para ver, e o banco recusa mudar a marcação e criar cópia (teste nº 6). O pagamento e os anexos continuam.
+243. **A trava do pronto:**
+    - **o que trava:** item obrigatório pendente (ou "não se aplica" sem justificativa) das cópias dos serviços que estão na última revisão aprovada;
+    - **na tela:** "Serviço pronto" abre a janela com a lista do que falta ("serviço: item") e o campo da justificativa; sem ela, a janela não fecha. O caso de uso também recusa o pronto sem justificativa, com a lista;
+    - **onde fica:** no histórico de status da OS, na linha do pronto, com a data e a hora: "Pronta com itens obrigatórios do checklist pendentes: … Justificativa: …" (o mesmo padrão da justificativa do semáforo vermelho). Sem pendência, o pronto segue como antes;
+    - **salve antes:** com marcação mudada e não salva, o pronto, a entrega e o cancelamento pedem para salvar antes, como a aba Entrada faz na entrega e no cancelamento. A via do cliente não usa o checklist e não é segurada por ele.
+244. **No comprovante de entrega:** a linha "Checklist", na seção "Serviço feito", com o resumo de cada serviço ("9 de 9 itens feitos", "5 de 6 itens feitos, 1 não se aplica", "3 de 9 itens feitos, 6 pendentes"). O pendente aparece como pendente. Uma linha só, como a da garantia própria (decisão 232): a OS de três serviços continua numa página, com a assinatura. O resumo fica no núcleo (`ResumoChecklist`), e a aba Execução mostra o mesmo texto em cada quadro.
+245. **O banco** (migrações V8 e V9; banco na versão 9):
+    - **V8 (SQL):** as tabelas `checklist_os` (uma cópia por serviço na OS) e `checklist_os_item` (os itens, com a marcação, o mecânico e a hora) e os gatilhos: o texto da cópia não muda, nada se apaga, e a OS entregue ou cancelada não ganha cópia nem muda marcação;
+    - **V9 (Java):** os 7 modelos, lidos do JSON, como a V4 faz com o catálogo. O arquivo da V4 não mudou (a impressão digital dela é a mesma), e a da V9 ficou fixa num teste;
+    - **ordem dos passos:** no plano, o tipo "Checklist" do catálogo entrava no passo do banco. Um teste do app exige que todo tipo de catálogo tenha formulário, então o tipo e os 7 modelos entraram no passo da tela, junto com o formulário; o passo do banco ficou só com as tabelas da OS;
+    - **as duas só acrescentam:** nada do que existe muda. O teste sobe um banco na V7, com uma OS, até a V9; no 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.

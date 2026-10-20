@@ -876,7 +876,7 @@ class OficinaUiTest {
                 assertTrue(contemTexto(cena.getRoot(), "Marcado por Carlos (fictício) em "), "quem marcou e quando");
                 assertTrue(contemTexto(cena.getRoot(), "7 de 9 itens feitos, 1 não se aplica, 1 pendente · 1 "
                         + "obrigatório pendente"), "o resumo do quadro");
-                salvar(cena, "oficina-25-aba-execucao.png");
+                salvar(cena, "oficina-26-aba-execucao.png");
             });
 
             TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoPronta").fire(), falha);
@@ -888,7 +888,7 @@ class OficinaUiTest {
                 TelaDeTeste.apertar(painel, "Deixar pronta");
                 assertTrue(janela.isShowing(), "sem a justificativa, a janela fica aberta");
                 ((TextArea) painel.lookup("#justificativa")).setText("O cliente manda as fotos do som instalado.");
-                salvar(janela.getScene(), "oficina-26-janela-pronta-com-pendencias.png");
+                salvar(janela.getScene(), "oficina-27-janela-pronta-com-pendencias.png");
                 TelaDeTeste.apertar(painel, "Deixar pronta");
             });
             TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Serviço pronto com itens pendentes") == null
@@ -906,7 +906,7 @@ class OficinaUiTest {
                 assertEquals("12,6 V", execucao.observacao(0, 0).getText());
                 assertTrue(execucao.observacao(0, 0).isDisabled(), "entregue, nada muda");
                 assertFalse(execucao.botaoSalvar().getParent().isVisible(), "sem \"Salvar marcações\"");
-                salvar(cena, "oficina-27-aba-execucao-entregue.png");
+                salvar(cena, "oficina-28-aba-execucao-entregue.png");
 
                 // O comprovante pelo mesmo caminho do menu Documentos (em target/, para conferir).
                 Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
