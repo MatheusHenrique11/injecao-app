@@ -1,0 +1,14 @@
+{
+  "injecao": "FuelTech FT450",
+  "injecaoItemId": 31,
+  "motorVersaoId": 7,
+  "versaoChicote": "v1",
+  "fontePinout": "Manual da FT450, pinagem do conector A",
+  "pontos": [
+    { "funcao": "Bico do cilindro 1", "conector": "A", "pinoDaInjecao": "12", "observacao": "", "aVerificar": false },
+    { "funcao": "TPS", "conector": "B", "pinoDaInjecao": "4", "observacao": "sinal de 0 a 5 V", "aVerificar": true }
+  ],
+  "materiais": "Cabo 1 mm², conectores Deutsch, conduíte de 10 mm",
+  "observacoes": "Rota pela caixa de ar.",
+  "situacao": "TESTADO"
+}
