@@ -205,6 +205,10 @@ public final class FormularioCatalogo<T> {
                 List<String> linhas = valores.tabela(campo.chave()).stream().map(FormaKit::exibir).toList();
                 yield linhas.isEmpty() ? VAZIO : String.join("\n", linhas);
             }
+            case ITENS -> {
+                String itens = FormaChecklist.exibir(valores.tabela(campo.chave()));
+                yield itens.isEmpty() ? VAZIO : itens;
+            }
             default -> texto.isEmpty() ? VAZIO : texto;
         };
     }

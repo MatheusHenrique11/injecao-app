@@ -20,6 +20,7 @@ import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
+import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.Kit;
@@ -337,6 +338,42 @@ class FormulariosCatalogoTest {
                 .findFirst().orElseThrow();
         assertEquals(List.of("2 × Relé teste 12 V 40 A (item)\n1 × Limpeza de bicos teste (serviço)"),
                 linhas.valores());
+    }
+
+    /**
+     * Checklist (Fase 3B, SPEC 6.6.2): os itens na ordem, cada um com "obrigatório" e "a verificar"; o item sem texto
+     * fica de fora, o repetido é recusado, e as versões mostram cada item numerado, com as marcas.
+     */
+    @Test
+    void checklistComItensNaOrdem() {
+        FormularioCatalogo<ChecklistModelo> checklists = FormasCatalogo.de(TipoCatalogo.CHECKLIST);
+        assertFalse(checklists.temPreco());
+        Exemplo<ChecklistModelo> exemplo = ExemplosCatalogo.checklist();
+        assertEquals(List.of("Itens", "Obrigatórios"), checklists.colunas());
+        assertEquals(List.of("3", "2"), checklists.resumo(exemplo.dados()));
+        assertEquals("Tabela da oficina", checklists.novo().texto(FormularioCatalogo.FONTE));
+
+        ValoresForm comVazio = checklists.novo().texto(FormularioCatalogo.NOME, "Vidro").tabela(FormaChecklist.ITENS,
+                List.of(FormaChecklist.linha(" Testar o motor ", true, false), FormaChecklist.linha("  ", true, false),
+                        FormaChecklist.linha("Teste final com o cliente", false, true)));
+        Leitura<ChecklistModelo> lido = checklists.ler(comVazio);
+        assertEquals(List.of(), lido.erros());
+        assertEquals(List.of(new ChecklistModelo.Item("Testar o motor", true, false),
+                new ChecklistModelo.Item("Teste final com o cliente", false, true)), lido.dados().itens(),
+                "o item sem texto fica de fora, e o texto fica sem espaços nas pontas");
+
+        assertEquals(List.of("O checklist precisa de pelo menos um item."),
+                checklists.ler(checklists.novo().texto(FormularioCatalogo.NOME, "Vazio")).erros());
+        assertEquals(List.of("Item 2 (testar o motor): já está no checklist."), checklists.ler(checklists.novo()
+                .texto(FormularioCatalogo.NOME, "Repetido").tabela(FormaChecklist.ITENS, List.of(
+                        FormaChecklist.linha("Testar o motor", true, false),
+                        FormaChecklist.linha("testar o motor", true, false)))).erros());
+
+        LinhaHistorico itens = checklists.historico(List.of(new VersaoCatalogo<>(1, 1, exemplo.dados(),
+                exemplo.info(), LocalDateTime.of(2026, 10, 19, 10, 0)))).stream()
+                .filter(l -> l.campo().equals("Itens")).findFirst().orElseThrow();
+        assertEquals(List.of("1. Medir a tensão da bateria (obrigatório, a verificar)\n"
+                + "2. Teste de ruído com o motor ligado (obrigatório)\n3. Fotos de antes e depois"), itens.valores());
     }
 
     /** Um serviço novo com o nome e a categoria preenchidos (o resto, cada teste preenche). */

@@ -8,9 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,11 +32,9 @@ import br.com.calibra.dados.Cadastros;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.OperacaoRecusadaException;
-import br.com.calibra.dados.Sql;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
-import br.com.calibra.dados.json.Json;
 
 /**
  * Os checklists da OS no banco (V8, bloco 3B.3): a cópia do modelo com os itens pendentes, a marcação com quem e
@@ -77,7 +72,8 @@ class ChecklistRepositorioTest {
                 new ServicoPadrao("Instalação de som completa", 4.0, FONTE, null, CategoriaServico.SOM, "", true, null,
                         null),
                 new InfoCatalogo("Instalação de som completa", FONTE, null, false, null, ""), null).id());
-        modelo = base.banco.transacao(ChecklistRepositorioTest::modeloNoCatalogo);
+        modelo = base.banco.transacao(c -> catalogo.inserir(c, TipoCatalogo.CHECKLIST, SOM,
+                new InfoCatalogo(SOM.nome(), FONTE, null, false, null, ""), null).id());
         carlos = base.banco.transacao(c -> new MecanicoRepositorio(base.relogio).inserir(c, "Carlos"));
     }
 
@@ -89,18 +85,6 @@ class ChecklistRepositorioTest {
             return new OrdemServicoRepositorio(b.relogio).inserir(c, new NumeroOs(2026, sequencial),
                     new DadosAbertura(cliente, veiculo, null, "Instalação de som", null, null, ""));
         });
-    }
-
-    /** O modelo no catálogo: para a cópia, basta o item existir (ela leva o texto, não lê o catálogo de novo). */
-    private static long modeloNoCatalogo(Connection c) throws SQLException {
-        try (PreparedStatement insercao = c.prepareStatement("INSERT INTO catalogo_item (tipo, versao_atual, nome, "
-                + "fonte, a_verificar, observacoes, dados_json, busca, criado_em, atualizado_em) "
-                + "VALUES ('CHECKLIST', 1, 'Som', ?, 1, '', ?, 'som', '2026-10-19T08:00:00', '2026-10-19T08:00:00')")) {
-            insercao.setString(1, FONTE);
-            insercao.setString(2, Json.escrever(SOM));
-            insercao.executeUpdate();
-        }
-        return Sql.ultimoId(c);
     }
 
     private long copiar(long osId) {

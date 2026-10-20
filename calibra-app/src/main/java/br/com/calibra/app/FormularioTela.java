@@ -68,7 +68,7 @@ final class FormularioTela {
             Label rotulo = new Label(campo.tipo() == CampoForm.Tipo.MARCAR ? "" : campo.rotulo());
             rotulo.setLabelFor(tela.controle());
             boolean alto = campo.tipo() == CampoForm.Tipo.TABELA || campo.tipo() == CampoForm.Tipo.LINHAS
-                    || campo.tipo() == CampoForm.Tipo.AREA;
+                    || campo.tipo() == CampoForm.Tipo.ITENS || campo.tipo() == CampoForm.Tipo.AREA;
             GridPane.setValignment(rotulo, alto ? VPos.TOP : VPos.CENTER);
             VBox celula = new VBox(2, tela.controle());
             if (!campo.dica().isEmpty()) {
@@ -208,6 +208,10 @@ final class FormularioTela {
                 EditorLinhasKit linhas = new EditorLinhasKit(Objects.requireNonNull(casos,
                         "o campo de linhas do catálogo precisa do catálogo"));
                 return new CampoTela(campo, () -> "", texto -> { }, linhas, nos, linhas);
+            }
+            case ITENS -> {
+                EditorItensChecklist itens = new EditorItensChecklist();
+                return new CampoTela(campo, () -> "", texto -> { }, itens, nos, itens);
             }
             case OCULTO -> {
                 // Só guarda o valor: não entra na grade (o controle fica fora da tela e desligado).

@@ -10,6 +10,7 @@ import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.CategoriaServico;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.ItemMaterial;
@@ -177,9 +178,18 @@ public final class ExemplosCatalogo {
                 DATA), new InfoCatalogo("Kit teste de relé", FONTE, DATA, false, null, "Dados fictícios."));
     }
 
+    /** Modelo de checklist (Fase 3B): dois itens obrigatórios, um deles "a verificar", e um opcional. Sem preço. */
+    public static Exemplo<ChecklistModelo> checklist() {
+        return new Exemplo<>(TipoCatalogo.CHECKLIST, new ChecklistModelo("Checklist teste de som", List.of(
+                new ChecklistModelo.Item("Medir a tensão da bateria", true, true),
+                new ChecklistModelo.Item("Teste de ruído com o motor ligado", true, false),
+                new ChecklistModelo.Item("Fotos de antes e depois", false, false)), FONTE, DATA),
+                new InfoCatalogo("Checklist teste de som", FONTE, DATA, false, null, "Dados fictícios."));
+    }
+
     /** Um exemplo de cada tipo, na ordem das abas (menos o kit, que aponta para o catálogo: {@link #kit}). */
     public static List<Exemplo<?>> umDeCada() {
         return List.of(bicoComTabela(), bomba(), injecao(), turbo(), combustivel(), intercooler(), sensor(), cambio(),
-                motor(), servicoPorHora(), item());
+                motor(), servicoPorHora(), item(), checklist());
     }
 }

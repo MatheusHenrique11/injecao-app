@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
@@ -49,9 +50,12 @@ public final class TipoCatalogo<T> {
             new TipoCatalogo<>("ITEM", "Itens", "item", ItemMaterial.class, null);
     /** Kits de itens e serviços; com serviço, é um pacote (Fase 3B, SPEC 6.6.4). */
     public static final TipoCatalogo<Kit> KIT = new TipoCatalogo<>("KIT", "Kits", "kit", Kit.class, null);
+    /** Modelos de checklist, que a OS copia para cada serviço ao entrar em execução (Fase 3B, SPEC 6.6.2). */
+    public static final TipoCatalogo<ChecklistModelo> CHECKLIST =
+            new TipoCatalogo<>("CHECKLIST", "Checklists", "checklist", ChecklistModelo.class, null);
 
-    private static final List<TipoCatalogo<?>> TODOS =
-            List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER, SENSOR, CAMBIO, TURBO, SERVICO, ITEM, KIT);
+    private static final List<TipoCatalogo<?>> TODOS = List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER,
+            SENSOR, CAMBIO, TURBO, SERVICO, ITEM, KIT, CHECKLIST);
 
     private final String codigo;
     private final String plural;

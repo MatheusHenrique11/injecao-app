@@ -41,6 +41,7 @@ import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.motor.ModeloMotor;
+import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.ItemMaterial;
 import br.com.calibra.core.orcamento.Kit;
 import br.com.calibra.core.orcamento.ServicoPadrao;
@@ -238,6 +239,78 @@ class CatalogosUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.2): a aba Checklists traz os 7 modelos da SPEC, sem preço. Editar o de som (tirar o
+     * "obrigatório" de um item, subir esse item e acrescentar outro) grava a v2, e as versões mostram os itens. O
+     * modelo novo começa com um item vazio para digitar e não grava sem item.
+     */
+    @Test
+    void checklists() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaCHECKLIST"));
+                PainelCatalogo<ChecklistModelo> checklists = achar(cena, "painelCHECKLIST");
+                TableView<ItemCatalogo<ChecklistModelo>> tabela = checklists.tabela();
+                assertEquals(7, tabela.getItems().size(), "os 7 modelos da SPEC 6.6.2");
+                assertTrue(tabela.getColumns().stream().noneMatch(c -> c.getText().equals("Preço de referência")),
+                        "o checklist não tem preço");
+                ItemCatalogo<ChecklistModelo> som = tabela.getItems().stream()
+                        .filter(i -> i.info().nome().equals("Som")).findFirst().orElseThrow();
+                int linhaDoSom = tabela.getItems().indexOf(som);
+                assertEquals("9", coluna(tabela, "Itens").get(linhaDoSom));
+                assertEquals("9", coluna(tabela, "Obrigatórios").get(linhaDoSom));
+                salvar(cena, "captura-catalogo-checklists.png");
+
+                JanelaItemCatalogo<ChecklistModelo> edicao = checklists.janelaEditar(som);
+                EditorItensChecklist itens = itensDoChecklist(edicao);
+                assertEquals(9, itens.quantos());
+                assertEquals("Fotos de antes e depois", itens.texto(8).getText());
+                itens.obrigatorio(8).setSelected(false);
+                itens.mover(8, -1);
+                itens.adicionar().setText("Conferir o fusível do módulo (fictício)");
+                fotografar(edicao.dialogo(), "captura-catalogo-checklist-edicao.png");
+                assertTrue(edicao.gravar(), edicao.erros()::toString);
+                assertEquals("Gravado: Som (v2).", edicao.mensagem());
+                ChecklistModelo gravado = casos.buscar(TipoCatalogo.CHECKLIST, som.id()).orElseThrow().dados();
+                assertEquals(10, gravado.itens().size());
+                assertEquals(new ChecklistModelo.Item("Fotos de antes e depois", false, true), gravado.itens().get(7),
+                        "subiu uma posição e deixou de ser obrigatório");
+                assertEquals(new ChecklistModelo.Item("Conferir o fusível do módulo (fictício)", true, false),
+                        gravado.itens().getLast(), "o item novo entra obrigatório e sem o \"a verificar\"");
+
+                Dialog<ButtonType> versoes = checklists.janelaVersoes(som);
+                TableView<LinhaHistorico> comparacao = achar(versoes.getDialogPane().getScene(), "versoes");
+                LinhaHistorico linha = comparacao.getItems().stream().filter(l -> l.campo().equals("Itens"))
+                        .findFirst().orElseThrow();
+                assertEquals(List.of(true, false), linha.mudou());
+                assertTrue(linha.valores().getFirst().contains("8. Fotos de antes e depois (a verificar)\n"),
+                        linha.valores().getFirst());
+                fotografar(versoes, "captura-catalogo-checklist-versoes.png");
+
+                JanelaItemCatalogo<ChecklistModelo> novo = checklists.janelaNovo();
+                EditorItensChecklist vazio = itensDoChecklist(novo);
+                assertEquals(1, vazio.quantos(), "o modelo novo começa com um item vazio para digitar");
+                assertTrue(vazio.obrigatorio(0).isSelected());
+                texto(novo.tela(), FormularioCatalogo.NOME).setText("Checklist teste (fictício)");
+                assertFalse(novo.gravar(), "sem item com texto, não grava");
+                assertTrue(novo.erros().contains("O checklist precisa de pelo menos um item."), novo.erros()::toString);
+                vazio.texto(0).setText("Teste final com o cliente");
+                assertTrue(novo.gravar(), novo.erros()::toString);
+                assertEquals("Cadastrado: Checklist teste (fictício) (v1).", novo.mensagem());
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    private static EditorItensChecklist itensDoChecklist(JanelaItemCatalogo<ChecklistModelo> janela) {
+        return (EditorItensChecklist) janela.tela().controle("itens");
     }
 
     private static EditorLinhasKit linhasDoKit(JanelaItemCatalogo<Kit> janela) {

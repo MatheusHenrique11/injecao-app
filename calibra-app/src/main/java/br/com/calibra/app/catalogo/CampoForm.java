@@ -18,10 +18,11 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
 
     /**
      * Como o campo é digitado. OCULTO não aparece no formulário: só leva o valor junto (ex.: o mapa do turbo). LINHAS é
-     * uma lista de itens e serviços do catálogo, cada um com a quantidade (as linhas do kit, Fase 3B).
+     * uma lista de itens e serviços do catálogo, cada um com a quantidade (as linhas do kit, Fase 3B). ITENS é a lista
+     * dos itens de um checklist, cada um com o texto e as marcas "obrigatório" e "a verificar" (Fase 3B).
      */
     public enum Tipo {
-        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA, OCULTO, LINHAS
+        TEXTO, NUMERO, INTEIRO, ESCOLHA, MARCAR, DATA, TABELA, AREA, OCULTO, LINHAS, ITENS
     }
 
     /** Uma opção de escolha: o valor gravado (nome da constante) e o rótulo da tela. */
@@ -97,6 +98,14 @@ public record CampoForm(String chave, String rotulo, Tipo tipo, boolean obrigato
      */
     public static CampoForm linhas(String chave, String rotulo) {
         return new CampoForm(chave, rotulo, Tipo.LINHAS, true);
+    }
+
+    /**
+     * Os itens de um checklist, na ordem em que se confere. Nos valores, cada item é uma lista de texto: o texto,
+     * "obrigatório" e "a verificar" ("true" ou "false").
+     */
+    public static CampoForm itens(String chave, String rotulo) {
+        return new CampoForm(chave, rotulo, Tipo.ITENS, true);
     }
 
     public CampoForm comDica(String texto) {

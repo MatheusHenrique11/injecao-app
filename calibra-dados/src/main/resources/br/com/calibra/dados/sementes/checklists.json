@@ -1,0 +1,108 @@
+{
+  "comentario": "Modelos de checklist que vêm com o Calibra (migração V9, Fase 3B, bloco 3B.3): os textos iniciais da SPEC 6.6.2, todos 'a verificar' até o dono conferir, e todos os itens obrigatórios (escolha do dono em 19/10/2026). Onde a SPEC diz 'campo para anotar', o item pede para anotar na observação, que todo item tem; o '(a verificar)' de um item da SPEC virou a marca 'a verificar' dele. A chave de cada modelo é a dos serviços sugeridos. Depois de publicado, este arquivo não muda: modelo novo entra numa migração nova.",
+  "itens": [
+    {
+      "chave": "checklist:som",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Som", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Som", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Medir a tensão da bateria antes de começar", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir a carga do alternador", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Cabo de alimentação com fusível próximo à bateria", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Proteção do cabo na passagem de chapa", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Aterramento em ponto de metal limpo e firme", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Bitola do cabo compatível com a potência (anote na observação a tabela usada)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de ruído com o motor ligado", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de volume e balanço com o cliente", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Fotos de antes e depois", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:vidro-e-trava",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Vidro e trava elétrica", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Vidro e trava elétrica", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Testar motor e botoeira antes de desmontar", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir fusível e relé do circuito", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir chicote da porta (fios quebrados na dobra)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Testar curso completo e one-touch (quando houver)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Montagem de forro e vedações", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste final com o cliente", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:partida-e-alternador",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Partida e alternador", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Partida e alternador", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Teste da bateria", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir cabos e terminais (queda de tensão; anote a medição na observação)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Medir a tensão de carga com o motor ligado (anote na observação)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir correia e polias", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de partida a quente e a frio", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Registrar peça removida e peça instalada", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:iluminacao",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Iluminação", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Iluminação", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Conferir erro de canbus ou aviso no painel", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Relé dedicado quando a carga pedir", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Vedação do conjunto", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Regulagem de altura do farol", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de todas as funções (baixo, alto, DRL, seta)", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:chicote-injecao-programavel",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Confecção de chicote para injeção programável", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Confecção de chicote para injeção programável", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Conferir o pinout da injeção no manual do fabricante (anote a fonte na observação)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Levantar sensores e atuadores do motor", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Definir comprimentos e rota no veículo", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir conectores, terminais e vedação adequados ao ambiente", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Identificar cada fio conforme a ficha do chicote", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Proteção do chicote (conduíte, fita, abraçadeiras)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Fusíveis e relés dimensionados (anote na observação)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de continuidade de cada fio", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Teste de isolamento e de curto", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir aterramentos de sinal e de potência separados", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Fotos", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Ficha do chicote preenchida", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:instalacao-injecao-programavel",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Instalação de injeção programável", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Instalação de injeção programável", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Conferir o estado do chicote e dos sensores antes de começar", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Fixar a ECU em local protegido de calor e água", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Alimentação com fusível e relé principal", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Aterramentos em pontos limpos e firmes", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir sensor de rotação e sensor de fase (sinal e folga)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Sensores instalados (MAP, temperaturas, TPS, banda larga, quando houver)", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Bicos e bobinas ligados na ordem de ignição do motor", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Pressão de combustível conferida", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Vazamentos", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Primeira partida conforme o checklist da seção 7.5", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Registrar a injeção instalada (modelo e versão do firmware) nas instalações do veículo", "obrigatorio": true, "aVerificar": true }
+      ] }
+    },
+    {
+      "chave": "checklist:diagnostico-eletrico",
+      "tipo": "CHECKLIST",
+      "info": { "nome": "Diagnóstico elétrico", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "aVerificar": true, "observacoes": "Modelo inicial da SPEC. Confira cada item: desmarque \"obrigatório\" no que for opcional e \"a verificar\" no que já conferiu." },
+      "dados": { "nome": "Diagnóstico elétrico", "fonte": "SPEC 6.6.2 (versão 1.2, 18/10/2026)", "data": "2026-10-18", "itens": [
+        { "texto": "Anotar a queixa do cliente", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Ler códigos de falha", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Medir bateria em repouso e carga", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Conferir consumo em repouso quando a queixa for descarga", "obrigatorio": true, "aVerificar": true },
+        { "texto": "Registrar testes feitos e causa encontrada (no laudo)", "obrigatorio": true, "aVerificar": true }
+      ] }
+    }
+  ]
+}
