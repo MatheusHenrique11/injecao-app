@@ -879,3 +879,26 @@ Plano aprovado em 20/10/2026, em 5 passos. Três respostas do dono no plano: o i
     - **a anonimização e o arquivamento** não mexem na tabela: os testes conferem que as instalações e o histórico delas ficam iguais (teste nº 7 da fase, no banco e no caso de uso);
     - **só acrescenta:** o teste sobe um banco na V10, com um veículo e uma OS, até a V11. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais;
     - **ordem dos passos:** a ligação do caso de uso no `PrincipalController` entrou no passo das telas, e não no dos casos de uso, para não deixar um campo sem uso no meio.
+
+### Bloco 3B.6: injeção programável (20/10/2026)
+
+Plano aprovado em 20/10/2026, em duas entregas, com parada para aprovar entre elas (resposta do dono): A, a OS sem o veículo e "quem retirou"; B, a ficha do chicote. As outras três respostas do dono no plano são da entrega B: o PDF da ficha é feito na hora, os testes de bancada vêm do checklist da OS, e na versão nova do chicote a anterior fica só para ver.
+
+#### Entrega A: a OS sem o veículo e "quem retirou"
+
+261. **O que os serviços pedem do veículo** (SPEC 6.5):
+    - **quem conta:** os serviços do catálogo da última revisão aprovada, cada um como está na versão do orçamento (como a garantia, decisão 231). Mudar o serviço no catálogo depois não muda a OS;
+    - **a linha digitada não conta:** ela não diz se exige o veículo, e não pode travar nem liberar uma OS. A OS só com linhas digitadas segue como antes: começar pede a entrada;
+    - **onde mora:** o caso de uso calcula, numa conta só, os serviços de bancada (que não exigem o veículo) e os que exigem. A tela da OS recebe isso junto com a OS (`OsAberta`), para o próximo passo e o "Serviço pronto".
+262. **Começar, checklist e pronto sem o veículo:**
+    - **começar:** sem a entrada, só com ao menos um serviço de bancada; sem nenhum, a mensagem de sempre pede a entrada;
+    - **checklist bloqueado:** sem a entrada, o checklist de todo serviço que não é de bancada aparece na aba Execução desligado, com o aviso "Bloqueado até a entrada do veículo (aba Entrada)". O caso de uso recusa marcar os itens dele, com a mesma frase. Registrada a entrada, ele libera;
+    - **pronto:** sem a entrada e com algum serviço que exige o veículo, o caso de uso recusa e diz qual serviço precisa dele. Na tela, "Serviço pronto" mostra essa mensagem direto, sem abrir a janela das pendências: a justificativa não resolveria a falta do veículo;
+    - **próximo passo:** com a OS aprovada, sem a entrada e com um serviço de bancada, diz que a bancada pode começar; em execução, lembra que o pronto precisa da entrada; pronta, lembra de anotar quem retirou.
+263. **A entrega sem o veículo:**
+    - **a regra na prática:** a SPEC diz "quando todos os serviços da OS dispensam a entrada". Como o pronto já exige a entrada quando algum serviço precisa do veículo, a OS que chega à entrega sem a entrada é exatamente essa. Então a regra ficou pela entrada: sem ela, a entrega pede **quem retirou** (obrigatório) e recusa o km de saída;
+    - **onde aparece:** na janela de entrega (o campo "Quem retirou" no lugar do km, com a explicação), na aba Entrega e pagamento ("retirado por"), no cabeçalho da OS entregue ("o veículo não passou pela oficina") e no comprovante (a linha "Retirado por" no lugar do km, e a assinatura "Quem retirou"). O comprovante continua numa página;
+    - **o núcleo:** `Entrega` ganhou "quem retirou", com um construtor de compatibilidade para os usos de antes, e a regra `validarSemVeiculo()`.
+264. **O banco** (migração V12, em SQL; banco na versão 12):
+    - a coluna `retirado_por` na OS, vazia nas OS que já existem (elas foram entregues com o veículo);
+    - o teste sobe um banco na V11, com uma OS entregue, até a V12: a entrega de antes continua igual, com "quem retirou" vazio. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.
