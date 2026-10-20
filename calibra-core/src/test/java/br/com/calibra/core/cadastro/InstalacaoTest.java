@@ -31,6 +31,8 @@ class InstalacaoTest {
         Instalacao vazia = new Instalacao(null, "   ", null, null, null, null, null);
         assertEquals(List.of("Escolha o tipo da instalação.", "Descreva o que foi instalado e onde."),
                 vazia.validar(HOJE, null));
+        assertEquals(vazia.validar(HOJE, null), vazia.validarCampos(), "sem data, os mesmos erros");
+        assertEquals(List.of(), som(HOJE.plusDays(1)).validarCampos(), "os campos não olham a data");
         assertEquals("", vazia.descricao());
         assertEquals("", vazia.marca(), "texto ausente vira vazio");
         assertEquals("", vazia.marcaEModelo());

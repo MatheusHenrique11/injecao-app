@@ -33,18 +33,24 @@ public record Instalacao(TipoInstalacao tipo, String descricao, String marca, St
      * @param retiradaEm a data em que o item saiu do veículo; null se ainda está nele
      */
     public List<String> validar(LocalDate hoje, LocalDate retiradaEm) {
+        List<String> erros = validarCampos();
+        if (dataInstalacao != null && dataInstalacao.isAfter(hoje)) {
+            erros.add("A data da instalação não pode estar no futuro.");
+        }
+        if (dataInstalacao != null && retiradaEm != null && dataInstalacao.isAfter(retiradaEm)) {
+            erros.add("A data da instalação não pode ser depois da retirada (" + retiradaEm.format(DIA) + ").");
+        }
+        return erros;
+    }
+
+    /** Só os campos obrigatórios (o tipo e a descrição), sem as datas: o que a janela confere junto com a digitação. */
+    public List<String> validarCampos() {
         List<String> erros = new ArrayList<>();
         if (tipo == null) {
             erros.add("Escolha o tipo da instalação.");
         }
         if (descricao.isEmpty()) {
             erros.add("Descreva o que foi instalado e onde.");
-        }
-        if (dataInstalacao != null && dataInstalacao.isAfter(hoje)) {
-            erros.add("A data da instalação não pode estar no futuro.");
-        }
-        if (dataInstalacao != null && retiradaEm != null && dataInstalacao.isAfter(retiradaEm)) {
-            erros.add("A data da instalação não pode ser depois da retirada (" + retiradaEm.format(DIA) + ").");
         }
         return erros;
     }

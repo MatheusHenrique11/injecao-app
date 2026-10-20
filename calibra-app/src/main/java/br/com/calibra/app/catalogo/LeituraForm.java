@@ -47,7 +47,11 @@ public final class LeituraForm {
     private final Map<String, String> rotulos = new HashMap<>();
     private final List<String> erros;
 
-    LeituraForm(ValoresForm valores, List<CampoForm> campos, List<String> erros) {
+    /**
+     * @param campos os campos do formulário, pelos rótulos das mensagens
+     * @param erros onde as mensagens de digitação são anotadas
+     */
+    public LeituraForm(ValoresForm valores, List<CampoForm> campos, List<String> erros) {
         this.valores = valores;
         this.erros = erros;
         campos.forEach(campo -> rotulos.put(campo.chave(), campo.rotulo()));
