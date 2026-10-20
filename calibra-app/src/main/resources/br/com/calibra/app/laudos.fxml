@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Os laudos de diagnóstico elétrico da OS (Fase 3B, SPEC 6.6.3), na aba Execução, depois dos checklists. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.LaudosController" spacing="8.0">
+  <Label styleClass="titulo-secao" text="Laudos de diagnóstico elétrico"/>
+  <Label fx:id="situacao" styleClass="dica" wrapText="true"/>
+  <TableView fx:id="tabela" prefHeight="150.0">
+    <placeholder>
+      <Label styleClass="dica" text="Nenhum laudo nesta OS."/>
+    </placeholder>
+    <columns>
+      <TableColumn fx:id="colunaQuando" text="Data e hora" prefWidth="140.0"/>
+      <TableColumn fx:id="colunaMecanico" text="Mecânico" prefWidth="170.0"/>
+      <TableColumn fx:id="colunaQueixa" text="Queixa" prefWidth="430.0"/>
+      <TableColumn fx:id="colunaResultado" text="Resultado" prefWidth="160.0"/>
+    </columns>
+  </TableView>
+  <HBox spacing="10.0">
+    <Button fx:id="botaoNovo" text="Novo laudo…" onAction="#novo"/>
+    <Button fx:id="botaoAbrir" text="Abrir…" onAction="#abrir"/>
+    <Button fx:id="botaoPdf" text="Gerar PDF…" onAction="#pdf"/>
+    <Button fx:id="botaoImprimir" text="Imprimir…" onAction="#imprimir"/>
+    <Button fx:id="botaoApagar" text="Apagar…" onAction="#apagar"/>
+  </HBox>
+</VBox>

@@ -7,8 +7,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Aba Execução da OS (Fase 3B, SPEC 6.5 e 8.9): os checklists de cada serviço, copiados quando o serviço começou.
-     A tela da OS põe esta aba depois da Preparação. -->
+<!-- Aba Execução da OS (Fase 3B, SPEC 6.5 e 8.9): os checklists de cada serviço, copiados quando o serviço começou,
+     e os laudos de diagnóstico elétrico. A tela da OS põe esta aba depois da Preparação. -->
 <ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.ExecucaoController" fitToWidth="true">
   <VBox styleClass="pagina">
@@ -22,5 +22,7 @@
     <HBox fx:id="linhaSalvar">
       <Button fx:id="botaoSalvar" text="Salvar marcações" onAction="#salvar"/>
     </HBox>
+    <!-- Os laudos de diagnóstico elétrico (bloco 3B.4). -->
+    <fx:include fx:id="laudos" source="laudos.fxml"/>
   </VBox>
 </ScrollPane>

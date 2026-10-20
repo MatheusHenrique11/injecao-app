@@ -42,6 +42,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -93,6 +94,7 @@ import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
+import br.com.calibra.core.oficina.ResultadoLaudo;
 import br.com.calibra.core.oficina.SituacaoItem;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -926,6 +928,136 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.6.3, bloco 3B.4): o laudo de diagnóstico elétrico. O laudo novo já vem com a queixa (o serviço
+     * pedido) e o mecânico da OS; a linha nova de medição repete a condição de cima; gravar com o nome do cliente na
+     * queixa mostra o aviso de LGPD, em amarelo, e grava; o PDF sai numa página. Com a OS cancelada, o laudo fica só
+     * para ver; a ficha do veículo mostra o laudo.
+     */
+    @Test
+    void laudoEletrico() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::diagnosticoComMecanico);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                OsController os = principal.osAberta();
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                LaudosController laudos = os.execucao().laudos();
+                assertFalse(laudos.temLaudo());
+                assertTrue(item("itemLaudoPdf").isDisable(), "sem laudo, o menu fica desligado");
+
+                JanelaLaudo janela = laudos.janelaNovo();
+                assertEquals("Ana disse que a bateria descarrega de um dia para o outro", janela.queixa().getText(),
+                        "a queixa vem do serviço pedido");
+                assertEquals("Carlos (fictício)", janela.mecanico().getValue().nome(), "o mecânico da OS");
+                EditorLinhas medicoes = janela.medicoes();
+                medicoes.adicionar();
+                ((TextField) medicoes.campo(0, 0)).setText("Tensão da bateria");
+                ((TextField) medicoes.campo(0, 1)).setText("12,1");
+                ((TextField) medicoes.campo(0, 2)).setText("V");
+                escolher(medicoes.campo(0, 3), "Repouso");
+                ((TextField) medicoes.campo(0, 4)).setText("12,4 a 12,7 V");
+                ((CheckBox) medicoes.campo(0, 5)).setSelected(true);
+                medicoes.adicionar();
+                assertEquals("Repouso", rotulo(medicoes.campo(1, 3)), "a linha nova repete a condição de cima");
+                ((TextField) medicoes.campo(1, 0)).setText("Consumo em repouso");
+                ((TextField) medicoes.campo(1, 1)).setText("0,45");
+                ((TextField) medicoes.campo(1, 2)).setText("A");
+                janela.codigos().adicionar();
+                ((TextField) janela.codigos().campo(0, 0)).setText("P0562");
+                ((TextField) janela.codigos().campo(0, 1)).setText("Tensão do sistema baixa");
+                escolher(janela.codigos().campo(0, 2), "Histórico");
+                janela.causa().setText("Módulo do som ligado direto na bateria.");
+                janela.solucao().setText("Ligação do módulo pelo pós-chave, com relé.");
+                janela.resultado().setValue(ResultadoLaudo.RESOLVIDO);
+                fotografar(janela.dialogo(), "oficina-29-janela-laudo.png");
+                assertTrue(janela.gravar(), janela.erros()::toString);
+                laudos.aposGravar(janela);
+
+                assertEquals("Laudo gravado.", os.mensagens().getFirst());
+                assertTrue(os.mensagens().get(1).startsWith("A queixa parece ter dado pessoal do cliente: o nome do "
+                        + "cliente (Ana)."), os.mensagens()::toString);
+                assertEquals(1, laudos.laudos().size());
+                assertFalse(item("itemLaudoPdf").isDisable(), "com laudo, o menu liga");
+                salvar(cena, "oficina-30-laudos-na-execucao.png");
+
+                // O PDF pelo mesmo caminho do menu Documentos (em target/, para conferir).
+                Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+                Files.createDirectories(alvo);
+                Path pdf = alvo.resolve("exemplo-laudo-app.pdf");
+                os.escreverLaudo(laudos.laudos().getFirst().id(), pdf);
+                try (PDDocument documento = Loader.loadPDF(pdf.toFile())) {
+                    String texto = new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
+                    for (String esperado : List.of("Laudo de diagnóstico elétrico", "Mecânico: Carlos (fictício)",
+                            "Tensão da bateria 12,1 V repouso 12,4 a 12,7 V (a verificar)",
+                            "Consumo em repouso 0,45 A repouso —", "P0562 Tensão do sistema baixa histórico",
+                            "Resultado: resolvido")) {
+                        assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
+                    }
+                    assertEquals(1, documento.getNumberOfPages());
+                }
+            });
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                oficina.cancelar(ana, "O cliente levou o carro para casa.");
+                OsController os = principal.osAberta();
+                os.atualizar();
+                LaudosController laudos = os.execucao().laudos();
+                assertTrue(TelaDeTeste.<Button>achar(cena, "botaoNovo").isDisabled(), "cancelada: sem laudo novo");
+                JanelaLaudo janela = laudos.janelaAbrir(laudos.laudos().getFirst());
+                assertFalse(janela.queixa().isEditable(), "só para ver");
+                assertTrue(janela.medicoes().campo(0, 0).isDisabled());
+                fotografar(janela.dialogo(), "oficina-31-laudo-so-para-ver.png");
+
+                TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+                FichaVeiculoController ficha = principal.fichaAberta();
+                assertEquals(List.of("Ana disse que a bateria descarrega de um dia para o outro"), ficha.laudos()
+                        .getItems().stream().map(l -> l.laudo().queixa()).toList(),
+                        "a ficha do veículo mostra o laudo");
+                salvar(cena, "oficina-32-laudos-na-ficha.png");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /** Ana chegou com a bateria descarregando, com o mecânico Carlos na OS (sem orçamento ainda: é o diagnóstico). */
+    private void diagnosticoComMecanico() {
+        long carlos = oficina.novoMecanico("Carlos (fictício)");
+        NovaOs nova = nova("Ana Costa (fictícia)", "ABC1D23", "Ana disse que a bateria descarrega de um dia para o "
+                + "outro", null, LocalDateTime.now().withNano(0).minusHours(1));
+        ana = oficina.abrir(new NovaOs(nova.cliente(), nova.veiculo(), nova.servicoPedido(), carlos,
+                nova.previsaoEntrega(), nova.observacoes(), nova.entrada())).osId();
+    }
+
+    /** Abre a janela (sem esperar), salva a imagem já no tamanho dela e fecha. */
+    private static void fotografar(Dialog<?> dialogo, String arquivo) throws Exception {
+        dialogo.show();
+        try {
+            salvar(dialogo.getDialogPane().getScene(), arquivo);
+        } finally {
+            dialogo.close();
+        }
+    }
+
+    /** Escolhe pelo rótulo na caixa de escolha do editor de linhas. */
+    @SuppressWarnings("unchecked")
+    private static void escolher(Node campo, String rotulo) {
+        ComboBox<EditorLinhas.Opcao> caixa = (ComboBox<EditorLinhas.Opcao>) campo;
+        caixa.setValue(caixa.getItems().stream().filter(o -> o.rotulo().equals(rotulo)).findFirst().orElseThrow());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String rotulo(Node campo) {
+        EditorLinhas.Opcao escolhida = ((ComboBox<EditorLinhas.Opcao>) campo).getValue();
+        return escolhida == null ? "" : escolhida.rotulo();
     }
 
     /**

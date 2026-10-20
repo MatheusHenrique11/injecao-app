@@ -33,7 +33,7 @@
         <Region HBox.hgrow="ALWAYS"/>
         <Button fx:id="botaoFichaVeiculo" text="Ficha do veículo" onAction="#abrirFichaDoVeiculo"
                 minWidth="-Infinity"/>
-        <!-- Os documentos da OS (bloco 3.3): o PDF, a impressão e os textos para o WhatsApp. -->
+        <!-- Os documentos da OS (bloco 3.3): o PDF, a impressão e os textos para o WhatsApp; o laudo (Fase 3B). -->
         <MenuButton fx:id="menuDocumentos" text="Documentos" minWidth="-Infinity">
           <items>
             <MenuItem fx:id="itemViaPdf" text="Via do cliente: gerar PDF…" onAction="#viaPdf"/>
@@ -43,6 +43,9 @@
                       onAction="#comprovantePdf"/>
             <MenuItem fx:id="itemComprovanteImprimir" text="Comprovante de entrega: imprimir…"
                       onAction="#comprovanteImprimir"/>
+            <SeparatorMenuItem/>
+            <MenuItem fx:id="itemLaudoPdf" text="Laudo elétrico: gerar PDF…" onAction="#laudoPdf"/>
+            <MenuItem fx:id="itemLaudoImprimir" text="Laudo elétrico: imprimir…" onAction="#laudoImprimir"/>
             <SeparatorMenuItem/>
             <MenuItem fx:id="itemTextoAberta" text="Copiar texto para WhatsApp: OS aberta"
                       onAction="#copiarTextoAberta"/>

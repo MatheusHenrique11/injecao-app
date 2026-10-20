@@ -22,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.Anonimizacao;
 import br.com.calibra.app.casos.CasosOficina.FichaVeiculo;
@@ -35,12 +36,14 @@ import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.LaudoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 
 /**
  * A ficha do veículo (bloco 3.3, área Oficina): o cliente e o veículo, com editar, histórico e anonimizar (LGPD); as OS
- * e os projetos do veículo, que abrem com duplo clique; e os anexos de todas as OS dele, com os documentos do próprio
- * veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto.
+ * e os projetos do veículo, que abrem com duplo clique; os laudos elétricos de todas as OS (Fase 3B; o duplo clique
+ * abre a OS do laudo); e os anexos de todas as OS dele, com os documentos do próprio veículo (ex.: o CRLV, com a
+ * validade). Abre pela OS e pelo cabeçalho do projeto.
  */
 public class FichaVeiculoController {
 
@@ -49,8 +52,8 @@ public class FichaVeiculoController {
      *
      * @param tarefas a fila de segundo plano do app (a cópia dos documentos)
      */
-    record Recursos(CasosOficina oficina, CasosProjeto projetos, CasosCatalogo catalogo, HostServices servicos,
-            Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosProjeto projetos, CasosCatalogo catalogo,
+            HostServices servicos, Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
     }
 
     @FXML private Button botaoVoltar;
@@ -68,6 +71,11 @@ public class FichaVeiculoController {
     @FXML private TableColumn<ProjetoDoVeiculo, String> colunaProjeto;
     @FXML private TableColumn<ProjetoDoVeiculo, String> colunaMotor;
     @FXML private TableColumn<ProjetoDoVeiculo, String> colunaSituacaoProjeto;
+    @FXML private TableView<LaudoSalvo> laudos;
+    @FXML private TableColumn<LaudoSalvo, String> colunaLaudoQuando;
+    @FXML private TableColumn<LaudoSalvo, String> colunaLaudoOs;
+    @FXML private TableColumn<LaudoSalvo, String> colunaLaudoQueixa;
+    @FXML private TableColumn<LaudoSalvo, String> colunaLaudoResultado;
     @FXML private AnexosController anexosController;
     @FXML private VBox mensagens;
 
@@ -89,6 +97,20 @@ public class FichaVeiculoController {
             linha.setOnMouseClicked(evento -> {
                 if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2 && !linha.isEmpty()) {
                     recursos.navegacao().abrirProjeto(linha.getItem().projetoId());
+                }
+            });
+            return linha;
+        });
+        coluna(colunaLaudoQuando, l -> l.laudo().dataHora() == null ? "—" : Datas.diaHora(l.laudo().dataHora()));
+        coluna(colunaLaudoOs, l -> l.numeroOs().texto());
+        coluna(colunaLaudoQueixa, l -> LaudosController.resumo(l.laudo().queixa()));
+        coluna(colunaLaudoResultado, l -> JanelaLaudo.maiuscula(l.laudo().rotuloDoResultado()));
+        laudos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+        laudos.setRowFactory(tabela -> {
+            TableRow<LaudoSalvo> linha = new TableRow<>();
+            linha.setOnMouseClicked(evento -> {
+                if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2 && !linha.isEmpty()) {
+                    recursos.navegacao().abrirOs(linha.getItem().osId());
                 }
             });
             return linha;
@@ -148,6 +170,7 @@ public class FichaVeiculoController {
         ordens.getItems().setAll(ficha.ordens());
         numerosDasOs = ficha.ordens().stream().collect(Collectors.toMap(ResumoOs::osId, os -> os.numero().texto()));
         projetos.getItems().setAll(ficha.projetos());
+        laudos.getItems().setAll(recursos.laudos().doVeiculo(veiculoId));
         anexosController.atualizar();
     }
 
@@ -273,6 +296,11 @@ public class FichaVeiculoController {
     /** A lista de anexos da ficha. */
     AnexosController anexos() {
         return anexosController;
+    }
+
+    /** A tabela dos laudos elétricos do veículo. */
+    TableView<LaudoSalvo> laudos() {
+        return laudos;
     }
 
     List<String> mensagens() {

@@ -333,7 +333,8 @@ final class JanelasOs {
         return grade;
     }
 
-    private static LocalDateTime quando(DatePicker data, TextField hora, List<String> erros) {
+    /** A data e a hora digitadas (hora como 14:30); com erro, as mensagens vão para {@code erros} e volta null. */
+    static LocalDateTime quando(DatePicker data, TextField hora, List<String> erros) {
         LocalTime lida = null;
         try {
             lida = LocalTime.parse(hora.getText() == null ? "" : hora.getText().strip(),

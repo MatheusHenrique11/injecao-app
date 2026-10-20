@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -21,6 +22,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -37,6 +39,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.AnexosDaOficina;
+import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
@@ -63,8 +66,11 @@ import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
+import br.com.calibra.dados.oficina.LaudoSalvo;
 import br.com.calibra.dados.projeto.VersaoMotor;
+import br.com.calibra.relatorios.DadosLaudo;
 import br.com.calibra.relatorios.DadosOs;
+import br.com.calibra.relatorios.RelatorioLaudo;
 import br.com.calibra.relatorios.RelatorioOs;
 import br.com.calibra.relatorios.TextoWhatsAppOs;
 
@@ -82,9 +88,9 @@ public class OsController {
      * @param temporaria onde o PDF de uma impressão fica enquanto as páginas são desenhadas
      * @param tarefas a fila de segundo plano do app (a cópia dos anexos)
      */
-    record Recursos(CasosOficina oficina, CasosProjeto projetos, OrcamentoController.Recursos orcamento,
-            HostServices servicos, Navegacao navegacao, Clock relogio, Supplier<PadroesOs> padroes, Path temporaria,
-            TarefasFundo tarefas) {
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosProjeto projetos,
+            OrcamentoController.Recursos orcamento, HostServices servicos, Navegacao navegacao, Clock relogio,
+            Supplier<PadroesOs> padroes, Path temporaria, TarefasFundo tarefas) {
     }
 
     @FXML private Label titulo;
@@ -104,6 +110,8 @@ public class OsController {
     @FXML private MenuItem itemComprovanteImprimir;
     @FXML private MenuItem itemTextoAberta;
     @FXML private MenuItem itemTextoPronta;
+    @FXML private MenuItem itemLaudoPdf;
+    @FXML private MenuItem itemLaudoImprimir;
     @FXML private TabPane abas;
     @FXML private Tab abaEntrada;
     // ---------- Entrada ----------
@@ -237,7 +245,46 @@ public class OsController {
         MecanicoSalvo mecanicoDaOs = aberta.mecanico();
         execucao.iniciar(recursos.oficina(), osId, this::executarComMensagem,
                 mecanicoDaOs != null && mecanicoDaOs.ativo() ? mecanicoDaOs.id() : null);
+        execucao.laudos().iniciar(new LaudosController.Recursos(recursos.laudos(), recursos.oficina(), osId,
+                recursos.servicos(), recursos.temporaria(), this::documentoDoLaudo, new TelaDosLaudos()));
         execucao.atualizar(aberta.os());
+        mostrarMenuDosLaudos();
+    }
+
+    /** O que a área dos laudos pede: ler tudo de novo e mostrar o resultado embaixo. */
+    private final class TelaDosLaudos implements LaudosController.Tela {
+
+        @Override
+        public void gravado(String mensagem, List<String> avisos) {
+            atualizar();
+            mensagens.getChildren().clear();
+            mensagem(mensagem, "ok");
+            avisos.forEach(aviso -> mensagem(aviso, "aviso-amarelo"));
+        }
+
+        @Override
+        public void mostrarOk(String mensagem) {
+            OsController.this.mostrarOk(mensagem);
+        }
+
+        @Override
+        public void mostrarErros(List<String> erros) {
+            OsController.this.mostrarErros(erros);
+        }
+    }
+
+    /** Os dados do PDF do laudo, com a oficina e o logo de Configurações, lidos na hora. */
+    private DadosLaudo documentoDoLaudo(long laudoId) {
+        DadosOficina oficina = recursos.orcamento().oficina().get();
+        Path logo = LogoOficina.arquivo(oficina, recursos.orcamento().anexos()).orElse(null);
+        return recursos.laudos().documento(laudoId, oficina, logo, recursos.orcamento().versaoApp());
+    }
+
+    /** O laudo no menu Documentos: desligado sem laudo. */
+    private void mostrarMenuDosLaudos() {
+        boolean semLaudo = execucao == null || !execucao.laudos().temLaudo();
+        itemLaudoPdf.setDisable(semLaudo);
+        itemLaudoImprimir.setDisable(semLaudo);
     }
 
     /**
@@ -258,6 +305,7 @@ public class OsController {
         }
         if (execucao != null) {
             execucao.atualizar(aberta.os());
+            mostrarMenuDosLaudos();
         }
     }
 
@@ -704,6 +752,37 @@ public class OsController {
         copiar(TextoWhatsAppOs.prontaParaRetirar(documento()));
     }
 
+    @FXML
+    private void laudoPdf() {
+        escolherLaudo().ifPresent(execucao.laudos()::pdf);
+    }
+
+    @FXML
+    private void laudoImprimir() {
+        escolherLaudo().ifPresent(execucao.laudos()::imprimir);
+    }
+
+    /** O laudo do menu Documentos: o único da OS, ou o escolhido numa lista (o mais novo já vem marcado). */
+    private Optional<LaudoSalvo> escolherLaudo() {
+        List<LaudoSalvo> laudos = execucao.laudos().laudos();
+        if (laudos.size() <= 1) {
+            return laudos.stream().findFirst();
+        }
+        List<String> rotulos = new ArrayList<>();
+        for (int i = 0; i < laudos.size(); i++) {
+            LaudoSalvo laudo = laudos.get(i);
+            rotulos.add((i + 1) + ". " + Datas.diaHora(laudo.laudo().dataHora()) + " · "
+                    + LaudosController.resumo(laudo.laudo().queixa()));
+        }
+        ChoiceDialog<String> escolha = new ChoiceDialog<>(rotulos.getLast(), rotulos);
+        escolha.initOwner(janela());
+        escolha.setTitle("Laudo elétrico");
+        escolha.setHeaderText("A OS " + numero() + " tem " + laudos.size() + " laudos. Qual?");
+        escolha.setContentText("Laudo:");
+        escolha.getDialogPane().getStylesheets().add(CalibraApp.folhaDeEstilo());
+        return escolha.showAndWait().map(rotulos::indexOf).filter(indice -> indice >= 0).map(laudos::get);
+    }
+
     private void gerarPdf(String titulo, String nome, DocumentoOs documento) {
         DadosOs dados = documento();
         ArquivoPdf.gerar(janela(), recursos.servicos(), titulo, numero() + "-" + nome + ".pdf",
@@ -827,6 +906,11 @@ public class OsController {
     /** O comprovante de entrega em PDF, sem perguntar onde salvar (para os testes e a evidência). */
     void escreverComprovante(Path destino) throws IOException {
         RelatorioOs.comprovanteDeEntrega(documento(), destino);
+    }
+
+    /** O PDF do laudo, sem perguntar onde salvar (para os testes e a evidência). */
+    void escreverLaudo(long laudoId, Path destino) throws IOException {
+        RelatorioLaudo.gerar(documentoDoLaudo(laudoId), destino);
     }
 
     /** As mensagens da última ação. */
