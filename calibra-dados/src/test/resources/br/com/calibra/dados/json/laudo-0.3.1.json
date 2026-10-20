@@ -1,0 +1,16 @@
+{
+  "dataHora": "2026-10-20T10:30",
+  "queixa": "Bateria descarrega de um dia para o outro",
+  "medicoes": [
+    { "nome": "Tensão da bateria", "valor": "12,1", "unidade": "V", "condicao": "REPOUSO", "referencia": "12,4 a 12,7 V", "referenciaAVerificar": true },
+    { "nome": "Consumo em repouso", "valor": "0,45", "unidade": "A", "condicao": "OUTRA", "referencia": "", "referenciaAVerificar": false }
+  ],
+  "codigos": [
+    { "codigo": "P0562", "descricao": "Tensão do sistema baixa", "situacao": "HISTORICO" }
+  ],
+  "testesRealizados": "Teste de fuga com o amperímetro, tirando um fusível de cada vez.",
+  "causa": "Módulo do som ligado direto na bateria.",
+  "solucao": "Ligação do módulo pelo pós-chave, com relé.",
+  "recomendacoes": "Conferir a bateria em 30 dias.",
+  "resultado": "RESOLVIDO"
+}
