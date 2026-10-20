@@ -206,8 +206,10 @@
     -fx-font-weight: bold;
 }
 
-/* Catálogos: item arquivado em cinza e, no histórico de versões, o que mudou em amarelo. */
-.linha-arquivada .table-cell {
+/* Catálogos: item arquivado em cinza e, no histórico de versões, o que mudou em amarelo. A instalação retirada do
+   veículo (Fase 3B) também fica em cinza. */
+.linha-arquivada .table-cell,
+.linha-retirada .table-cell {
     -fx-text-fill: #777777;
     -fx-font-style: italic;
 }

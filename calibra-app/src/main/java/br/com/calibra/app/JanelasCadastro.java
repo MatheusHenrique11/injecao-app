@@ -2,36 +2,43 @@ package br.com.calibra.app;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.function.Function;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.core.EntradaInvalidaException;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
 import br.com.calibra.dados.cadastro.EventoAuditoria;
+import br.com.calibra.dados.cadastro.InstalacaoSalva;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
 
 /**
  * As janelas de cadastro do projeto e da ficha do veículo (bloco 3.3): editar o cliente e o veículo, ver o histórico de
- * cada um e confirmar a anonimização do cliente (LGPD).
+ * cada um e confirmar a anonimização do cliente (LGPD). Na Fase 3B, também o histórico e a retirada das instalações do
+ * veículo.
  */
 final class JanelasCadastro {
 
@@ -73,6 +80,64 @@ final class JanelasCadastro {
 
     static void historicoVeiculo(Window dono, CasosProjeto casos, long veiculoId) {
         historico(dono, "Histórico do veículo", casos.historicoVeiculo(veiculoId));
+    }
+
+    /** O histórico de uma instalação do veículo (Fase 3B): a criação, cada campo mudado e a retirada. */
+    static void historicoInstalacao(Window dono, CasosInstalacao casos, InstalacaoSalva instalacao) {
+        dialogoDoHistoricoDaInstalacao(dono, casos, instalacao).showAndWait();
+    }
+
+    /** A janela do histórico da instalação, sem mostrar (para os testes). */
+    static Dialog<ButtonType> dialogoDoHistoricoDaInstalacao(Window dono, CasosInstalacao casos,
+            InstalacaoSalva instalacao) {
+        Dialog<ButtonType> dialogo = dialogoDoHistorico(dono, "Histórico da instalação",
+                casos.historico(instalacao.id()));
+        dialogo.setHeaderText("Histórico da instalação · " + instalacao.instalacao().tipo().rotulo() + " · "
+                + LaudosController.resumo(instalacao.instalacao().descricao()));
+        return dialogo;
+    }
+
+    /**
+     * Pergunta a data em que o item saiu do veículo (vem a de hoje) e retira. Com erro (ex.: antes da instalação), a
+     * mensagem aparece na janela, que fica aberta. true se retirou.
+     */
+    static boolean retirarInstalacao(Window dono, CasosInstalacao casos, InstalacaoSalva instalacao, LocalDate hoje) {
+        DatePicker data = new DatePicker(hoje);
+        Datas.emPortugues(data);
+        Label explicacao = new Label("O item continua na lista, em cinza, e a retirada vai para o histórico. Se foi "
+                + "engano, \"Desfazer retirada\" volta.");
+        explicacao.getStyleClass().add("dica");
+        explicacao.setWrapText(true);
+        VBox erros = new VBox(4);
+        HBox linha = new HBox(10, new Label("Saiu do veículo em"), data);
+        linha.setAlignment(Pos.CENTER_LEFT);
+        VBox conteudo = new VBox(10, linha, explicacao, erros);
+        conteudo.setPrefWidth(520);
+        Dialog<ButtonType> dialogo = dialogo(dono, "Retirar instalação", conteudo);
+        dialogo.setHeaderText("Retirar · " + instalacao.instalacao().tipo().rotulo() + " · "
+                + LaudosController.resumo(instalacao.instalacao().descricao()));
+        ButtonType retirar = new ButtonType("Retirar", ButtonBar.ButtonData.OK_DONE);
+        dialogo.getDialogPane().getButtonTypes().setAll(retirar, new ButtonType("Cancelar",
+                ButtonBar.ButtonData.CANCEL_CLOSE));
+        dialogo.getDialogPane().lookupButton(retirar).addEventFilter(ActionEvent.ACTION, evento -> {
+            String texto = data.getEditor().getText();
+            LocalDate lida = data.getConverter().fromString(texto);
+            try {
+                if (lida == null) {
+                    throw new EntradaInvalidaException(texto == null || texto.isBlank()
+                            ? "Informe a data em que o item saiu do veículo."
+                            : "Data: use dia/mês/ano, como 20/10/2026.");
+                }
+                casos.retirar(instalacao.id(), lida);
+            } catch (EntradaInvalidaException erro) {
+                mostrarErros(erros, erro.erros());
+                evento.consume();
+            } catch (ErroDados erro) {
+                mostrarErros(erros, List.of(erro.getMessage()));
+                evento.consume();
+            }
+        });
+        return dialogo.showAndWait().filter(retirar::equals).isPresent();
     }
 
     /** Pergunta antes de anonimizar, dizendo o que some e o que fica; não tem volta. */
@@ -127,6 +192,11 @@ final class JanelasCadastro {
     }
 
     private static void historico(Window dono, String titulo, List<EventoAuditoria> eventos) {
+        dialogoDoHistorico(dono, titulo, eventos).showAndWait();
+    }
+
+    /** A janela do histórico (data e hora, campo, antes e depois), com o botão Fechar, sem mostrar. */
+    private static Dialog<ButtonType> dialogoDoHistorico(Window dono, String titulo, List<EventoAuditoria> eventos) {
         TableView<EventoAuditoria> tabela = new TableView<>();
         tabela.getColumns().setAll(List.of(
                 coluna("Data e hora", 140, e -> Datas.diaHora(e.dataHora())),
@@ -140,7 +210,7 @@ final class JanelasCadastro {
         tabela.setPlaceholder(vazio);
         Dialog<ButtonType> dialogo = dialogo(dono, titulo, tabela);
         dialogo.getDialogPane().getButtonTypes().setAll(new ButtonType("Fechar", ButtonBar.ButtonData.CANCEL_CLOSE));
-        dialogo.showAndWait();
+        return dialogo;
     }
 
     private static Dialog<ButtonType> dialogo(Window dono, String titulo, Node conteudo) {

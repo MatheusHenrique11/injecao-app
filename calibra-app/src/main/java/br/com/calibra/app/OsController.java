@@ -39,6 +39,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.AnexosDaOficina;
+import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
@@ -88,7 +89,7 @@ public class OsController {
      * @param temporaria onde o PDF de uma impressão fica enquanto as páginas são desenhadas
      * @param tarefas a fila de segundo plano do app (a cópia dos anexos)
      */
-    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosProjeto projetos,
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosProjeto projetos,
             OrcamentoController.Recursos orcamento, HostServices servicos, Navegacao navegacao, Clock relogio,
             Supplier<PadroesOs> padroes, Path temporaria, TarefasFundo tarefas) {
     }
@@ -227,8 +228,8 @@ public class OsController {
     }
 
     /**
-     * A aba Execução (Fase 3B), depois da Preparação: os checklists dos serviços. "Quem está marcando" já vem com o
-     * mecânico da OS, se ele estiver ativo.
+     * A aba Execução (Fase 3B), depois da Preparação: os checklists dos serviços, os laudos e as instalações da OS.
+     * "Quem está marcando" já vem com o mecânico da OS, se ele estiver ativo.
      */
     private void montarExecucao() {
         FXMLLoader carregador = new FXMLLoader(OsController.class.getResource("execucao.fxml"));
@@ -247,6 +248,19 @@ public class OsController {
                 mecanicoDaOs != null && mecanicoDaOs.ativo() ? mecanicoDaOs.id() : null);
         execucao.laudos().iniciar(new LaudosController.Recursos(recursos.laudos(), recursos.oficina(), osId,
                 recursos.servicos(), recursos.temporaria(), this::documentoDoLaudo, new TelaDosLaudos()));
+        execucao.instalacoes().iniciar(new InstalacoesController.Recursos(recursos.instalacoes(),
+                aberta.os().veiculoId(), osId, recursos.relogio(), new InstalacoesController.Tela() {
+                    @Override
+                    public void gravado(String mensagem) {
+                        atualizar();
+                        mostrarOk(mensagem);
+                    }
+
+                    @Override
+                    public void mostrarErros(List<String> erros) {
+                        OsController.this.mostrarErros(erros);
+                    }
+                }));
         execucao.atualizar(aberta.os());
         mostrarMenuDosLaudos();
     }

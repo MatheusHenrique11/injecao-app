@@ -9,8 +9,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Ficha do veículo (bloco 3.3, área Oficina): o cliente e o veículo, as OS e os projetos dele, os laudos elétricos
-     (Fase 3B) e os anexos de todas as OS com os documentos do próprio veículo. -->
+<!-- Ficha do veículo (bloco 3.3, área Oficina): o cliente e o veículo, as OS, as instalações (Fase 3B) e os projetos
+     dele, os laudos elétricos (Fase 3B) e os anexos de todas as OS com os documentos do próprio veículo. -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.FichaVeiculoController">
   <top>
@@ -55,6 +55,9 @@
             <Label styleClass="dica" text="Nenhuma OS deste veículo."/>
           </placeholder>
         </TableView>
+
+        <!-- As instalações do veículo (Fase 3B, bloco 3B.5). -->
+        <fx:include fx:id="instalacoes" source="instalacoes.fxml"/>
 
         <Label styleClass="titulo-secao" text="Projetos de preparação do veículo"/>
         <TableView fx:id="projetos" prefHeight="110.0">

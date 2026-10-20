@@ -22,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.Anonimizacao;
@@ -41,9 +42,9 @@ import br.com.calibra.dados.oficina.ResumoOs;
 
 /**
  * A ficha do veículo (bloco 3.3, área Oficina): o cliente e o veículo, com editar, histórico e anonimizar (LGPD); as OS
- * e os projetos do veículo, que abrem com duplo clique; os laudos elétricos de todas as OS (Fase 3B; o duplo clique
- * abre a OS do laudo); e os anexos de todas as OS dele, com os documentos do próprio veículo (ex.: o CRLV, com a
- * validade). Abre pela OS e pelo cabeçalho do projeto.
+ * e os projetos do veículo, que abrem com duplo clique; as instalações do veículo (Fase 3B), que se mudam aqui sempre;
+ * os laudos elétricos de todas as OS (Fase 3B; o duplo clique abre a OS do laudo); e os anexos de todas as OS dele,
+ * com os documentos do próprio veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto.
  */
 public class FichaVeiculoController {
 
@@ -52,8 +53,8 @@ public class FichaVeiculoController {
      *
      * @param tarefas a fila de segundo plano do app (a cópia dos documentos)
      */
-    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosProjeto projetos, CasosCatalogo catalogo,
-            HostServices servicos, Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosProjeto projetos,
+            CasosCatalogo catalogo, HostServices servicos, Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
     }
 
     @FXML private Button botaoVoltar;
@@ -76,6 +77,7 @@ public class FichaVeiculoController {
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoOs;
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoQueixa;
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoResultado;
+    @FXML private InstalacoesController instalacoesController;
     @FXML private AnexosController anexosController;
     @FXML private VBox mensagens;
 
@@ -129,6 +131,19 @@ public class FichaVeiculoController {
         ListaOs.montar(ordens, recursos.relogio(), ListaOs.Coluna.NUMERO, ListaOs.Coluna.SERVICO, ListaOs.Coluna.STATUS,
                 ListaOs.Coluna.CHEGADA, ListaOs.Coluna.PREVISAO);
         ListaOs.aoAbrir(ordens, recursos.navegacao()::abrirOs);
+        instalacoesController.iniciar(new InstalacoesController.Recursos(recursos.instalacoes(), veiculoId, null,
+                recursos.relogio(), new InstalacoesController.Tela() {
+                    @Override
+                    public void gravado(String mensagem) {
+                        atualizar();
+                        mostrarOk(mensagem);
+                    }
+
+                    @Override
+                    public void mostrarErros(List<String> erros) {
+                        FichaVeiculoController.this.mostrarErros(erros);
+                    }
+                }));
         anexosController.iniciar(recursos.oficina(), recursos.servicos(), recursos.tarefas(), new AnexosDoVeiculo(),
                 this::mostrarOk,
                 this::mostrarErros);
@@ -170,6 +185,7 @@ public class FichaVeiculoController {
         ordens.getItems().setAll(ficha.ordens());
         numerosDasOs = ficha.ordens().stream().collect(Collectors.toMap(ResumoOs::osId, os -> os.numero().texto()));
         projetos.getItems().setAll(ficha.projetos());
+        instalacoesController.atualizar();
         laudos.getItems().setAll(recursos.laudos().doVeiculo(veiculoId));
         anexosController.atualizar();
     }
@@ -301,6 +317,11 @@ public class FichaVeiculoController {
     /** A tabela dos laudos elétricos do veículo. */
     TableView<LaudoSalvo> laudos() {
         return laudos;
+    }
+
+    /** A área das instalações do veículo. */
+    InstalacoesController instalacoes() {
+        return instalacoesController;
     }
 
     List<String> mensagens() {

@@ -67,6 +67,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
@@ -74,7 +75,9 @@ import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
 import br.com.calibra.app.casos.CasosProjeto.ClienteNovo;
 import br.com.calibra.app.casos.CasosProjeto.VeiculoNovo;
+import br.com.calibra.app.casos.FormularioInstalacao;
 import br.com.calibra.app.casos.FormularioOrcamento.Linha;
+import br.com.calibra.app.catalogo.CampoForm;
 import br.com.calibra.app.catalogo.ExemplosCatalogo;
 import br.com.calibra.app.catalogo.ExemplosCatalogo.Exemplo;
 import br.com.calibra.core.cadastro.Cliente;
@@ -114,6 +117,8 @@ import br.com.calibra.core.orcamento.TipoItem;
 import br.com.calibra.core.projeto.Uso;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
+import br.com.calibra.dados.cadastro.EventoAuditoria;
+import br.com.calibra.dados.cadastro.InstalacaoSalva;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
@@ -1026,6 +1031,168 @@ class OficinaUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 3B (SPEC 6.2, bloco 3B.5): as instalações do veículo. Pela OS (aba Execução), a nova já vem com a OS e a
+     * data de hoje, e sem o tipo e a descrição não grava; a ficha do veículo mostra a instalação com a OS, e o alarme
+     * informado pelo cliente entra sem OS. Editar vai para o histórico, com o antes e o depois; retirar deixa o item na
+     * lista, em cinza, e desfazer volta; apagar tira. Com a OS cancelada, a área da OS fica só para ver, e pela ficha
+     * ainda se registra uma esquecida com aquela OS, que aparece na OS.
+     */
+    @Test
+    void instalacoesDoVeiculo() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::instalacaoDeSom);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(ana);
+                OsController os = principal.osAberta();
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                InstalacoesController naOs = os.execucao().instalacoes();
+                assertEquals(List.of(), naOs.instalacoes());
+
+                JanelaInstalacao vazia = naOs.janelaNova();
+                assertFalse(vazia.gravar(), "sem o tipo e a descrição, não grava");
+                assertEquals(List.of("Escolha o tipo da instalação.", "Descreva o que foi instalado e onde."),
+                        vazia.erros());
+
+                JanelaInstalacao janela = naOs.janelaNova();
+                FormularioTela tela = janela.tela();
+                assertEquals(Datas.dia(LocalDate.now()), ((DatePicker) tela.controle(FormularioInstalacao.DATA))
+                        .getEditor().getText(), "pela OS, já vem a data de hoje");
+                assertEquals(Long.toString(ana), opcao(tela, FormularioInstalacao.OS), "e a OS de origem");
+                escolherOpcao(tela, FormularioInstalacao.TIPO, "SOM");
+                texto(tela, FormularioInstalacao.DESCRICAO, "Módulo no porta-malas, com fusível de 80 A na bateria");
+                texto(tela, FormularioInstalacao.MARCA, "Taramps");
+                texto(tela, FormularioInstalacao.MODELO, "TS 800x4");
+                texto(tela, FormularioInstalacao.ESPECIFICACAO, "800 W RMS");
+                fotografar(janela.dialogo(), "oficina-33-instalacao-nova.png");
+                assertTrue(janela.gravar(), janela.erros()::toString);
+                naOs.aposGravar(janela);
+                assertEquals("Instalação gravada.", os.mensagens().getFirst());
+                assertEquals(1, naOs.instalacoes().size());
+                salvar(cena, "oficina-34-instalacoes-na-os.png");
+
+                TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+                FichaVeiculoController ficha = principal.fichaAberta();
+                InstalacoesController naFicha = ficha.instalacoes();
+                InstalacaoSalva som = naFicha.instalacoes().getFirst();
+                assertEquals(os.numero(), som.numeroOs().texto(), "a ficha mostra a instalação, com a OS de origem");
+
+                JanelaInstalacao alarme = naFicha.janelaNova();
+                assertEquals("", ((DatePicker) alarme.tela().controle(FormularioInstalacao.DATA)).getEditor()
+                        .getText(), "pela ficha, sem data");
+                assertNull(opcao(alarme.tela(), FormularioInstalacao.OS), "e sem OS");
+                escolherOpcao(alarme.tela(), FormularioInstalacao.TIPO, "ALARME_RASTREADOR");
+                texto(alarme.tela(), FormularioInstalacao.DESCRICAO, "Alarme instalado em outra oficina (informado "
+                        + "pelo cliente)");
+                texto(alarme.tela(), FormularioInstalacao.MARCA, "Positron");
+                assertTrue(alarme.gravar(), alarme.erros()::toString);
+                naFicha.aposGravar(alarme);
+                assertEquals(2, naFicha.instalacoes().size());
+
+                JanelaInstalacao editar = naFicha.janelaEditar(som);
+                texto(editar.tela(), FormularioInstalacao.ESPECIFICACAO, "800 W RMS, 4 canais");
+                assertTrue(editar.gravar(), editar.erros()::toString);
+                naFicha.aposGravar(editar);
+                assertEquals("Instalação salva. As mudanças estão no histórico dela.", ficha.mensagens().getFirst());
+                InstalacaoSalva somSalvo = instalacao(naFicha, som.id());
+                Dialog<ButtonType> historico = JanelasCadastro.dialogoDoHistoricoDaInstalacao(null,
+                        new CasosInstalacao(contexto.banco(), contexto.relogio()), somSalvo);
+                @SuppressWarnings("unchecked")
+                TableView<EventoAuditoria> eventos = (TableView<EventoAuditoria>) historico.getDialogPane()
+                        .getContent();
+                EventoAuditoria mudanca = eventos.getItems().stream()
+                        .filter(e -> e.campo().equals("Potência ou especificação")).findFirst().orElseThrow();
+                assertEquals("800 W RMS", mudanca.valorAntigo());
+                assertEquals("800 W RMS, 4 canais", mudanca.valorNovo());
+                fotografar(historico, "oficina-35-historico-da-instalacao.png");
+
+                naFicha.tabela().getSelectionModel().select(somSalvo);
+                naFicha.retirar(somSalvo, LocalDate.now());
+                assertEquals("retirado em " + Datas.dia(LocalDate.now()), InstalacoesController.situacao(
+                        instalacao(naFicha, som.id())), "continua na lista, retirada");
+                assertEquals("Desfazer retirada", naFicha.botaoRetirar().getText(), "com a retirada escolhida");
+                salvar(cena, "oficina-36-instalacoes-na-ficha.png");
+                naFicha.desfazerRetirada(instalacao(naFicha, som.id()));
+                assertEquals("no veículo", InstalacoesController.situacao(instalacao(naFicha, som.id())));
+
+                naFicha.apagar(naFicha.instalacoes().stream().filter(i -> i.osId() == null).findFirst()
+                        .orElseThrow());
+                assertEquals(List.of(som.id()), naFicha.instalacoes().stream().map(InstalacaoSalva::id).toList(),
+                        "o alarme cadastrado por engano saiu");
+            });
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                oficina.cancelar(ana, "O cliente desistiu do som.");
+                principal.abrirOs(ana);
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                assertFalse(TelaDeTeste.<Button>achar(cena, "botaoNovaInstalacao").isVisible(),
+                        "OS cancelada: as instalações dela ficam só para ver");
+                assertFalse(TelaDeTeste.<Button>achar(cena, "botaoEditarInstalacao").isVisible());
+                assertTrue(TelaDeTeste.<Button>achar(cena, "botaoHistoricoInstalacao").isVisible(),
+                        "o histórico continua");
+
+                TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+                InstalacoesController naFicha = principal.fichaAberta().instalacoes();
+                JanelaInstalacao esquecida = naFicha.janelaNova();
+                escolherOpcao(esquecida.tela(), FormularioInstalacao.TIPO, "OUTRA");
+                texto(esquecida.tela(), FormularioInstalacao.DESCRICAO, "Tomada USB no console");
+                escolherOpcao(esquecida.tela(), FormularioInstalacao.OS, Long.toString(ana));
+                assertTrue(esquecida.gravar(), esquecida.erros()::toString);
+                naFicha.aposGravar(esquecida);
+
+                principal.abrirOs(ana);
+                OsController os = principal.osAberta();
+                abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                assertEquals(2, os.execucao().instalacoes().instalacoes().size(),
+                        "a esquecida, registrada pela ficha com esta OS, aparece na OS");
+                salvar(cena, "oficina-37-instalacoes-da-os-cancelada.png");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /** Ana trouxe o carro para instalar o som, com o mecânico Carlos na OS (sem orçamento ainda). */
+    private void instalacaoDeSom() {
+        long carlos = oficina.novoMecanico("Carlos (fictício)");
+        NovaOs nova = nova("Ana Costa (fictícia)", "ABC1D23", "Instalação de som", null,
+                LocalDateTime.now().withNano(0).minusHours(1));
+        ana = oficina.abrir(new NovaOs(nova.cliente(), nova.veiculo(), nova.servicoPedido(), carlos,
+                nova.previsaoEntrega(), nova.observacoes(), nova.entrada())).osId();
+    }
+
+    /** A instalação como está agora na lista da área. */
+    private static InstalacaoSalva instalacao(InstalacoesController area, long id) {
+        return area.instalacoes().stream().filter(i -> i.id() == id).findFirst().orElseThrow();
+    }
+
+    /** Escreve no campo de texto do formulário da instalação (o mesmo dos catálogos). */
+    private static void texto(FormularioTela tela, String chave, String valor) {
+        ((TextField) tela.controle(chave)).setText(valor);
+    }
+
+    /** Escolhe pelo valor (o nome da constante ou o id da OS) na caixa de escolha do formulário. */
+    @SuppressWarnings("unchecked")
+    private static void escolherOpcao(FormularioTela tela, String chave, String valor) {
+        ComboBox<CampoForm.Opcao> caixa = (ComboBox<CampoForm.Opcao>) tela.controle(chave);
+        caixa.setValue(caixa.getItems().stream().filter(o -> o != null && o.valor().equals(valor)).findFirst()
+                .orElseThrow());
+    }
+
+    /** O valor escolhido na caixa de escolha do formulário; null sem escolha. */
+    @SuppressWarnings("unchecked")
+    private static String opcao(FormularioTela tela, String chave) {
+        CampoForm.Opcao escolhida = ((ComboBox<CampoForm.Opcao>) tela.controle(chave)).getValue();
+        return escolhida == null ? null : escolhida.valor();
     }
 
     /** Ana chegou com a bateria descarregando, com o mecânico Carlos na OS (sem orçamento ainda: é o diagnóstico). */

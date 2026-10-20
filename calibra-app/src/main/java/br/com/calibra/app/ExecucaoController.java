@@ -39,7 +39,8 @@ import br.com.calibra.dados.oficina.OrdemServicoSalva;
  * Aba Execução da OS (Fase 3B, SPEC 6.5 e 8.9): um quadro por serviço com checklist, copiado do modelo quando o serviço
  * começou. Cada item tem a situação (pendente, feito ou não se aplica), a observação e, no "não se aplica", a
  * justificativa. "Salvar marcações" grava o que mudou, com quem está marcando e a hora. Embaixo, os laudos de
- * diagnóstico elétrico ({@link LaudosController}). Depois da entrega ou do cancelamento, a aba fica só para ver.
+ * diagnóstico elétrico ({@link LaudosController}) e as instalações da OS ({@link InstalacoesController}). Depois da
+ * entrega ou do cancelamento, a aba fica só para ver.
  */
 public class ExecucaoController {
 
@@ -81,6 +82,7 @@ public class ExecucaoController {
     @FXML private HBox linhaSalvar;
     @FXML private Button botaoSalvar;
     @FXML private LaudosController laudosController;
+    @FXML private InstalacoesController instalacoesController;
 
     private CasosOficina oficina;
     private long osId;
@@ -114,11 +116,17 @@ public class ExecucaoController {
             caixaQuem.carregar(caixaQuem.escolhido());
         }
         laudosController.atualizar(os);
+        instalacoesController.atualizar(os);
     }
 
     /** A área dos laudos de diagnóstico elétrico (bloco 3B.4), embaixo dos checklists. */
     LaudosController laudos() {
         return laudosController;
+    }
+
+    /** A área das instalações desta OS (bloco 3B.5), embaixo dos laudos. */
+    InstalacoesController instalacoes() {
+        return instalacoesController;
     }
 
     /** Alguma marcação mudou na tela e ainda não foi salva. */

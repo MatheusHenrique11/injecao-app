@@ -22,6 +22,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOrcamento;
@@ -68,6 +69,7 @@ public class PrincipalController implements Navegacao {
     private CasosOrcamento casosOrcamento;
     private CasosOficina casosOficina;
     private CasosLaudo casosLaudo;
+    private CasosInstalacao casosInstalacao;
     private Parent telaPainel;
     private PainelController painel;
     private Parent telaListaOficina;
@@ -124,6 +126,7 @@ public class PrincipalController implements Navegacao {
         this.casosOficina = new CasosOficina(contexto.banco(), contexto.relogio(), casosProjeto,
                 contexto.pastas().anexos());
         this.casosLaudo = new CasosLaudo(contexto.banco(), contexto.relogio());
+        this.casosInstalacao = new CasosInstalacao(contexto.banco(), contexto.relogio());
         // Antes da tela: o arquivo que ficou na pasta da última vez (aberto em outro programa) sai agora.
         casosOficina.apagarArquivosSemUso();
         atualizarStatus();
@@ -223,9 +226,9 @@ public class PrincipalController implements Navegacao {
         FXMLLoader carregador = carregador("os.fxml");
         Parent tela = carregar(carregador);
         OsController os = carregador.getController();
-        os.iniciar(new OsController.Recursos(casosOficina, casosLaudo, casosProjeto, recursosDoOrcamento(), servicos,
-                this, contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS), contexto.pastas().temporaria(),
-                tarefas), osId);
+        os.iniciar(new OsController.Recursos(casosOficina, casosLaudo, casosInstalacao, casosProjeto,
+                recursosDoOrcamento(), servicos, this, contexto.relogio(), () -> contexto.configuracao().ler(Chave.OS),
+                contexto.pastas().temporaria(), tarefas), osId);
         osAberta = os;
         fichaAberta = null;
         abrirNaAreaDaOficina(tela, os.numero());
@@ -241,8 +244,8 @@ public class PrincipalController implements Navegacao {
         FXMLLoader carregador = carregador("ficha-veiculo.fxml");
         Parent tela = carregar(carregador);
         FichaVeiculoController ficha = carregador.getController();
-        ficha.iniciar(new FichaVeiculoController.Recursos(casosOficina, casosLaudo, casosProjeto, casosCatalogo,
-                servicos, this, contexto.relogio(), tarefas), veiculoId, rotuloVoltar, voltar);
+        ficha.iniciar(new FichaVeiculoController.Recursos(casosOficina, casosLaudo, casosInstalacao, casosProjeto,
+                casosCatalogo, servicos, this, contexto.relogio(), tarefas), veiculoId, rotuloVoltar, voltar);
         osAberta = null;
         fichaAberta = ficha;
         abrirNaAreaDaOficina(tela, "Ficha do veículo");
