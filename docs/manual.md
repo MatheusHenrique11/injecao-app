@@ -212,6 +212,7 @@ O que a anonimização não alcança:
 
 - os **backups** feitos antes dela continuam com os dados e os documentos do cliente. Os da pasta de backups saem sozinhos quando deixam de estar entre os 30 mais recentes; os copiados para pen drive ou HD ficam até você apagar;
 - a **descrição dos anexos** que ficam e o que aparece na própria foto ou no PDF;
+- o **"quem retirou"** da OS entregue sem o veículo (item 5.4): a OS entregue não muda mais, e o nome continua nela e no comprovante tirado depois. Se foi o próprio cliente quem retirou, prefira escrever "o próprio cliente" e pegar a assinatura no comprovante;
 - os **textos livres da OS** (serviço pedido, observações, vistoria e observações dos recebimentos), também o antes e o depois deles nas correções da OS (aba Histórico), os **laudos elétricos** (a queixa e os outros textos) e as **instalações do veículo** (a descrição e as observações) não mudam. Evite escrever neles dados pessoais do cliente, como CPF, endereço ou telefone. Na queixa do laudo, o app avisa ao salvar quando parece ter o nome do cliente, um telefone ou documento, ou um e-mail (item 5.4).
 
 ## 7. Calculadora e dimensionamento

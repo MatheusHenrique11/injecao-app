@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
@@ -18,16 +20,21 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import br.com.calibra.core.cadastro.DadosOficina;
+import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.dados.BaseDeTeste;
+import br.com.calibra.dados.Cadastros;
 import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.json.Json;
+import br.com.calibra.dados.oficina.DadosAbertura;
+import br.com.calibra.dados.oficina.OrdemServicoRepositorio;
 
 class RestauracaoTest {
 
@@ -101,6 +108,51 @@ class RestauracaoTest {
         assertEquals(ANTES, base.configuracao.ler(Chave.OFICINA));
         assertEquals("logo antigo", Files.readString(base.pastas.anexos().resolve("logo.png")));
         assertEquals("mapa", Files.readString(base.pastas.anexos().resolve("turbos").resolve("mapa.png")));
+    }
+
+    /**
+     * Revisão final da Fase 3B (bloco 3B.7): um backup do 0.3.0 (banco na versão 7, formato 1, com uma OS) restaura
+     * no 0.3.1. O banco volta e sobe até a versão de agora (V8 a V13), e a OS continua lá, sem checklist e sem "quem
+     * retirou".
+     */
+    @Test
+    void backupDo030NaVersao7RestauraESobeAteAVersaoDeAgora() throws Exception {
+        BaseDeTeste de030 = BaseDeTeste.semMigrar(pasta.resolve("app-030"));
+        Flyway.configure().dataSource(de030.banco.fonte()).locations(Migracoes.LOCAL_PADRAO).target("7").load()
+                .migrate();
+        Cadastros.Repositorios cadastros = Cadastros.Repositorios.de(de030);
+        OrdemServicoRepositorio ordens = new OrdemServicoRepositorio(de030.relogio);
+        long os = de030.banco.transacao(c -> {
+            long cliente = cadastros.clientes().inserir(c, Cadastros.cliente("Ana Costa"));
+            long veiculo = cadastros.veiculos().inserir(c, cliente, Cadastros.carro("CDE3F45"), null);
+            return ordens.inserir(c, new NumeroOs(2026, 1), new DadosAbertura(cliente, veiculo, null, "Revisão", null,
+                    null, ""));
+        });
+        InfoBackup feito = de030.backup.fazer(pasta.resolve("backups-030"), MotivoBackup.MANUAL);
+        assertEquals("7", feito.manifesto().versaoBanco());
+        Path antigo = paraFormato1(feito.arquivo(), pasta.resolve("calibra-backup-2026-10-19-090000.zip"));
+
+        BaseDeTeste de031 = BaseDeTeste.criada(pasta.resolve("app-031"));
+        de031.restauracao().restaurar(antigo);
+
+        assertEquals(BaseDeTeste.VERSAO_BANCO, de031.banco.versaoDoEsquema());
+        OrdemServicoRepositorio ordensDepois = new OrdemServicoRepositorio(de031.relogio);
+        assertEquals("Revisão", de031.banco.ler(c -> ordensDepois.buscar(c, os)).orElseThrow().servicoPedido());
+        assertEquals(List.of(), de031.banco.ler(c -> ordensDepois.correcoes(c, os)));
+        assertEquals("ok", de031.banco.ler(c -> {
+            try (Statement comando = c.createStatement(); ResultSet linha = comando.executeQuery(
+                    "PRAGMA integrity_check")) {
+                linha.next();
+                return linha.getString(1);
+            }
+        }));
+        boolean chaveQuebrada = de031.banco.ler(c -> {
+            try (Statement comando = c.createStatement(); ResultSet linha = comando.executeQuery(
+                    "PRAGMA foreign_key_check")) {
+                return linha.next();
+            }
+        });
+        assertFalse(chaveQuebrada, "nenhuma chave estrangeira quebrada");
     }
 
     /**
