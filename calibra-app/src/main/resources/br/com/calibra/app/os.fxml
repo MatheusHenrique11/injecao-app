@@ -21,7 +21,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <!-- Tela da OS (SPEC 8.9): o cabeçalho com os passos do serviço, a ficha do veículo e os documentos, e as abas
-     Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e Histórico. -->
+     Entrada, Orçamento, Preparação, Entrega e pagamento, Anexos e Histórico (as etapas e as correções). -->
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.OsController">
   <top>
@@ -193,12 +193,26 @@
 
       <!-- ===================== Histórico ===================== -->
       <Tab fx:id="abaHistorico" text="Histórico">
-        <VBox styleClass="pagina">
+        <VBox styleClass="pagina" spacing="8.0">
+          <Label styleClass="titulo-secao" text="Etapas da OS"/>
           <TableView fx:id="historico" VBox.vgrow="ALWAYS">
             <columns>
               <TableColumn fx:id="colunaDataHora" text="Data e hora" prefWidth="150.0"/>
               <TableColumn fx:id="colunaStatus" text="Status" prefWidth="190.0"/>
               <TableColumn fx:id="colunaHistoricoObservacao" text="Observação" prefWidth="700.0"/>
+            </columns>
+          </TableView>
+          <!-- Item 3 da decisão 211: o antes e o depois de cada correção da abertura e da entrada. -->
+          <Label styleClass="titulo-secao" text="Correções da abertura e da entrada"/>
+          <TableView fx:id="correcoes" VBox.vgrow="ALWAYS">
+            <placeholder>
+              <Label styleClass="dica" text="Nenhuma correção: a abertura e a entrada estão como foram anotadas."/>
+            </placeholder>
+            <columns>
+              <TableColumn fx:id="colunaCorrecaoDataHora" text="Data e hora" prefWidth="150.0"/>
+              <TableColumn fx:id="colunaCorrecaoCampo" text="Campo" prefWidth="250.0"/>
+              <TableColumn fx:id="colunaCorrecaoAntes" text="Antes" prefWidth="320.0"/>
+              <TableColumn fx:id="colunaCorrecaoDepois" text="Depois" prefWidth="320.0"/>
             </columns>
           </TableView>
         </VBox>

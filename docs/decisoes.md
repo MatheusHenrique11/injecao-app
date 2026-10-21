@@ -946,3 +946,14 @@ Plano aprovado em 20/10/2026, em duas entregas, com parada para aprovar entre el
       - a ficha não muda de OS nem de versão anterior;
     - **o formato do JSON** fica fixo num teste, pelo arquivo de exemplo `ficha-chicote-0.3.1.json`;
     - **só acrescenta:** o teste sobe um banco na V12, com uma OS, até a V13. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.
+
+## 21/10/2026 — Fase 3B, bloco 3B.7: fechamento (versão 0.3.1)
+
+Plano aprovado pelo dono em 21/10/2026: os itens 3 e 4 da decisão 211, a revisão final da fase, a versão 0.3.1 e o MSI com o ensaio.
+
+272. **As correções da OS guardam o antes e o depois** (item 3 da decisão 211; resposta do dono: "na aba Histórico"):
+    - **o que entra:** cada campo que mudou ao salvar a abertura (o serviço pedido, o mecânico, a previsão de entrega e as observações) ou ao corrigir a entrada (a chegada, o km ou as horas de motor, o tanque, cada item da vistoria e os objetos deixados). Os nomes são os da tela: "Km no painel" no carro e "Horas de motor" no barco, e "Vistoria: Lataria e pintura" para cada item. O mecânico aparece pelo nome, e o item repetido da vistoria ganha o número ("Vistoria: Casco (2)");
+    - **o que não entra:** o primeiro registro da entrada (não é correção), salvar sem mudar nada e o item novo da vistoria que ficou em branco (a entrada gravada sem itens mostra os de Configurações em branco). O item que saiu da vistoria aparece com o "depois" vazio;
+    - **onde fica:** no mesmo log de auditoria do veículo, do cliente e das instalações (tabela `auditoria`, entidade `ordem_servico`), sem migração nova. A classe `Auditoria` passou a ser pública, com os dois métodos que a OS usa;
+    - **onde aparece:** na aba Histórico da OS, embaixo das etapas, na lista "Correções da abertura e da entrada": a data e a hora, o campo, o antes e o depois, com a mais nova em cima. Sem correção, a lista diz que a abertura e a entrada estão como foram anotadas;
+    - **anonimização:** o antes e o depois dos textos livres da OS ficam, como os próprios textos (manual, item 6.6). O mecânico é da oficina, não do cliente.

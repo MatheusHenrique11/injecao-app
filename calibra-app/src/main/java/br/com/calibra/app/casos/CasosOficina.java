@@ -53,6 +53,7 @@ import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.cadastro.ClienteRepositorio;
 import br.com.calibra.dados.cadastro.ClienteSalvo;
+import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.cadastro.VeiculoRepositorio;
 import br.com.calibra.dados.cadastro.VeiculoSalvo;
 import br.com.calibra.dados.catalogo.CatalogoRepositorio;
@@ -637,6 +638,14 @@ public final class CasosOficina {
 
     public List<MudancaStatusOs> historico(long osId) {
         return banco.ler(c -> ordens.historico(c, osId));
+    }
+
+    /**
+     * As correções da abertura e da entrada (item 3 da decisão 211): o campo, o antes e o depois, da correção mais
+     * nova para a mais antiga.
+     */
+    public List<EventoAuditoria> correcoes(long osId) {
+        return banco.ler(c -> ordens.correcoes(c, osId));
     }
 
     /**

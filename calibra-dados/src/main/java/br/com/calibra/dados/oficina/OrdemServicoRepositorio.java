@@ -7,8 +7,10 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -18,20 +20,32 @@ import br.com.calibra.core.cadastro.TipoVeiculo;
 import br.com.calibra.core.oficina.EntradaVeiculo;
 import br.com.calibra.core.oficina.Entrega;
 import br.com.calibra.core.oficina.Garantia;
+import br.com.calibra.core.oficina.ItemVistoria;
 import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.NumeroOs;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.Vistoria;
+import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.core.util.TextoBusca;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.Sql;
+import br.com.calibra.dados.cadastro.Auditoria;
+import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.json.Json;
 
 /**
  * Ordens de serviço (SPEC 6.5) na tabela {@code ordem_servico}, com o histórico de status em {@code os_status}. O
  * banco recusa apagar OS e mudar OS entregue ou cancelada; aqui, os passos seguem {@link StatusOs#podeIrPara}.
+ *
+ * <p>As correções da abertura e da entrada vão para o log de auditoria, campo a campo, como as do veículo (item 3 da
+ * decisão 211): o mecânico pelo nome e os campos da entrada com os nomes da tela.
  */
 public final class OrdemServicoRepositorio {
+
+    static final String ENTIDADE = "ordem_servico";
+
+    private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DIA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static final String COLUNAS = "id, ano, sequencial, cliente_id, veiculo_id, projeto_id, status, "
             + "servico_pedido, mecanico_id, previsao_entrega, entrada_em, uso_entrada, combustivel_entrada, "
@@ -88,26 +102,40 @@ public final class OrdemServicoRepositorio {
         return id;
     }
 
-    /** Muda o que foi informado na abertura (o serviço pedido, o mecânico, a previsão e as observações). */
+    /**
+     * Muda o que foi informado na abertura (o serviço pedido, o mecânico, a previsão e as observações), com uma linha
+     * nas correções da OS para cada campo que mudou.
+     */
     public void atualizarAbertura(Connection conexao, long id, String servicoPedido, Long mecanicoId,
             LocalDate previsaoEntrega, String observacoes) throws SQLException {
-        exigirEmAndamento(conexao, id);
+        OrdemServicoSalva atual = exigirEmAndamento(conexao, id);
+        String servico = servicoPedido == null ? "" : servicoPedido.strip();
+        String texto = observacoes == null ? "" : observacoes.strip();
+        LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement atualizacao = conexao.prepareStatement(
                 "UPDATE ordem_servico SET servico_pedido = ?, mecanico_id = ?, previsao_entrega = ?, observacoes = ?, "
                         + "atualizado_em = ? WHERE id = ?")) {
-            atualizacao.setString(1, servicoPedido == null ? "" : servicoPedido.strip());
+            atualizacao.setString(1, servico);
             Sql.longo(atualizacao, 2, mecanicoId);
             atualizacao.setString(3, Sql.texto(previsaoEntrega));
-            atualizacao.setString(4, observacoes == null ? "" : observacoes.strip());
-            atualizacao.setString(5, Sql.texto(Sql.agora(relogio)));
+            atualizacao.setString(4, texto);
+            atualizacao.setString(5, Sql.texto(agora));
             atualizacao.setLong(6, id);
             atualizacao.executeUpdate();
         }
+        Auditoria.registrarMudancas(conexao, ENTIDADE, id,
+                camposDaAbertura(atual.servicoPedido(), nomeDoMecanico(conexao, atual.mecanicoId()),
+                        atual.previsaoEntrega(), atual.observacoes()),
+                camposDaAbertura(servico, nomeDoMecanico(conexao, mecanicoId), previsaoEntrega, texto), agora);
     }
 
-    /** Grava (ou corrige) a entrada do veículo. */
+    /**
+     * Grava (ou corrige) a entrada do veículo. A correção ganha uma linha nas correções da OS para cada campo que
+     * mudou; o primeiro registro da entrada não é correção.
+     */
     public void registrarEntrada(Connection conexao, long id, EntradaVeiculo entrada) throws SQLException {
-        exigirEmAndamento(conexao, id);
+        OrdemServicoSalva atual = exigirEmAndamento(conexao, id);
+        LocalDateTime agora = Sql.agora(relogio);
         try (PreparedStatement atualizacao = conexao.prepareStatement(
                 "UPDATE ordem_servico SET entrada_em = ?, uso_entrada = ?, combustivel_entrada = ?, vistoria_json = ?, "
                         + "atualizado_em = ? WHERE id = ?")) {
@@ -115,10 +143,24 @@ public final class OrdemServicoRepositorio {
             Sql.numero(atualizacao, 2, entrada.uso());
             Sql.nome(atualizacao, 3, entrada.combustivel());
             atualizacao.setString(4, Json.escrever(entrada.vistoria()));
-            atualizacao.setString(5, Sql.texto(Sql.agora(relogio)));
+            atualizacao.setString(5, Sql.texto(agora));
             atualizacao.setLong(6, id);
             atualizacao.executeUpdate();
         }
+        if (atual.entrada() != null) {
+            String uso = rotuloDoUso(conexao, atual.veiculoId());
+            Map<String, String> antes = camposDaEntrada(atual.entrada(), uso);
+            Map<String, String> depois = camposDaEntrada(entrada, uso);
+            // Item da vistoria que só está de um lado: vazio do outro (em branco nos dois, não é correção).
+            antes.keySet().forEach(campo -> depois.putIfAbsent(campo, ""));
+            depois.keySet().forEach(campo -> antes.putIfAbsent(campo, ""));
+            Auditoria.registrarMudancas(conexao, ENTIDADE, id, antes, depois, agora);
+        }
+    }
+
+    /** As correções da abertura e da entrada, da mais nova para a mais antiga; dentro dela, na ordem da tela. */
+    public List<EventoAuditoria> correcoes(Connection conexao, long id) throws SQLException {
+        return Auditoria.historico(conexao, ENTIDADE, id);
     }
 
     /**
@@ -298,6 +340,62 @@ public final class OrdemServicoRepositorio {
             }
         }
         return historico;
+    }
+
+    /** Os campos da abertura como aparecem nas correções (rótulo → valor). */
+    static Map<String, String> camposDaAbertura(String servicoPedido, String mecanico, LocalDate previsaoEntrega,
+            String observacoes) {
+        Map<String, String> campos = new LinkedHashMap<>();
+        campos.put("Serviço pedido", servicoPedido);
+        campos.put("Mecânico", mecanico);
+        campos.put("Previsão de entrega", previsaoEntrega == null ? "" : previsaoEntrega.format(DIA));
+        campos.put("Observações", observacoes);
+        return campos;
+    }
+
+    /**
+     * Os campos da entrada como aparecem nas correções (rótulo → valor), com os nomes da aba Entrada; cada item da
+     * vistoria é um campo ("Vistoria: Lataria e pintura"). Item repetido ganha o número: "Vistoria: Estepe (2)".
+     *
+     * @param rotuloDoUso "Km no painel" ou "Horas de motor", pelo tipo do veículo
+     */
+    static Map<String, String> camposDaEntrada(EntradaVeiculo entrada, String rotuloDoUso) {
+        Map<String, String> campos = new LinkedHashMap<>();
+        campos.put("Chegada", entrada.quando().format(DIA_HORA));
+        campos.put(rotuloDoUso, entrada.uso() == null ? "" : NumeroBr.formatar(entrada.uso(), 0, 2));
+        campos.put("Tanque", entrada.combustivel() == null ? "" : entrada.combustivel().rotulo());
+        for (ItemVistoria item : entrada.vistoria().itens()) {
+            String campo = "Vistoria: " + item.item();
+            for (int vez = 2; campos.containsKey(campo); vez++) {
+                campo = "Vistoria: " + item.item() + " (" + vez + ")";
+            }
+            campos.put(campo, item.observacao());
+        }
+        campos.put("Objetos deixados no veículo", entrada.vistoria().objetos());
+        return campos;
+    }
+
+    private static String nomeDoMecanico(Connection conexao, Long mecanicoId) throws SQLException {
+        if (mecanicoId == null) {
+            return "";
+        }
+        try (PreparedStatement consulta = conexao.prepareStatement("SELECT nome FROM mecanico WHERE id = ?")) {
+            consulta.setLong(1, mecanicoId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                return linha.next() ? linha.getString("nome") : "";
+            }
+        }
+    }
+
+    /** O nome do campo do uso na aba Entrada: horas de motor no náutico, km no resto. */
+    private static String rotuloDoUso(Connection conexao, long veiculoId) throws SQLException {
+        try (PreparedStatement consulta = conexao.prepareStatement("SELECT tipo FROM veiculo WHERE id = ?")) {
+            consulta.setLong(1, veiculoId);
+            try (ResultSet linha = consulta.executeQuery()) {
+                TipoVeiculo tipo = linha.next() ? Sql.constante(linha, "tipo", TipoVeiculo.class) : null;
+                return tipo != null && tipo.nautico() ? "Horas de motor" : "Km no painel";
+            }
+        }
     }
 
     private OrdemServicoSalva exigir(Connection conexao, long id) throws SQLException {

@@ -15,9 +15,10 @@ import br.com.calibra.dados.Sql;
 
 /**
  * Log de auditoria dos cadastros (tabela {@code auditoria}, SPEC 6.2): todo salvamento grava o campo, o valor
- * antigo, o novo, a data e a hora.
+ * antigo, o novo, a data e a hora. A OS usa o mesmo log para as correções da abertura e da entrada (bloco 3B.7): por
+ * isso a classe e os dois métodos que ela usa são públicos.
  */
-final class Auditoria {
+public final class Auditoria {
 
     /** O que fica no lugar de um valor pessoal apagado na anonimização. */
     static final String APAGADO = "(apagado na anonimização)";
@@ -41,7 +42,7 @@ final class Auditoria {
     }
 
     /** Grava uma linha para cada campo que mudou; os mapas têm o rótulo do campo e o valor como texto. */
-    static void registrarMudancas(Connection conexao, String entidade, long id, Map<String, String> antes,
+    public static void registrarMudancas(Connection conexao, String entidade, long id, Map<String, String> antes,
             Map<String, String> depois, LocalDateTime quando) throws SQLException {
         for (Map.Entry<String, String> campo : depois.entrySet()) {
             String antigo = antes.get(campo.getKey());
@@ -52,7 +53,7 @@ final class Auditoria {
     }
 
     /** Histórico do cadastro, do salvamento mais novo para o mais antigo; dentro dele, na ordem da tela. */
-    static List<EventoAuditoria> historico(Connection conexao, String entidade, long id) throws SQLException {
+    public static List<EventoAuditoria> historico(Connection conexao, String entidade, long id) throws SQLException {
         List<EventoAuditoria> eventos = new ArrayList<>();
         try (PreparedStatement consulta = conexao.prepareStatement(
                 "SELECT campo, valor_antigo, valor_novo, data_hora FROM auditoria "

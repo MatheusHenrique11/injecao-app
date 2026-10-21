@@ -290,6 +290,82 @@ class OrdemServicoRepositorioTest {
         assertEquals("", buscar(comVeiculo).entrega().quemRetirou(), "com o veículo, como antes");
     }
 
+    private void corrigirAbertura(long id, String servico, Long mecanico, LocalDate previsao, String observacoes) {
+        base.banco.transacao(c -> {
+            ordens.atualizarAbertura(c, id, servico, mecanico, previsao, observacoes);
+            return null;
+        });
+    }
+
+    private void registrar(long id, EntradaVeiculo entrada) {
+        base.banco.transacao(c -> {
+            ordens.registrarEntrada(c, id, entrada);
+            return null;
+        });
+    }
+
+    /** As correções da OS como texto: "campo: antes → depois", da mais nova para a mais antiga. */
+    private List<String> correcoes(long id) {
+        return base.banco.ler(c -> ordens.correcoes(c, id)).stream()
+                .map(e -> e.campo() + ": " + e.valorAntigo() + " → " + e.valorNovo()).toList();
+    }
+
+    /** Bloco 3B.7 (item 3 da decisão 211): a abertura corrigida guarda o antes e o depois, o mecânico pelo nome. */
+    @Test
+    void correcoesDaAbertura() {
+        long id = abrirOs(1, cliente, veiculo, null);
+        MecanicoRepositorio mecanicos = new MecanicoRepositorio(base.relogio);
+        long carlos = base.banco.transacao(c -> mecanicos.inserir(c, "Carlos"));
+        assertEquals(List.of(), correcoes(id), "a abertura não é correção");
+
+        corrigirAbertura(id, "Barulho no turbo e falha na partida", carlos, LocalDate.of(2026, 10, 22), "");
+        assertEquals(List.of("Serviço pedido: Barulho no turbo → Barulho no turbo e falha na partida",
+                "Mecânico:  → Carlos", "Previsão de entrega: 20/10/2026 → 22/10/2026"), correcoes(id),
+                "só o que mudou, na ordem da tela");
+
+        corrigirAbertura(id, " Barulho no turbo e falha na partida ", carlos, LocalDate.of(2026, 10, 22), " ");
+        assertEquals(3, correcoes(id).size(), "salvar sem mudar nada não é correção");
+
+        corrigirAbertura(id, "Barulho no turbo e falha na partida", null, null, " Cliente espera na oficina ");
+        assertEquals(List.of("Mecânico: Carlos → ", "Previsão de entrega: 22/10/2026 → ",
+                "Observações:  → Cliente espera na oficina",
+                "Serviço pedido: Barulho no turbo → Barulho no turbo e falha na partida", "Mecânico:  → Carlos",
+                "Previsão de entrega: 20/10/2026 → 22/10/2026"), correcoes(id), "a correção mais nova primeiro");
+    }
+
+    /** Bloco 3B.7: a entrada corrigida guarda o antes e o depois de cada campo; o primeiro registro não é correção. */
+    @Test
+    void correcoesDaEntrada() {
+        long id = abrirOs(1, cliente, veiculo, null);
+        registrar(id, new EntradaVeiculo(ENTRADA, 251_500.0, NivelCombustivel.UM_QUARTO, new Vistoria(List.of(
+                new ItemVistoria("Lataria", "risco na porta direita"), new ItemVistoria("Estepe", "ok")),
+                "óculos no porta-luvas")));
+        assertEquals(List.of(), correcoes(id), "a primeira entrada não é correção");
+
+        registrar(id, new EntradaVeiculo(ENTRADA.withHour(8).withMinute(30), 251_550.5, NivelCombustivel.UM_QUARTO,
+                new Vistoria(List.of(new ItemVistoria("Lataria", "risco nas duas portas"),
+                        new ItemVistoria("Interior", ""), new ItemVistoria("Pneus", "dianteiro careca")), "")));
+        assertEquals(List.of("Chegada: 11/10/2026 09:00 → 11/10/2026 08:30", "Km no painel: 251.500 → 251.550,5",
+                "Vistoria: Lataria: risco na porta direita → risco nas duas portas",
+                "Vistoria: Pneus:  → dianteiro careca", "Objetos deixados no veículo: óculos no porta-luvas → ",
+                "Vistoria: Estepe: ok → "), correcoes(id),
+                "o tanque não mudou; o item novo em branco não é correção; o item tirado fica vazio");
+    }
+
+    /** No barco, o uso aparece como "Horas de motor", como na aba Entrada; o item repetido ganha o número. */
+    @Test
+    void correcoesDaEntradaDeUmBarco() {
+        long lancha = base.banco.transacao(c -> cadastros.veiculos().inserir(c, cliente, Cadastros.lancha("Maré Alta"),
+                null));
+        long id = abrirOs(1, cliente, lancha, null);
+        registrar(id, new EntradaVeiculo(ENTRADA, 120.0, null, new Vistoria(List.of(new ItemVistoria("Casco", "ok"),
+                new ItemVistoria("Casco", "risco na popa")), "")));
+        registrar(id, new EntradaVeiculo(ENTRADA, 121.5, null, new Vistoria(List.of(new ItemVistoria("Casco", "ok"),
+                new ItemVistoria("Casco", "risco fundo na popa")), "")));
+        assertEquals(List.of("Horas de motor: 120 → 121,5",
+                "Vistoria: Casco (2): risco na popa → risco fundo na popa"), correcoes(id));
+    }
+
     /** A V12 sobre um banco que já está na V11, com uma OS entregue: ela fica com "quem retirou" vazio. */
     @Test
     void v12SobreUmBancoNaV11() throws Exception {

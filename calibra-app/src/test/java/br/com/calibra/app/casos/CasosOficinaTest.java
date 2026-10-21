@@ -72,6 +72,7 @@ import br.com.calibra.dados.Migracoes;
 import br.com.calibra.dados.OperacaoRecusadaException;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.backup.Backup;
+import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.catalogo.InfoCatalogo;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
@@ -448,6 +449,33 @@ class CasosOficinaTest {
 
         oficina.registrarEntrada(os, new EntradaVeiculo(agora(), 251_900.0, NivelCombustivel.MEIO, Vistoria.VAZIA));
         assertEquals(251_900.0, oficina.buscar(os).veiculo().veiculo().usoAcumulado(), "km corrigido vai para o veículo");
+    }
+
+    /**
+     * Bloco 3B.7 (item 3 da decisão 211): a abertura e a entrada corrigidas aparecem nas correções da OS, da mais
+     * nova para a mais antiga, com o mecânico pelo nome e o km como na tela.
+     */
+    @Test
+    void correcoesDaOsComAntesEDepois() {
+        long os = abrirComEntrada("Rita Alves", "NOP4Q56");
+        LocalDateTime chegada = oficina.buscar(os).os().entrada().quando();
+        long carlos = oficina.novoMecanico("Carlos");
+        assertEquals(List.of(), oficina.correcoes(os), "abrir com a entrada não é correção");
+
+        relogio.andar(Duration.ofMinutes(10));
+        oficina.editarAbertura(os, "Revisão e troca de óleo", carlos, null, "");
+        relogio.andar(Duration.ofMinutes(10));
+        oficina.registrarEntrada(os, new EntradaVeiculo(chegada, 251_600.0, NivelCombustivel.UM_QUARTO, new Vistoria(
+                List.of(new ItemVistoria("Lataria", "risco na porta direita"), new ItemVistoria("Estepe", "ok")), "")));
+
+        List<EventoAuditoria> correcoes = oficina.correcoes(os);
+        assertEquals(List.of("Km no painel", "Mecânico"), correcoes.stream().map(EventoAuditoria::campo).toList(),
+                "a mais nova primeiro; o que não mudou não aparece");
+        assertEquals(List.of("251.500", "251.600"), List.of(correcoes.get(0).valorAntigo(),
+                correcoes.get(0).valorNovo()));
+        assertEquals(LocalDateTime.of(2026, 10, 13, 9, 20), correcoes.get(0).dataHora());
+        assertEquals(List.of("", "Carlos"), List.of(correcoes.get(1).valorAntigo(), correcoes.get(1).valorNovo()));
+        assertEquals(LocalDateTime.of(2026, 10, 13, 9, 10), correcoes.get(1).dataHora());
     }
 
     /** Antes da aprovação, recusa e revisão voltam a OS para aberta; depois, a revisão não mexe na OS. */

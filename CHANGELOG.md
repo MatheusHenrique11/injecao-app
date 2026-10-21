@@ -27,6 +27,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **Versões do chicote:** "Nova versão…" começa da ficha anterior (v1 vira v2); a anterior fica guardada, em cinza, só para ver.
 - **PDF da ficha do chicote:** a folha A4, feita na hora pela aba Execução ou pelo menu Documentos, com os pontos e os testes de bancada tirados do checklist da confecção (cada item, com quem marcou e quando). A ficha comum cabe numa página.
 - **Fichas de chicote na ficha do veículo:** as de todas as OS do veículo; o duplo clique abre a OS. Na entrega da OS, a última versão de cada chicote fica "entregue".
+- **Correções da OS com o antes e o depois:** na aba Histórico, embaixo das etapas, a lista "Correções da abertura e da entrada" mostra cada campo corrigido depois de gravado (o serviço pedido, o mecânico, a previsão, as observações, a chegada, o km, o tanque, a vistoria e os objetos deixados), com a data e a hora. Antes, a correção não guardava o valor antigo.
 
 ### Mudado
 - **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.

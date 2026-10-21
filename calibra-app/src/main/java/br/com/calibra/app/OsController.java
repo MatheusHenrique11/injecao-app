@@ -64,6 +64,7 @@ import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
+import br.com.calibra.dados.cadastro.EventoAuditoria;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
@@ -160,6 +161,11 @@ public class OsController {
     @FXML private TableColumn<MudancaStatusOs, String> colunaDataHora;
     @FXML private TableColumn<MudancaStatusOs, String> colunaStatus;
     @FXML private TableColumn<MudancaStatusOs, String> colunaHistoricoObservacao;
+    @FXML private TableView<EventoAuditoria> correcoes;
+    @FXML private TableColumn<EventoAuditoria, String> colunaCorrecaoDataHora;
+    @FXML private TableColumn<EventoAuditoria, String> colunaCorrecaoCampo;
+    @FXML private TableColumn<EventoAuditoria, String> colunaCorrecaoAntes;
+    @FXML private TableColumn<EventoAuditoria, String> colunaCorrecaoDepois;
     @FXML private VBox mensagens;
 
     private Recursos recursos;
@@ -193,8 +199,13 @@ public class OsController {
         coluna(colunaDataHora, m -> Datas.diaHora(m.dataHora()));
         coluna(colunaStatus, m -> m.status().rotulo());
         coluna(colunaHistoricoObservacao, MudancaStatusOs::observacao);
+        coluna(colunaCorrecaoDataHora, e -> Datas.diaHora(e.dataHora()));
+        coluna(colunaCorrecaoCampo, EventoAuditoria::campo);
+        coluna(colunaCorrecaoAntes, e -> valorCorrigido(e.valorAntigo()));
+        coluna(colunaCorrecaoDepois, e -> valorCorrigido(e.valorNovo()));
         recebimentos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         historico.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+        correcoes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         CamposTela.configurar(projetosDoVeiculo, List.of(), p -> "Projeto #" + p.projetoId() + " · " + p.motor()
                 + " · " + p.status().rotulo());
     }
@@ -349,6 +360,7 @@ public class OsController {
         mostrarEntregaEPagamento();
         anexosController.atualizar();
         historico.getItems().setAll(mudancas.reversed());
+        correcoes.getItems().setAll(recursos.oficina().correcoes(osId));
         if (orcamento != null) {
             orcamento.atualizar();
         }
@@ -1107,6 +1119,11 @@ public class OsController {
 
     private static <T> void coluna(TableColumn<T, String> coluna, Function<T, String> texto) {
         coluna.setCellValueFactory(celula -> new ReadOnlyStringWrapper(texto.apply(celula.getValue())));
+    }
+
+    /** O antes ou o depois de uma correção: o campo em branco aparece como "—", como no histórico do veículo. */
+    private static String valorCorrigido(String valor) {
+        return valor == null || valor.isEmpty() ? "—" : valor;
     }
 
     private Window janela() {

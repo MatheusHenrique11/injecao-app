@@ -773,6 +773,13 @@ class OficinaUiTest {
                 EntradaVeiculo gravada = oficina.buscar(ana).os().entrada();
                 assertEquals(NivelCombustivel.CHEIO, gravada.combustivel());
                 assertEquals(1_250.25, gravada.uso(), "o uso fica como estava, sem virar 1.250,3");
+
+                // Bloco 3B.7 (item 3 da decisão 211): a correção aparece na aba Histórico, com o antes e o depois.
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaHistorico"));
+                assertEquals(List.of("Tanque: 1/2 → Cheio"), correcoes(), "o uso, a chegada e a vistoria em branco "
+                        + "não mudaram");
+                salvar(cena, "oficina-44-os-correcoes.png");
             });
         } finally {
             if (principal != null) {
@@ -1985,6 +1992,8 @@ class OficinaUiTest {
                 StatusOs.EM_EXECUCAO, StatusOs.APROVADA, StatusOs.AGUARDANDO_APROVACAO, StatusOs.ABERTA),
                 TelaDeTeste.<TableView<MudancaStatusOs>>achar(cena, "historico").getItems().stream()
                         .map(MudancaStatusOs::status).toList());
+        assertEquals(List.of("Serviço pedido: Barulho na suspensão dianteira → Barulho na suspensão dianteira e no "
+                + "quebra-molas"), correcoes(), "a abertura corrigida antes da via");
         salvar(cena, "oficina-11-os-historico.png");
 
         TelaDeTeste.<ToggleButton>achar(cena, "navPainel").fire();
@@ -1999,6 +2008,17 @@ class OficinaUiTest {
 
     private String texto(String id) {
         return TelaDeTeste.<Label>achar(cena, id).getText();
+    }
+
+    /** A lista "Correções" da aba Histórico como texto: "campo: antes → depois" (o vazio aparece como "—"). */
+    private List<String> correcoes() {
+        TableView<EventoAuditoria> tabela = achar(cena, "correcoes");
+        return tabela.getItems().stream().map(e -> e.campo() + ": " + celula(tabela, 2, e) + " → "
+                + celula(tabela, 3, e)).toList();
+    }
+
+    private static String celula(TableView<EventoAuditoria> tabela, int coluna, EventoAuditoria linha) {
+        return (String) tabela.getColumns().get(coluna).getCellObservableValue(linha).getValue();
     }
 
     /** Um nó da aba escolhida (o conteúdo da aba Orçamento entra pelo código). */
