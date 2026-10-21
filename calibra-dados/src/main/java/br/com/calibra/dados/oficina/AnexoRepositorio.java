@@ -22,8 +22,14 @@ import br.com.calibra.dados.Sql;
  */
 public final class AnexoRepositorio {
 
+    /** O nome original dos anexos que ficam depois da anonimização do cliente, antes da extensão. */
+    public static final String NOME_ANONIMIZADO = "arquivo anonimizado";
+
     private static final String COLUNAS = "id, veiculo_id, os_id, tipo, descricao, arquivo, nome_original, "
             + "tamanho_bytes, sha256, validade, pessoal, criado_em";
+    /** Os anexos do cliente: os das OS dele e os dos veículos dele que não são de OS (dois parâmetros: o cliente). */
+    private static final String DO_CLIENTE = "(os_id IN (SELECT id FROM ordem_servico WHERE cliente_id = ?) OR "
+            + "(os_id IS NULL AND veiculo_id IN (SELECT id FROM veiculo WHERE cliente_id = ?)))";
 
     private final Clock relogio;
 
@@ -98,9 +104,35 @@ public final class AnexoRepositorio {
      * veículos dele que não são de OS.
      */
     public List<AnexoSalvo> pessoaisDoCliente(Connection conexao, long clienteId) throws SQLException {
-        return lista(conexao, "SELECT " + COLUNAS + " FROM anexo WHERE pessoal = 1 AND (os_id IN (SELECT id FROM "
-                + "ordem_servico WHERE cliente_id = ?) OR (os_id IS NULL AND veiculo_id IN (SELECT id FROM veiculo "
-                + "WHERE cliente_id = ?))) ORDER BY id", clienteId, clienteId);
+        return lista(conexao, "SELECT " + COLUNAS + " FROM anexo WHERE pessoal = 1 AND " + DO_CLIENTE + " ORDER BY id",
+                clienteId, clienteId);
+    }
+
+    /**
+     * LGPD (item 4 da decisão 211): os anexos do cliente que ficam na anonimização (os das OS dele e os dos veículos
+     * dele que não são de OS) trocam o nome original pelo {@link #NOME_ANONIMIZADO}, com a extensão da cópia (ex.:
+     * "arquivo anonimizado.jpg"): "CNH do João.jpg" não marcado como documento pessoal não fica com o nome. A
+     * descrição e o arquivo na pasta de anexos ficam. Chame depois de apagar os pessoais.
+     *
+     * @return quantos nomes mudaram
+     */
+    public int anonimizarNomes(Connection conexao, long clienteId) throws SQLException {
+        List<AnexoSalvo> doCliente = lista(conexao, "SELECT " + COLUNAS + " FROM anexo WHERE " + DO_CLIENTE
+                + " ORDER BY id", clienteId, clienteId);
+        int mudados = 0;
+        try (PreparedStatement atualizacao = conexao.prepareStatement(
+                "UPDATE anexo SET nome_original = ? WHERE id = ?")) {
+            for (AnexoSalvo anexo : doCliente) {
+                String nome = NOME_ANONIMIZADO + extensao(anexo.arquivo());
+                if (!nome.equals(anexo.nomeOriginal())) {
+                    atualizacao.setString(1, nome);
+                    atualizacao.setLong(2, anexo.id());
+                    atualizacao.executeUpdate();
+                    mudados++;
+                }
+            }
+        }
+        return mudados;
     }
 
     /** Quantos anexos apontam para o arquivo (o mesmo arquivo anexado duas vezes é uma cópia só). */
@@ -124,6 +156,13 @@ public final class AnexoRepositorio {
             }
         }
         return arquivos;
+    }
+
+    /** A extensão da cópia na pasta de anexos, com o ponto (".jpg"); vazia se ela não tiver. */
+    private static String extensao(String arquivo) {
+        String nome = arquivo.substring(Math.max(arquivo.lastIndexOf('/'), arquivo.lastIndexOf('\\')) + 1);
+        int ponto = nome.lastIndexOf('.');
+        return ponto < 0 ? "" : nome.substring(ponto);
     }
 
     private static List<AnexoSalvo> lista(Connection conexao, String sql, long... parametros) throws SQLException {

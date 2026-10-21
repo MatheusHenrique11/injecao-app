@@ -73,6 +73,7 @@ import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.ChecklistDaOs;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
+import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
 import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
@@ -684,10 +685,20 @@ class OficinaUiTest {
             TelaDeTeste.naTelaDoJavaFx(() -> {
                 assertTrue(texto("veiculoDetalhes").contains("cor Vermelho"), texto("veiculoDetalhes"));
                 FichaVeiculoController ficha = principal.fichaAberta();
+                Path foto = Files.write(pasta.resolve("Som da Ana Costa.jpg"),
+                        new byte[] {(byte) 0xFF, (byte) 0xD8, 5});
+                AnexoSalvo daFoto = oficina.anexarAoVeiculo(oficina.buscar(ana).veiculo().id(), List.of(
+                        new NovoAnexo(foto, TipoAnexo.FOTO_SERVICO, "Módulo do som no porta-malas", null, false)))
+                        .getFirst();
                 ficha.anonimizarCliente();
                 assertTrue(texto("clienteNome").startsWith("Cliente anonimizado #"), texto("clienteNome"));
-                assertEquals(List.of(), ficha.anexos().lista().getItems(), "o documento pessoal saiu");
-                assertEquals(List.of("Cliente anonimizado. 1 documento pessoal foi apagado."), ficha.mensagens());
+                assertEquals(List.of(new AnexoSalvo(daFoto.id(), daFoto.veiculoId(), null, TipoAnexo.FOTO_SERVICO,
+                        "Módulo do som no porta-malas", daFoto.arquivo(), "arquivo anonimizado.jpg",
+                        daFoto.tamanhoBytes(), daFoto.sha256(), null, false, daFoto.criadoEm())),
+                        ficha.anexos().lista().getItems(), "o documento pessoal saiu; a foto fica, com o nome trocado "
+                                + "(bloco 3B.7) e a mesma descrição");
+                assertEquals(List.of("Cliente anonimizado. 1 documento pessoal foi apagado. O anexo que fica passou a "
+                        + "se chamar \"arquivo anonimizado\"."), ficha.mensagens());
                 assertTrue(TelaDeTeste.<Button>achar(cena, "botaoEditarCliente").isDisabled());
                 salvar(cena, "oficina-22-ficha-anonimizada.png");
                 TelaDeTeste.<Button>achar(cena, "botaoVoltar").fire();

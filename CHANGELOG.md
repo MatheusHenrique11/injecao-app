@@ -35,6 +35,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **"Trazer as peças do cálculo de novo"** (orçamento de preparação) mantém os itens da aba Itens, além dos serviços; as peças digitadas continuam sendo trocadas pelas do cálculo.
 - Banco de dados na versão 13 (V8: os checklists da OS; V9: os 7 modelos de checklist; V10: os laudos elétricos; V11: as instalações do veículo; V12: "quem retirou" na entrega; V13: as fichas de chicote). As seis só acrescentam; nada do que existe muda. Como sempre, a atualização faz um backup antes.
 - Os modelos de checklist ficam em Catálogos › Checklists, e não em Configurações, como a SPEC dizia: assim ganham busca, versões, duplicar e arquivar.
+- **Anonimização com o nome dos arquivos:** os anexos que ficam (fotos, laudos, notas) trocam o nome do arquivo por "arquivo anonimizado", com a extensão; a descrição fica. Antes, uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal continuava com esse nome.
 - O PDF do laudo e o da ficha do chicote são feitos na hora, como a via e o comprovante, sem cópia nos anexos (a SPEC dizia "anexo da OS"). O aviso de dado pessoal na queixa só aparece quando ela parece ter um, e não a cada gravação.
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
 

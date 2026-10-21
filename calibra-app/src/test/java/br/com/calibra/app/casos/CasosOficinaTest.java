@@ -694,8 +694,8 @@ class CasosOficinaTest {
         AnexoSalvo daNina = oficina.anexar(outra, List.of(new NovoAnexo(doc, TipoAnexo.DOCUMENTO, "", null, true)))
                 .getFirst();
 
-        assertEquals(new Anonimizacao(2, 0), oficina.anonimizarCliente(aberta.cliente().id()),
-                "a CNH da OS e o CRLV do veículo");
+        assertEquals(new Anonimizacao(2, 0, 3), oficina.anonimizarCliente(aberta.cliente().id()),
+                "a CNH da OS e o CRLV do veículo saem; os 3 que ficam trocam o nome");
         assertTrue(oficina.buscar(os).cliente().cliente().nome().startsWith("Cliente anonimizado #"));
         assertEquals("", oficina.buscar(os).veiculo().veiculo().placa());
         assertEquals(List.of(daOs.get(0).id(), daOs.get(2).id(), doVeiculo.get(1).id()),
@@ -705,8 +705,19 @@ class CasosOficinaTest {
                 "o da CNH fica: o outro anexo (sem a marca de pessoal) ainda usa o mesmo arquivo");
         assertEquals(List.of(daNina.id()), oficina.anexosDaOs(outra).stream().map(AnexoSalvo::id).toList(),
                 "o documento da outra cliente fica");
-        assertEquals(new Anonimizacao(0, 0), oficina.anonimizarCliente(aberta.cliente().id()),
-                "de novo: nada mais a apagar");
+
+        // Bloco 3B.7 (item 4 da decisão 211): os que ficam trocam o nome original; a descrição e o arquivo ficam.
+        List<AnexoSalvo> ficaram = oficina.anexosDoVeiculo(veiculo);
+        assertEquals(List.of("arquivo anonimizado.jpg", "arquivo anonimizado.pdf", "arquivo anonimizado.pdf"),
+                ficaram.stream().map(AnexoSalvo::nomeOriginal).toList(), "IMG_0003.jpg, nota-lia.pdf e cnh.pdf");
+        assertEquals(List.of("", "", "A mesma CNH, sem a marca de pessoal"),
+                ficaram.stream().map(AnexoSalvo::descricao).toList());
+        assertEquals(List.of(daOs.get(0).arquivo(), daOs.get(2).arquivo(), doVeiculo.get(1).arquivo()),
+                ficaram.stream().map(AnexoSalvo::arquivo).toList());
+        assertEquals("doc-nina.pdf", oficina.anexosDaOs(outra).getFirst().nomeOriginal(), "o da outra cliente fica");
+
+        assertEquals(new Anonimizacao(0, 0, 0), oficina.anonimizarCliente(aberta.cliente().id()),
+                "de novo: nada mais a apagar nem a trocar");
     }
 
     /**
@@ -727,7 +738,7 @@ class CasosOficinaTest {
         assertThrows(OperacaoRecusadaException.class, () -> oficina.removerAnexo(documento.id()),
                 "pela tela, o anexo da OS entregue não sai");
 
-        assertEquals(new Anonimizacao(1, 0), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
+        assertEquals(new Anonimizacao(1, 0, 0), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
         assertEquals(List.of(), oficina.anexosDaOs(os), "a anonimização tira o documento pessoal mesmo da OS entregue");
         assertFalse(Files.exists(pastas.anexos().resolve(documento.arquivo())));
         assertEquals(StatusOs.ENTREGUE, status(os), "a OS fica como estava");
@@ -785,7 +796,7 @@ class CasosOficinaTest {
         Path copiaFoto = pastas.anexos().resolve(gravados.get(1).arquivo());
         Files.setAttribute(copiaCnh, "dos:readonly", true);
 
-        assertEquals(new Anonimizacao(1, 1), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
+        assertEquals(new Anonimizacao(1, 1, 1), oficina.anonimizarCliente(oficina.buscar(os).cliente().id()));
         assertTrue(Files.exists(copiaCnh), "presa: ficou na pasta");
         assertEquals(List.of(gravados.get(1).id()), oficina.anexosDaOs(os).stream().map(AnexoSalvo::id).toList(),
                 "o anexo saiu do banco do mesmo jeito");

@@ -185,13 +185,14 @@ public final class CasosOficina {
     }
 
     /**
-     * O que a anonimização apagou.
+     * O que a anonimização apagou e trocou.
      *
      * @param documentos os anexos marcados como documento pessoal que saíram
      * @param arquivosPresos os arquivos deles que não saíram da pasta agora (abertos em outro programa); o Calibra
      *        apaga na próxima vez que abrir
+     * @param nomes os anexos que ficaram e trocaram o nome do arquivo por "arquivo anonimizado" (bloco 3B.7)
      */
-    public record Anonimizacao(int documentos, int arquivosPresos) {
+    public record Anonimizacao(int documentos, int arquivosPresos, int nomes) {
     }
 
     /**
@@ -800,21 +801,25 @@ public final class CasosOficina {
     /**
      * LGPD (SPEC 6.1 e 6.5): anonimiza o cliente e os veículos dele e apaga os anexos marcados como documento pessoal
      * (das OS dele e dos veículos dele), na mesma gravação; os arquivos que ficarem sem uso saem da pasta de anexos.
-     * Fotos, laudos, notas fiscais, OS, projetos e cálculos ficam. Não tem volta.
+     * Fotos, laudos, notas fiscais, OS, projetos e cálculos ficam. Os anexos que ficam trocam o nome do arquivo por
+     * "arquivo anonimizado", com a extensão (item 4 da decisão 211); a descrição fica. Não tem volta.
      */
     public Anonimizacao anonimizarCliente(long clienteId) {
-        List<AnexoSalvo> apagados = banco.transacao(c -> {
+        record Feito(List<AnexoSalvo> apagados, int nomes) {
+        }
+        Feito feito = banco.transacao(c -> {
             clientes.buscar(c, clienteId).orElseThrow(
                     () -> new OperacaoRecusadaException("Cliente #" + clienteId + " não encontrado."));
             List<AnexoSalvo> pessoais = anexos.pessoaisDoCliente(c, clienteId);
             for (AnexoSalvo anexo : pessoais) {
                 anexos.apagar(c, anexo.id());
             }
+            int nomes = anexos.anonimizarNomes(c, clienteId);
             clientes.anonimizar(c, clienteId);
-            return pessoais;
+            return new Feito(pessoais, nomes);
         });
-        int presos = apagarSobras(apagados.stream().map(AnexoSalvo::arquivo).toList());
-        return new Anonimizacao(apagados.size(), presos);
+        int presos = apagarSobras(feito.apagados().stream().map(AnexoSalvo::arquivo).toList());
+        return new Anonimizacao(feito.apagados().size(), presos, feito.nomes());
     }
 
     // ===================== Anexos =====================

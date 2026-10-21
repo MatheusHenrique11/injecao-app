@@ -267,8 +267,11 @@ public class FichaVeiculoController {
             Anonimizacao feita = recursos.oficina().anonimizarCliente(ficha.cliente().id());
             atualizar();
             int apagados = feita.documentos();
+            int nomes = feita.nomes();
             mostrarOk("Cliente anonimizado." + (apagados == 0 ? "" : apagados == 1
                     ? " 1 documento pessoal foi apagado." : " " + apagados + " documentos pessoais foram apagados.")
+                    + (nomes == 0 ? "" : nomes == 1 ? " O anexo que fica passou a se chamar \"arquivo anonimizado\"."
+                            : " Os " + nomes + " anexos que ficam passaram a se chamar \"arquivo anonimizado\".")
                     + JanelasCadastro.avisoArquivosPresos(feita.arquivosPresos()));
         } catch (ErroDados erro) {
             mostrarErros(List.of(erro.getMessage()));

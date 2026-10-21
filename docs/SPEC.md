@@ -289,7 +289,7 @@ O registro de um veículo na oficina, da entrada à entrega. É o centro da gest
 - **Padrões da OS** em Configurações (bloco 3.3, itens 192 e 193): a garantia padrão, os itens da vistoria, o texto da via do cliente e o cadastro dos mecânicos.
 - **Catálogo de serviços** (bloco 3.3, item 194): nome, horas e preço de referência opcional; sem preço, as horas são obrigatórias. No orçamento, o serviço com preço próprio entra uma vez pelo preço; sem preço, entram as horas × o valor da hora.
 - **Ficha do veículo** (bloco 3.3, item 199): o cliente, o veículo, as OS, os projetos e os anexos de todas as OS, com os documentos do próprio veículo (anexo sem OS).
-- **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos marcados como documento pessoal, os das OS dele e os dos veículos dele, e mantém fotos, laudos e notas. O arquivo só sai da pasta se nenhum outro anexo o usar (bloco 3.3, item 201); o que estiver aberto em outro programa sai na próxima abertura do app. Depois, a identificação dos veículos dele não volta, e ele não recebe OS nova nem documento pessoal novo (itens 206 e 207).
+- **LGPD:** anonimizar o cliente (regra 2.8) apaga também os anexos marcados como documento pessoal, os das OS dele e os dos veículos dele, e mantém fotos, laudos e notas. O arquivo só sai da pasta se nenhum outro anexo o usar (bloco 3.3, item 201); o que estiver aberto em outro programa sai na próxima abertura do app. Depois, a identificação dos veículos dele não volta, e ele não recebe OS nova nem documento pessoal novo (itens 206 e 207). Os anexos que ficam trocam o nome original do arquivo por "arquivo anonimizado", com a extensão; a descrição fica (bloco 3B.7, item 273).
 
 ### 6.6 Auto elétrica — Fase 3B
 

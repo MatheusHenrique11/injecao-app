@@ -148,7 +148,8 @@ final class JanelasCadastro {
                 + "\" e telefone, e-mail, documento e observações são apagados, também no histórico. Os veículos dele "
                 + "perdem placa, chassi e identificação da embarcação, e os anexos marcados como documento pessoal "
                 + "(como CNH e CRLV) são apagados. Fotos, laudos, notas fiscais, OS, projetos, motores e cálculos "
-                + "ficam.\n\nIsto não pode ser desfeito.", anonimizar, cancelar);
+                + "ficam; o nome do arquivo dos anexos que ficam vira \"arquivo anonimizado\" (a descrição fica)."
+                + "\n\nIsto não pode ser desfeito.", anonimizar, cancelar);
         if (dono != null) {
             alerta.initOwner(dono);
         }

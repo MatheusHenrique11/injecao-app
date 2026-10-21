@@ -957,3 +957,8 @@ Plano aprovado pelo dono em 21/10/2026: os itens 3 e 4 da decisão 211, a revis�
     - **onde fica:** no mesmo log de auditoria do veículo, do cliente e das instalações (tabela `auditoria`, entidade `ordem_servico`), sem migração nova. A classe `Auditoria` passou a ser pública, com os dois métodos que a OS usa;
     - **onde aparece:** na aba Histórico da OS, embaixo das etapas, na lista "Correções da abertura e da entrada": a data e a hora, o campo, o antes e o depois, com a mais nova em cima. Sem correção, a lista diz que a abertura e a entrada estão como foram anotadas;
     - **anonimização:** o antes e o depois dos textos livres da OS ficam, como os próprios textos (manual, item 6.6). O mecânico é da oficina, não do cliente.
+273. **Na anonimização, os anexos que ficam trocam o nome do arquivo** (item 4 da decisão 211; resposta do dono: "só o nome"):
+    - **quais:** os das OS do cliente e os dos veículos dele que não são de OS, os mesmos de onde saem os documentos pessoais. O de outro cliente não muda;
+    - **o que muda:** o nome original (o que aparece na lista dos anexos e na janela "Editar…") vira "arquivo anonimizado", com a extensão da cópia (".jpg", ".png" ou ".pdf"). É o único lugar com o nome original: a cópia na pasta de anexos já tem o nome tirado do conteúdo (SHA-256), e ela não muda;
+    - **o que fica:** a descrição (escolha do dono: ela diz o que é a foto, como "Porta direita"), o tipo, a validade e o arquivo em si. O manual (item 6.6) avisa que a descrição e o que aparece na foto ou no PDF não mudam;
+    - **quando:** na mesma gravação da anonimização, depois de apagar os documentos pessoais. A janela de confirmação diz isso, e a mensagem da ficha do veículo diz quantos nomes mudaram.

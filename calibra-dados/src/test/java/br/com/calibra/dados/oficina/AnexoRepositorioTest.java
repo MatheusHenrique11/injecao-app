@@ -86,6 +86,40 @@ class AnexoRepositorioTest {
         assertEquals(1, (int) f.base().banco.ler(c -> anexos.quantosUsam(c, "veiculos/1/cccc.jpg")));
     }
 
+    /**
+     * Bloco 3B.7 (item 4 da decisão 211): na anonimização, os anexos do cliente (os da OS dele e os do veículo dele)
+     * trocam o nome original por "arquivo anonimizado", com a extensão da cópia. A descrição e o arquivo ficam, e os
+     * anexos de outro cliente não mudam.
+     */
+    @Test
+    void anonimizarNomesSoDoCliente() throws Exception {
+        Fixture f = abrir(BaseDeTeste.criada(pasta));
+        BaseDeTeste base = f.base();
+        AnexoRepositorio anexos = new AnexoRepositorio(base.relogio);
+        Cadastros.Repositorios cadastros = Cadastros.Repositorios.de(base);
+        long joao = base.banco.ler(c -> cadastros.veiculos().buscar(c, f.veiculo())).orElseThrow().clienteId();
+        long foto = base.banco.transacao(c -> anexos.inserir(c, f.veiculo(), f.os(), TipoAnexo.FOTO_ENTRADA,
+                "Porta direita", "veiculos/1/aaaa.jpg", "Carro do João.jpg", 10, "aaaa", null, false));
+        long semExtensao = base.banco.transacao(c -> anexos.inserir(c, f.veiculo(), null, TipoAnexo.OUTRO, "",
+                "veiculos/1/bbbb", "CNH do João", 10, "bbbb", null, false));
+        long maria = base.banco.transacao(c -> cadastros.clientes().inserir(c, Cadastros.cliente("Maria Souza")));
+        long carroDaMaria = base.banco.transacao(c -> cadastros.veiculos().inserir(c, maria, Cadastros.carro("XYZ9A87"),
+                null));
+        long daMaria = base.banco.transacao(c -> anexos.inserir(c, carroDaMaria, null, TipoAnexo.FOTO_SERVICO, "",
+                "veiculos/2/cccc.png", "Maria.png", 10, "cccc", null, false));
+
+        assertEquals(2, (int) base.banco.transacao(c -> anexos.anonimizarNomes(c, joao)));
+        AnexoSalvo daFoto = base.banco.ler(c -> anexos.buscar(c, foto)).orElseThrow();
+        assertEquals("arquivo anonimizado.jpg", daFoto.nomeOriginal());
+        assertEquals("Porta direita", daFoto.descricao(), "a descrição fica");
+        assertEquals("veiculos/1/aaaa.jpg", daFoto.arquivo(), "a cópia na pasta fica");
+        assertEquals("arquivo anonimizado", base.banco.ler(c -> anexos.buscar(c, semExtensao)).orElseThrow()
+                .nomeOriginal());
+        assertEquals("Maria.png", base.banco.ler(c -> anexos.buscar(c, daMaria)).orElseThrow().nomeOriginal(),
+                "o da outra cliente fica");
+        assertEquals(0, (int) base.banco.transacao(c -> anexos.anonimizarNomes(c, joao)), "de novo: nada a trocar");
+    }
+
     /** A V7 sobre um banco que já está na V6 (com uma OS): só cria a tabela, e as chaves valem. */
     @Test
     void v7SobreUmBancoNaV6() throws Exception {
