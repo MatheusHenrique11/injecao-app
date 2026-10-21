@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- As fichas de chicote da OS (Fase 3B, SPEC 6.6.5), na aba Execução, depois das instalações. -->
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="br.com.calibra.app.ChicotesController" spacing="8.0">
+  <Label styleClass="titulo-secao" text="Fichas do chicote"/>
+  <Label fx:id="situacaoFichas" styleClass="dica" wrapText="true"/>
+  <TableView fx:id="tabelaFichas" prefHeight="130.0">
+    <placeholder>
+      <Label styleClass="dica" text="Nenhuma ficha do chicote nesta OS."/>
+    </placeholder>
+    <columns>
+      <TableColumn fx:id="colunaVersao" text="Versão" prefWidth="90.0"/>
+      <TableColumn fx:id="colunaInjecao" text="Injeção" prefWidth="260.0"/>
+      <TableColumn fx:id="colunaPontos" text="Pontos" prefWidth="80.0"/>
+      <TableColumn fx:id="colunaSituacaoFicha" text="Situação" prefWidth="230.0"/>
+      <TableColumn fx:id="colunaAtualizada" text="Atualizada em" prefWidth="140.0"/>
+    </columns>
+  </TableView>
+  <HBox spacing="10.0">
+    <Button fx:id="botaoNovaFicha" text="Nova ficha…" onAction="#nova"/>
+    <Button fx:id="botaoAbrirFicha" text="Abrir…" onAction="#abrir"/>
+    <Button fx:id="botaoVersaoNova" text="Nova versão…" onAction="#versaoNova"/>
+    <Button fx:id="botaoPdfFicha" text="Gerar PDF…" onAction="#pdf"/>
+    <Button fx:id="botaoImprimirFicha" text="Imprimir…" onAction="#imprimir"/>
+    <Button fx:id="botaoApagarFicha" text="Apagar…" onAction="#apagar"/>
+  </HBox>
+</VBox>

@@ -102,6 +102,7 @@ import br.com.calibra.core.oficina.NivelCombustivel;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.oficina.Pagamento;
 import br.com.calibra.core.oficina.ResultadoLaudo;
+import br.com.calibra.core.oficina.SituacaoChicote;
 import br.com.calibra.core.oficina.SituacaoItem;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.core.oficina.TipoAnexo;
@@ -129,6 +130,7 @@ import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.FichaChicoteSalva;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
@@ -1257,6 +1259,115 @@ class OficinaUiTest {
     }
 
     /**
+     * Fase 3B (SPEC 6.6.5, bloco 3B.6; teste nº 13 da fase): a ficha do chicote, na OS de Bruno (só o chicote, pronta
+     * na bancada). Sem a fonte do pinout, não grava; com os pontos, grava, e o menu Documentos liga. O PDF traz os
+     * pontos e os testes de bancada do checklist. A versão nova deixa a anterior só para ver, em cinza. Entregue a OS,
+     * a última versão fica "entregue", e a ficha do veículo mostra as duas.
+     */
+    @Test
+    void fichaDoChicote() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrirBanco);
+            TelaDeTeste.naTelaDoJavaFx(this::chicoteEInstalacaoSemOCarro);
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                principal.abrirOs(bruno);
+                OsController os = principal.osAberta();
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaExecucao"));
+                ChicotesController chicotes = os.execucao().chicotes();
+                assertFalse(chicotes.temFicha());
+                assertTrue(item("itemChicotePdf").isDisable(), "sem ficha, o menu fica desligado");
+
+                JanelaChicote vazia = chicotes.janelaNova();
+                assertEquals("v1", vazia.versao().getText(), "a ficha nova é a v1");
+                assertFalse(vazia.gravar(), "sem a fonte do pinout, não grava");
+                assertEquals(List.of("Escreva de onde veio o pinout (ex.: o manual da injeção, o modelo do "
+                        + "fabricante)."), vazia.erros());
+
+                JanelaChicote janela = chicotes.janelaNova();
+                janela.injecaoTexto().setText("FuelTech FT450");
+                janela.fontePinout().setText("Manual da FT450, conector A");
+                EditorLinhas pontos = janela.pontos();
+                pontos.adicionar();
+                ((TextField) pontos.campo(0, 0)).setText("Bico do cilindro 1");
+                ((TextField) pontos.campo(0, 1)).setText("A");
+                ((TextField) pontos.campo(0, 2)).setText("12");
+                pontos.adicionar();
+                ((TextField) pontos.campo(1, 0)).setText("TPS");
+                ((TextField) pontos.campo(1, 1)).setText("B");
+                ((TextField) pontos.campo(1, 2)).setText("4");
+                ((TextField) pontos.campo(1, 3)).setText("sinal de 0 a 5 V");
+                ((CheckBox) pontos.campo(1, 4)).setSelected(true);
+                janela.situacao().setValue(SituacaoChicote.TESTADO);
+                assertTrue(janela.bancada().getText().startsWith("Do checklist da aba Execução: 12 de 12 itens "
+                        + "feitos."), janela.bancada().getText());
+                fotografar(janela.dialogo(), "oficina-41-janela-ficha-do-chicote.png");
+                assertTrue(janela.gravar(), janela.erros()::toString);
+                chicotes.aposGravar(janela);
+                assertEquals("Ficha do chicote gravada.", os.mensagens().getFirst());
+                assertFalse(item("itemChicotePdf").isDisable(), "com ficha, o menu liga");
+
+                FichaChicoteSalva v1 = chicotes.fichas().getFirst();
+                Path alvo = Path.of(System.getProperty("basedir", "")).toAbsolutePath().resolve("target");
+                Files.createDirectories(alvo);
+                Path pdf = alvo.resolve("exemplo-ficha-do-chicote-app.pdf");
+                os.escreverChicote(v1.id(), pdf);
+                try (PDDocument documento = Loader.loadPDF(pdf.toFile())) {
+                    String texto = new PDFTextStripper().getText(documento).replaceAll("\\s+", " ");
+                    for (String esperado : List.of("Ficha do chicote", "OS-2026-0002 · versão v1 · testado",
+                            "Injeção: FuelTech FT450", "Fonte do pinout: Manual da FT450, conector A",
+                            "Bico do cilindro 1 A 12 —", "TPS B 4 (a verificar) sinal de 0 a 5 V",
+                            "Testes de bancada (checklist da OS)", "Teste de continuidade de cada fio feito",
+                            "Responsável pela confecção (nome e assinatura)")) {
+                        assertTrue(texto.contains(esperado), () -> "faltou \"" + esperado + "\" em: " + texto);
+                    }
+                }
+
+                chicotes.tabela().getSelectionModel().select(v1);
+                JanelaChicote nova = chicotes.janelaVersaoNova(v1);
+                assertEquals("v2", nova.versao().getText(), "a versão nova começa da anterior");
+                nova.pontos().adicionar();
+                ((TextField) nova.pontos().campo(2, 0)).setText("Sensor de fase");
+                ((TextField) nova.pontos().campo(2, 1)).setText("C");
+                ((TextField) nova.pontos().campo(2, 2)).setText("2");
+                assertTrue(nova.gravar(), nova.erros()::toString);
+                chicotes.aposGravar(nova);
+                assertEquals(2, chicotes.fichas().size(), "a anterior fica");
+                FichaChicoteSalva anterior = chicotes.fichas().getFirst();
+                assertTrue(anterior.temVersaoNova());
+                assertTrue(chicotes.janelaAbrir(anterior).fontePinout().isDisabled(), "a anterior fica só para ver");
+                rolarAte(chicotes.tabela());
+                salvar(cena, "oficina-42-fichas-do-chicote.png");
+            });
+
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                OsController os = principal.osAberta();
+                os.entregar(new Entrega(LocalDateTime.now().withNano(0), null, new Garantia(90),
+                        "Oficina do João (fictícia)"));
+                assertEquals("Entregue", texto("status"));
+                ChicotesController chicotes = os.execucao().chicotes();
+                assertEquals("entregue", chicotes.fichas().getLast().ficha().rotuloDaSituacao(),
+                        "a última versão fica entregue com a OS");
+                assertEquals("testado (versão anterior, só para ver)", ChicotesController.situacao(
+                        chicotes.fichas().getFirst()));
+                assertTrue(TelaDeTeste.<Button>achar(cena, "botaoNovaFicha").isDisabled(), "OS entregue: só para ver");
+
+                TelaDeTeste.<Button>achar(cena, "botaoFichaVeiculo").fire();
+                FichaVeiculoController ficha = principal.fichaAberta();
+                assertEquals(List.of("v2", "v1"), ficha.chicotes().getItems().stream().map(f -> f.ficha()
+                        .versaoChicote()).toList(), "a ficha do veículo mostra as duas, a mais nova antes");
+                rolarAte(ficha.chicotes());
+                salvar(cena, "oficina-43-fichas-de-chicote-na-ficha.png");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
      * Fase 3B: Ana encomendou o chicote e a instalação da injeção programável, aprovados sem o carro ter chegado;
      * Bruno, só o chicote, que já ficou pronto na bancada, com o checklist feito.
      */
@@ -1306,7 +1417,9 @@ class OficinaUiTest {
     }
 
     /** Rola a tela até o nó ficar no alto da área visível (para a imagem mostrar o que o teste confere). */
-    private static void rolarAte(Node no) {
+    private void rolarAte(Node no) {
+        cena.getRoot().applyCss();
+        cena.getRoot().layout();
         Node pai = no.getParent();
         while (pai != null && !(pai instanceof ScrollPane)) {
             pai = pai.getParent();

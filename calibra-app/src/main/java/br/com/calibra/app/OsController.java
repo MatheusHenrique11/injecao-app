@@ -39,6 +39,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.AnexosDaOficina;
+import br.com.calibra.app.casos.CasosChicote;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
@@ -68,10 +69,13 @@ import br.com.calibra.dados.oficina.MecanicoSalvo;
 import br.com.calibra.dados.oficina.MudancaStatusOs;
 import br.com.calibra.dados.oficina.OrdemServicoSalva;
 import br.com.calibra.dados.oficina.PagamentoSalvo;
+import br.com.calibra.dados.oficina.FichaChicoteSalva;
 import br.com.calibra.dados.oficina.LaudoSalvo;
 import br.com.calibra.dados.projeto.VersaoMotor;
+import br.com.calibra.relatorios.DadosFichaChicote;
 import br.com.calibra.relatorios.DadosLaudo;
 import br.com.calibra.relatorios.DadosOs;
+import br.com.calibra.relatorios.RelatorioChicote;
 import br.com.calibra.relatorios.RelatorioLaudo;
 import br.com.calibra.relatorios.RelatorioOs;
 import br.com.calibra.relatorios.TextoWhatsAppOs;
@@ -90,9 +94,9 @@ public class OsController {
      * @param temporaria onde o PDF de uma impressão fica enquanto as páginas são desenhadas
      * @param tarefas a fila de segundo plano do app (a cópia dos anexos)
      */
-    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosProjeto projetos,
-            OrcamentoController.Recursos orcamento, HostServices servicos, Navegacao navegacao, Clock relogio,
-            Supplier<PadroesOs> padroes, Path temporaria, TarefasFundo tarefas) {
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosChicote chicotes,
+            CasosProjeto projetos, OrcamentoController.Recursos orcamento, HostServices servicos, Navegacao navegacao,
+            Clock relogio, Supplier<PadroesOs> padroes, Path temporaria, TarefasFundo tarefas) {
     }
 
     @FXML private Label titulo;
@@ -114,6 +118,8 @@ public class OsController {
     @FXML private MenuItem itemTextoPronta;
     @FXML private MenuItem itemLaudoPdf;
     @FXML private MenuItem itemLaudoImprimir;
+    @FXML private MenuItem itemChicotePdf;
+    @FXML private MenuItem itemChicoteImprimir;
     @FXML private TabPane abas;
     @FXML private Tab abaEntrada;
     // ---------- Entrada ----------
@@ -229,8 +235,8 @@ public class OsController {
     }
 
     /**
-     * A aba Execução (Fase 3B), depois da Preparação: os checklists dos serviços, os laudos e as instalações da OS.
-     * "Quem está marcando" já vem com o mecânico da OS, se ele estiver ativo.
+     * A aba Execução (Fase 3B), depois da Preparação: os checklists dos serviços, os laudos, as instalações e as
+     * fichas de chicote da OS. "Quem está marcando" já vem com o mecânico da OS, se ele estiver ativo.
      */
     private void montarExecucao() {
         FXMLLoader carregador = new FXMLLoader(OsController.class.getResource("execucao.fxml"));
@@ -262,8 +268,33 @@ public class OsController {
                         OsController.this.mostrarErros(erros);
                     }
                 }));
+        execucao.chicotes().iniciar(new ChicotesController.Recursos(recursos.chicotes(), osId, recursos.servicos(),
+                recursos.temporaria(), this::documentoDoChicote, new ChicotesController.Tela() {
+                    @Override
+                    public void gravado(String mensagem) {
+                        atualizar();
+                        OsController.this.mostrarOk(mensagem);
+                    }
+
+                    @Override
+                    public void mostrarOk(String mensagem) {
+                        OsController.this.mostrarOk(mensagem);
+                    }
+
+                    @Override
+                    public void mostrarErros(List<String> erros) {
+                        OsController.this.mostrarErros(erros);
+                    }
+                }));
         execucao.atualizar(aberta.os());
         mostrarMenuDosLaudos();
+    }
+
+    /** Os dados do PDF da ficha do chicote, com a oficina e o logo de Configurações, lidos na hora. */
+    private DadosFichaChicote documentoDoChicote(long fichaId) {
+        DadosOficina oficina = recursos.orcamento().oficina().get();
+        Path logo = LogoOficina.arquivo(oficina, recursos.orcamento().anexos()).orElse(null);
+        return recursos.chicotes().documento(fichaId, oficina, logo, recursos.orcamento().versaoApp());
     }
 
     /** O que a área dos laudos pede: ler tudo de novo e mostrar o resultado embaixo. */
@@ -295,11 +326,14 @@ public class OsController {
         return recursos.laudos().documento(laudoId, oficina, logo, recursos.orcamento().versaoApp());
     }
 
-    /** O laudo no menu Documentos: desligado sem laudo. */
+    /** O laudo e a ficha do chicote no menu Documentos: desligados sem laudo ou sem ficha. */
     private void mostrarMenuDosLaudos() {
         boolean semLaudo = execucao == null || !execucao.laudos().temLaudo();
         itemLaudoPdf.setDisable(semLaudo);
         itemLaudoImprimir.setDisable(semLaudo);
+        boolean semFicha = execucao == null || !execucao.chicotes().temFicha();
+        itemChicotePdf.setDisable(semFicha);
+        itemChicoteImprimir.setDisable(semFicha);
     }
 
     /**
@@ -800,6 +834,38 @@ public class OsController {
         escolherLaudo().ifPresent(execucao.laudos()::imprimir);
     }
 
+    @FXML
+    private void chicotePdf() {
+        escolherFicha().ifPresent(execucao.chicotes()::pdf);
+    }
+
+    @FXML
+    private void chicoteImprimir() {
+        escolherFicha().ifPresent(execucao.chicotes()::imprimir);
+    }
+
+    /** A ficha do chicote do menu Documentos: a única da OS, ou a escolhida numa lista (a mais nova já vem marcada). */
+    private Optional<FichaChicoteSalva> escolherFicha() {
+        List<FichaChicoteSalva> fichas = execucao.chicotes().fichas();
+        if (fichas.size() <= 1) {
+            return fichas.stream().findFirst();
+        }
+        List<String> rotulos = new ArrayList<>();
+        for (int i = 0; i < fichas.size(); i++) {
+            FichaChicoteSalva ficha = fichas.get(i);
+            rotulos.add((i + 1) + ". Versão " + ficha.ficha().versaoChicote() + " · "
+                    + ChicotesController.situacao(ficha)
+                    + (ficha.ficha().injecao().isEmpty() ? "" : " · " + ficha.ficha().injecao()));
+        }
+        ChoiceDialog<String> escolha = new ChoiceDialog<>(rotulos.getLast(), rotulos);
+        escolha.initOwner(janela());
+        escolha.setTitle("Ficha do chicote");
+        escolha.setHeaderText("A OS " + numero() + " tem " + fichas.size() + " fichas do chicote. Qual?");
+        escolha.setContentText("Ficha:");
+        escolha.getDialogPane().getStylesheets().add(CalibraApp.folhaDeEstilo());
+        return escolha.showAndWait().map(rotulos::indexOf).filter(indice -> indice >= 0).map(fichas::get);
+    }
+
     /** O laudo do menu Documentos: o único da OS, ou o escolhido numa lista (o mais novo já vem marcado). */
     private Optional<LaudoSalvo> escolherLaudo() {
         List<LaudoSalvo> laudos = execucao.laudos().laudos();
@@ -949,6 +1015,11 @@ public class OsController {
     /** O PDF do laudo, sem perguntar onde salvar (para os testes e a evidência). */
     void escreverLaudo(long laudoId, Path destino) throws IOException {
         RelatorioLaudo.gerar(documentoDoLaudo(laudoId), destino);
+    }
+
+    /** O PDF da ficha do chicote, sem perguntar onde salvar (para os testes e a evidência). */
+    void escreverChicote(long fichaId, Path destino) throws IOException {
+        RelatorioChicote.gerar(documentoDoChicote(fichaId), destino);
     }
 
     /** As mensagens da última ação. */

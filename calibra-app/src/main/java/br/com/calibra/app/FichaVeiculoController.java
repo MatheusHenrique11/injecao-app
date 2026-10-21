@@ -22,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.casos.CasosChicote;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
 import br.com.calibra.app.casos.CasosOficina;
@@ -37,6 +38,7 @@ import br.com.calibra.core.oficina.TipoAnexo;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.oficina.AnexoSalvo;
+import br.com.calibra.dados.oficina.FichaChicoteSalva;
 import br.com.calibra.dados.oficina.LaudoSalvo;
 import br.com.calibra.dados.oficina.ResumoOs;
 
@@ -53,8 +55,9 @@ public class FichaVeiculoController {
      *
      * @param tarefas a fila de segundo plano do app (a cópia dos documentos)
      */
-    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosProjeto projetos,
-            CasosCatalogo catalogo, HostServices servicos, Navegacao navegacao, Clock relogio, TarefasFundo tarefas) {
+    record Recursos(CasosOficina oficina, CasosLaudo laudos, CasosInstalacao instalacoes, CasosChicote chicotes,
+            CasosProjeto projetos, CasosCatalogo catalogo, HostServices servicos, Navegacao navegacao, Clock relogio,
+            TarefasFundo tarefas) {
     }
 
     @FXML private Button botaoVoltar;
@@ -77,6 +80,12 @@ public class FichaVeiculoController {
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoOs;
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoQueixa;
     @FXML private TableColumn<LaudoSalvo, String> colunaLaudoResultado;
+    @FXML private TableView<FichaChicoteSalva> chicotes;
+    @FXML private TableColumn<FichaChicoteSalva, String> colunaChicoteQuando;
+    @FXML private TableColumn<FichaChicoteSalva, String> colunaChicoteOs;
+    @FXML private TableColumn<FichaChicoteSalva, String> colunaChicoteVersao;
+    @FXML private TableColumn<FichaChicoteSalva, String> colunaChicoteInjecao;
+    @FXML private TableColumn<FichaChicoteSalva, String> colunaChicoteSituacao;
     @FXML private InstalacoesController instalacoesController;
     @FXML private AnexosController anexosController;
     @FXML private VBox mensagens;
@@ -110,6 +119,21 @@ public class FichaVeiculoController {
         laudos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         laudos.setRowFactory(tabela -> {
             TableRow<LaudoSalvo> linha = new TableRow<>();
+            linha.setOnMouseClicked(evento -> {
+                if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2 && !linha.isEmpty()) {
+                    recursos.navegacao().abrirOs(linha.getItem().osId());
+                }
+            });
+            return linha;
+        });
+        coluna(colunaChicoteQuando, f -> Datas.diaHora(f.atualizadoEm()));
+        coluna(colunaChicoteOs, f -> f.numeroOs().texto());
+        coluna(colunaChicoteVersao, f -> f.ficha().versaoChicote());
+        coluna(colunaChicoteInjecao, f -> f.ficha().injecao().isEmpty() ? "—" : f.ficha().injecao());
+        coluna(colunaChicoteSituacao, ChicotesController::situacao);
+        chicotes.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+        chicotes.setRowFactory(tabela -> {
+            TableRow<FichaChicoteSalva> linha = new TableRow<>();
             linha.setOnMouseClicked(evento -> {
                 if (evento.getButton() == MouseButton.PRIMARY && evento.getClickCount() == 2 && !linha.isEmpty()) {
                     recursos.navegacao().abrirOs(linha.getItem().osId());
@@ -187,6 +211,7 @@ public class FichaVeiculoController {
         projetos.getItems().setAll(ficha.projetos());
         instalacoesController.atualizar();
         laudos.getItems().setAll(recursos.laudos().doVeiculo(veiculoId));
+        chicotes.getItems().setAll(recursos.chicotes().doVeiculo(veiculoId));
         anexosController.atualizar();
     }
 
@@ -322,6 +347,11 @@ public class FichaVeiculoController {
     /** A área das instalações do veículo. */
     InstalacoesController instalacoes() {
         return instalacoesController;
+    }
+
+    /** A tabela das fichas de chicote do veículo. */
+    TableView<FichaChicoteSalva> chicotes() {
+        return chicotes;
     }
 
     List<String> mensagens() {

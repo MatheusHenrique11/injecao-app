@@ -8,7 +8,8 @@
 <?import javafx.scene.layout.VBox?>
 
 <!-- Aba Execução da OS (Fase 3B, SPEC 6.5 e 8.9): os checklists de cada serviço, copiados quando o serviço começou,
-     os laudos de diagnóstico elétrico e as instalações da OS. A tela da OS põe esta aba depois da Preparação. -->
+     os laudos de diagnóstico elétrico, as instalações e as fichas de chicote da OS. A tela da OS põe esta aba depois
+     da Preparação. -->
 <ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="br.com.calibra.app.ExecucaoController" fitToWidth="true">
   <VBox styleClass="pagina">
@@ -26,5 +27,7 @@
     <fx:include fx:id="laudos" source="laudos.fxml"/>
     <!-- As instalações registradas nesta OS (bloco 3B.5). -->
     <fx:include fx:id="instalacoes" source="instalacoes.fxml"/>
+    <!-- As fichas de chicote da OS (bloco 3B.6). -->
+    <fx:include fx:id="chicotes" source="chicotes.fxml"/>
   </VBox>
 </ScrollPane>

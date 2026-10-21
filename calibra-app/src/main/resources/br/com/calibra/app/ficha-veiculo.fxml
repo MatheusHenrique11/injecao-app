@@ -84,6 +84,20 @@
           </placeholder>
         </TableView>
 
+        <Label styleClass="titulo-secao" text="Fichas de chicote"/>
+        <TableView fx:id="chicotes" prefHeight="130.0">
+          <columns>
+            <TableColumn fx:id="colunaChicoteQuando" text="Atualizada em" prefWidth="140.0"/>
+            <TableColumn fx:id="colunaChicoteOs" text="OS" prefWidth="120.0"/>
+            <TableColumn fx:id="colunaChicoteVersao" text="Versão" prefWidth="90.0"/>
+            <TableColumn fx:id="colunaChicoteInjecao" text="Injeção" prefWidth="260.0"/>
+            <TableColumn fx:id="colunaChicoteSituacao" text="Situação" prefWidth="250.0"/>
+          </columns>
+          <placeholder>
+            <Label styleClass="dica" text="Nenhuma ficha de chicote deste veículo."/>
+          </placeholder>
+        </TableView>
+
         <Label styleClass="titulo-secao" text="Anexos e documentos"/>
         <Label styleClass="dica" wrapText="true"
                text="Os anexos de todas as OS deste veículo e os documentos do próprio veículo (como o CRLV, com a validade em Editar). O anexo de uma OS se remove na própria OS."/>
