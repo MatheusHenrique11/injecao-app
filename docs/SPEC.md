@@ -659,6 +659,8 @@ Testes obrigatórios da fase:
 
 Pronto quando: 4 OS reais passam pelo app instalado (uma de som, uma de vidro ou trava, uma de partida ou alternador e uma de injeção programável, com chicote, instalação ou os dois), cada uma com checklist cumprido; ao menos uma com laudo em PDF e a de injeção com ficha do chicote em PDF.
 
+Situação em 21/10/2026: os blocos 3B.0 a 3B.7 estão prontos no código, com os 14 testes acima, e o MSI 0.3.1 foi gerado e ensaiado neste PC (docs/fase3b/ensaio-instalador.md). Falta o critério de pronto, com as 4 OS reais. Duas escolhas da revisão final ficam com o dono (docs/decisoes.md, item 275).
+
 **Fase 4 — Mapa base** (era a fase 3)
 - Perfis de injeção, gerador de tabelas (seção 7.5), editor de tabela com cores e vista 3D, saída nível C para todas as injeções e nível B para uma marca, checklist de primeira partida.
 - Também: as unidades preferidas na tela (decisão 152) e o cálculo em segundo plano, com aviso de progresso na abertura (decisão 160).
