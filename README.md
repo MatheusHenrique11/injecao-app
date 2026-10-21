@@ -83,13 +83,50 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 
 Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
-Próximas fases (SPEC 12, com a Fase 3B e a Fase 8 da SPEC 1.2):
+## O que ainda não faz
 
-- **4 — Mapa base.**
-- **5 — Agenda e lembretes.**
-- **6 — Acerto, relatório e biblioteca.**
-- **7 — Aprendizado e integrações.**
-- **8 — Chicote e caixa de fusíveis** (pode ser antecipada).
+- **Mapa base:** a calculadora dimensiona as peças, mas o app ainda não gera a tabela de injeção (é a Fase 4). O acerto continua no software da própria injeção.
+- **Agenda e lembretes:** não há agenda nem aviso automático (revisão, garantia vencendo, orçamento sem resposta). O Painel mostra só as OS e as entregas previstas.
+- **Estoque e financeiro:** ficaram de fora por escolha do dono. Os itens do catálogo não têm saldo, e o pagamento da OS não vira caixa nem conta.
+- **Duas melhorias conhecidas** (docs/decisoes.md, item 275):
+  - na anonimização, o "quem retirou" da OS entregue sem o veículo continua com o nome;
+  - com a OS já pronta, uma revisão nova aprovada traz o checklist dos serviços novos, mas a entrega não confere esses itens. Use "Retomar o serviço" antes de entregar.
+
+## Funções futuras
+
+O roteiro está na SPEC, seção 12. Cada fase sai numa versão nova do instalador.
+
+- **Fase 4 — Mapa base:**
+  - os perfis de injeção (saídas, tabelas, eixos e recursos de cada modelo);
+  - o gerador do mapa base conservador:
+    - a tabela de combustível, com a lambda alvo;
+    - a de ignição, só a partir de uma fonte (projeto parecido, modelo da família do motor ou tabela digitada), porque o app não inventa avanço;
+    - as travas de segurança;
+  - as outras tabelas (partida, aquecimento, aceleração rápida) num checklist com os dados prontos para o assistente da própria injeção;
+  - o editor de tabela com cores e vista 3D;
+  - a folha de transcrição em tela e PDF, para todas as injeções, igual à tabela do software do fabricante;
+  - a tabela para colar no software de uma marca;
+  - o checklist de primeira partida;
+  - as unidades preferidas na tela e o cálculo em segundo plano.
+- **Fase 5 — Agenda e lembretes:**
+  - os agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega;
+  - o texto de confirmação para o WhatsApp;
+  - os lembretes, com intervalos que o dono define: revisão por km ou data, garantia vencendo, orçamento sem resposta, OS parada aguardando peças, pagamento pendente e documento vencendo;
+  - os avisos no Painel, com o texto para o WhatsApp, conferidos ao abrir o app e de hora em hora.
+- **Fase 6 — Acerto, relatório e biblioteca:**
+  - as sessões de acerto, com anexos;
+  - o mapa final colado, o log da injeção e a curva do dinamômetro;
+  - o relatório final em PDF, que também vai para os anexos da OS;
+  - a biblioteca de projetos, com busca e a comparação entre o mapa base e o final.
+- **Fase 7 — Aprendizado e integrações:**
+  - a diferença entre o mapa base e o final, medida a cada projeto;
+  - os modelos de cálculo reajustados por família de motor, como versão nova (os cálculos antigos não mudam);
+  - mais marcas com a tabela para colar;
+  - opcional: o arquivo .msq para MegaSquirt, Speeduino e rusEFI, feito sempre a partir do arquivo do firmware do cliente.
+- **Fase 8 — Chicote e caixa de fusíveis** (pode vir antes da 7):
+  - os circuitos de cada veículo (origem, destino, bitola, cor, fusível e relé);
+  - a ficha da caixa de fusíveis (posições, amperagem e o que cada uma alimenta);
+  - tudo consultável na ficha do veículo, partindo das instalações e da ficha do chicote que já existem.
 
 ## Módulos
 
