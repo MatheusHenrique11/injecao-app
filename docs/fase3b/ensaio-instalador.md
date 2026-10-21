@@ -70,11 +70,43 @@ Feita por mim, nos pontos de risco (decisões 274 a 276).
 | A revisão aprovada com a OS pronta | A entrega não confere o checklist dos serviços novos. **Para o dono decidir** (decisão 275). Até lá, use "Retomar o serviço" antes de entregar. |
 | O jeito de voltar para a versão anterior, no manual | Estava errado: a versão antiga não abre dados atualizados nem restaura os backups da nova. **Corrigido** no manual (item 2). O caminho de volta é o backup feito na versão antiga antes de atualizar (decisão 276). |
 
+## Versão 0.3.2 (21/10/2026, à noite)
+
+Ela traz as duas correções da decisão 275 (decisões 278 a 280): a trava da entrega e o "quem retirou" na anonimização, com a migração V14. O ensaio foi o mesmo, com o mesmo OK do dono.
+
+**MSI:** `dist\Calibra-0.3.2.msi`, 62,4 MB, SHA-256 `828BC4A534D5A65A756E7941242336BA43DA292BE9209E01CF705E5FB78CDB74`. Antes dele, passaram os 898 testes do `mvn -q verify` e os 29 de tela no código. A conferência do pacote deu 5 de 5, com "banco na versão 14".
+
+| # | Teste | Resultado |
+|---|---|---|
+| 1 | Instalar por cima (0.3.1 → 0.3.2) | **Passou.** 11 s, código 0. Uma entrada só ("Calibra 0.3.2"), só os jars 0.3.2 (16 jars), o jar do app igual ao do build e os dois atalhos. |
+| 2 | Abrir em menos de 5 s | **Passou.** 3,3 s na primeira, com o banco criado do zero (as 14 migrações); 2,0 a 2,1 s nas três seguintes (2,3 a 2,5 s do comando). As 4 fecharam pelo X. |
+| 3 | Testes de tela no app instalado | **Passou: 29 de 29.** O do checklist agora também confere a entrega travada pela revisão aprovada depois do pronto. Os recálculos levaram de 39 a 55 ms. |
+| 4 | Atualização do banco numa cópia dos dados reais | **Passou.** Da versão 7 para a 14 (detalhes abaixo). |
+| 5 | Dados reais intocados | **Passou.** O mesmo SHA-256 (`2F138B6F…DC11`) e os mesmos 69 arquivos; a última mudança continua sendo a de 18/10, às 20:52:44. |
+
+**A cópia, de novo:** 69 arquivos, com o banco igual ao real.
+- **Antes:** versão 7, com os mesmos números do ensaio do 0.3.1.
+- **Ao abrir o 0.3.2 instalado:**
+  - o backup "antes de atualizar o banco";
+  - as migrações V8 a V14 ("Banco migrado de v7 até a v14");
+  - a tela em 3,1 s e o fechamento pelo X.
+- **Depois:**
+  - versão 14, com 14 migrações e nenhuma falha;
+  - os 7 modelos de checklist no catálogo (38 versões);
+  - 25 tabelas e 36 gatilhos (a V14 refaz um, sem criar outro);
+  - SQLite "ok", sem chave estrangeira quebrada;
+  - 7 backups (os 6 antigos e o novo);
+  - nenhum erro no log.
+
+A cópia e a pasta de teste foram apagadas no fim.
+
+O app instalado agora é o 0.3.2. Os seus dados sobem da versão 7 para a 14 quando você abrir o app, com o backup antes.
+
 ## Como repetir
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1
-msiexec /i dist\Calibra-0.3.1.msi /passive
+msiexec /i dist\Calibra-0.3.2.msi /passive
 mvn -q install -DskipTests
 powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1
 ```
@@ -85,7 +117,8 @@ Para abrir o app instalado sem tocar nos dados de verdade, abra pelo PowerShell 
 
 ## O que fica com você (critério de pronto da Fase 3B)
 
-- **Abrir o 0.3.1 com os seus dados:** o app instalado já é o 0.3.1. Na primeira abertura, ele atualiza os dados da versão 7 para a 13, com o backup antes. Hoje os seus dados só têm o que vem com o app (nenhum cliente, OS ou configuração salva), então não precisa de backup extra antes. Nas próximas atualizações, faça antes "Fazer backup agora" na versão antiga (manual, item 2).
+- **Abrir o 0.3.2 com os seus dados:** o app instalado já é o 0.3.2. Na primeira abertura, ele atualiza os dados da versão 7 para a 14, com o backup antes. Hoje os seus dados só têm o que vem com o app (nenhum cliente, OS ou configuração salva), então não precisa de backup extra antes. Nas próximas atualizações, faça antes "Fazer backup agora" na versão antiga (manual, item 2).
+- **Antes da primeira OS:** em Configurações, preencha a Oficina (nome, CNPJ, telefone e logo, que vão para os PDFs), confira a garantia padrão e o texto da via do cliente (aba OS) e cadastre os mecânicos. Em Catálogos › Serviços, use "Serviços sugeridos…" e preencha as horas ou o preço de cada serviço que a oficina faz.
 - **As 4 OS reais pelo app instalado,** cada uma com o checklist cumprido:
   - uma de som;
   - uma de vidro ou trava;
@@ -94,4 +127,3 @@ Para abrir o app instalado sem tocar nos dados de verdade, abra pelo PowerShell 
 
   Ao menos uma com o laudo em PDF, e a de injeção com a ficha do chicote em PDF.
 - **Os modelos de checklist:** confira os 7 em Catálogos › Checklists. Eles vêm "a verificar", com todos os itens obrigatórios.
-- **As duas escolhas da decisão 275.**

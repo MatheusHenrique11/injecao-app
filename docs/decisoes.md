@@ -998,3 +998,9 @@ O dono vai usar o app agora e quer que ele esteja 100% usável. Escolheu corrigi
     - os 6 `pom.xml` passam para 0.3.2. O CHANGELOG ganha a seção "[0.3.2]", e o README e o manual dizem o que mudou;
     - **o manual, item 2,** passa a pedir "Fazer backup agora" antes de qualquer atualização (é o caminho de volta, decisão 276). Ele explica a atualização do 0.3.0 para o 0.3.2 (banco da 7 para a 14, o caso dos dados deste PC) e a do 0.3.1 para o 0.3.2 (só a V14);
     - o MSI 0.3.2 é ensaiado como o 0.3.1: instalado por cima, com os testes de tela no instalado e a atualização numa cópia dos dados reais, apagada no fim.
+281. **O MSI 0.3.2 e o ensaio:**
+    - o MSI foi instalado por cima do 0.3.1 neste PC;
+    - os 29 testes de tela passaram no app instalado, e ele abre em 2,0 a 2,1 s;
+    - a atualização da versão 7 para a 14 passou numa cópia dos dados reais, apagada no fim;
+    - os dados reais não foram tocados: sobem para a 14 quando o dono abrir o 0.3.2;
+    - os números estão em `docs/fase3b/ensaio-instalador.md`.
