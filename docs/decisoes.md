@@ -976,3 +976,17 @@ Plano aprovado pelo dono em 21/10/2026: os itens 3 e 4 da decisão 211, a revis�
     - **o README** ficou completo (pedido do dono): o que o app faz por área, os dados e o backup, como instalar e atualizar, as fases feitas e as próximas, e os comandos;
     - **o manual, item 2, ganhou "Atualizar do 0.3.0 para o 0.3.1"** e um jeito de voltar que funciona. O texto do 0.2.0 dizia para instalar a versão antiga e restaurar o backup "antes de atualizar o banco" pela aba Backup. Não dá certo: a versão antiga não abre dados já atualizados (ela avisa e para), e o 0.3.0 recusa os backups do formato 2, que o 0.3.1 faz ("feito por uma versão mais nova"), sem mexer em nada. O caminho de volta passa a ser o backup feito na versão antiga antes de atualizar ("Fazer backup agora"), restaurado nela com o `calibra.db` atual renomeado (não apagado). Conferido no código do 0.3.0; não ensaiado neste PC, porque instalar a versão antiga por cima não estava no que o dono liberou.
 277. **O MSI 0.3.1 e o ensaio** (como no 0.3.0, com o OK do dono): o MSI foi gerado, instalado por cima do 0.3.0 neste PC e ensaiado. Os 29 testes de tela passaram no app instalado; ele abre em 2,0 a 2,1 s (3,5 s na primeira, com o banco criado do zero); e a atualização da versão 7 para a 13 passou numa cópia dos dados reais, apagada no fim. Os dados reais não foram tocados: continuam na versão 7 até o dono abrir o 0.3.1. Os números estão em `docs/fase3b/ensaio-instalador.md`.
+
+## 21/10/2026 — Versão 0.3.2: as duas escolhas da decisão 275
+
+O dono vai usar o app agora e quer que ele esteja 100% usável. Escolheu corrigir as duas melhorias da decisão 275 numa versão 0.3.2, antes de entrarem dados reais (plano aprovado em 21/10/2026).
+
+278. **A trava da entrega** (item 2 da decisão 275):
+    - **a regra:** a OS pronta não é entregue enquanto houver:
+      - item obrigatório pendente num checklist criado depois do pronto, que é o que a revisão aprovada com a OS já pronta trouxe;
+      - ou, sem a entrada, um serviço que precisa do veículo.
+
+      O que estava pendente no pronto e foi justificado ali não trava de novo. A etapa continua a mesma (SPEC 6.5, regra 3: a revisão nova não muda a etapa);
+    - **como destravar:** marcar os itens com a OS pronta (a aba Execução continua aberta) ou "Retomar o serviço" e fazer o pronto de novo, com a justificativa; sem o veículo, registrar a entrada;
+    - **"depois do pronto"** compara a hora em que a cópia do checklist foi criada com a do pronto. O banco grava a hora por segundo, e a comparação é estrita: na vida real, aprovar uma revisão leva bem mais que um segundo depois do pronto, e o checklist copiado no começo do serviço nunca fica com a mesma hora do pronto. O teste de tela espera um segundo entre os dois;
+    - **onde aparece:** `CasosOficina.travasDaEntrega`. A entrega recusa com a lista, e a tela não abre a janela da entrega: ela mostra o que falta embaixo, e o próximo passo da OS pronta avisa.

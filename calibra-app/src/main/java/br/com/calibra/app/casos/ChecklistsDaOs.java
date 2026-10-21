@@ -3,6 +3,7 @@ package br.com.calibra.app.casos;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -136,9 +137,22 @@ final class ChecklistsDaOs {
 
     /** Os itens obrigatórios que ainda travam o "pronto", na ordem das cópias e dos itens. */
     List<Pendencia> pendencias(Connection c, long osId) throws SQLException {
+        return pendencias(c, osId, null);
+    }
+
+    /**
+     * Os itens obrigatórios pendentes das cópias criadas depois desta hora: as que uma revisão aprovada trouxe com a OS
+     * já pronta, que a trava do "pronto" não viu (versão 0.3.2, decisão 278).
+     */
+    List<Pendencia> pendenciasCriadasDepois(Connection c, long osId, LocalDateTime hora) throws SQLException {
+        return pendencias(c, osId, Objects.requireNonNull(hora, "hora"));
+    }
+
+    /** @param depoisDe null = todas as cópias */
+    private List<Pendencia> pendencias(Connection c, long osId, LocalDateTime depoisDe) throws SQLException {
         List<Pendencia> pendencias = new ArrayList<>();
         for (ChecklistDaOs checklist : daOs(c, osId)) {
-            if (!checklist.noOrcamento()) {
+            if (!checklist.noOrcamento() || (depoisDe != null && !checklist.checklist().criadoEm().isAfter(depoisDe))) {
                 continue;
             }
             for (ItemChecklistSalvo item : checklist.checklist().itens()) {

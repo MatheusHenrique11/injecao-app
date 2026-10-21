@@ -332,6 +332,49 @@ class ExecucaoDaOsTest {
     }
 
     /**
+     * Versão 0.3.2 (decisão 278): o cliente pede mais coisa com a OS já pronta. A revisão aprovada traz o checklist do
+     * serviço novo, e a entrega fica travada até os itens obrigatórios dele serem marcados ou justificados num pronto
+     * novo. O pendente justificado no primeiro pronto não trava de novo.
+     */
+    @Test
+    void revisaoAprovadaDepoisDoProntoTravaAEntrega() {
+        ItemCatalogo<ServicoPadrao> som = servico(SOM, ServicosSugeridos.CHECKLIST_SOM);
+        ItemCatalogo<ServicoPadrao> alternador = servico(ALTERNADOR, ServicosSugeridos.CHECKLIST_PARTIDA_E_ALTERNADOR);
+        long os = abrirComEntrada("Ana Costa", "ABC1D23");
+        OrcamentoSalvo primeira = aprovar(os, List.of(linha(som)));
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        marcarFeitos(os, 0, null, 7);
+        relogio.andar(Duration.ofHours(1));
+        oficina.mudarStatus(os, StatusOs.PRONTA, "O cliente testa o volume na retirada.");
+        assertEquals(List.of(), oficina.travasDaEntrega(os), "o pendente justificado no pronto não trava");
+
+        relogio.andar(Duration.ofMinutes(30));
+        OrcamentoSalvo segunda = orcamentos.novaRevisao(primeira.id());
+        orcamentos.salvar(segunda.id(), orcamento(List.of(linha(som), linha(alternador))));
+        enviarEAprovar(segunda);
+        assertEquals(StatusOs.PRONTA, oficina.buscar(os).os().status(), "a revisão nova não muda a etapa");
+        List<String> travas = oficina.travasDaEntrega(os);
+        assertEquals(7, travas.size(), "a explicação e os 6 itens do alternador");
+        assertEquals("A revisão aprovada depois do pronto trouxe itens obrigatórios pendentes. Marque-os na aba "
+                + "Execução ou, para entregar com algum pendente, retome o serviço e faça o pronto de novo, com a "
+                + "justificativa:", travas.getFirst());
+        assertTrue(travas.subList(1, 7).stream().allMatch(t -> t.startsWith(ALTERNADOR + ": ")), travas::toString);
+        Entrega entrega = new Entrega(agora(), 120_010.0, new Garantia(90));
+        assertEquals(travas, assertThrows(EntradaInvalidaException.class, () -> oficina.entregar(os, entrega))
+                .erros());
+        assertEquals(StatusOs.PRONTA, oficina.buscar(os).os().status(), "nada foi gravado");
+
+        marcarFeitos(os, 1, null, 5);
+        assertEquals(2, oficina.travasDaEntrega(os).size(), "marcar com a OS pronta destrava o que foi marcado");
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        relogio.andar(Duration.ofMinutes(30));
+        oficina.mudarStatus(os, StatusOs.PRONTA, "O resto é conferido na retirada.");
+        assertEquals(List.of(), oficina.travasDaEntrega(os), "o pronto novo, com a justificativa, destrava");
+        oficina.entregar(os, new Entrega(agora(), 120_010.0, new Garantia(90)));
+        assertEquals(StatusOs.ENTREGUE, oficina.buscar(os).os().status());
+    }
+
+    /**
      * O cliente pede mais coisa no meio do serviço: a revisão aprovada dá o checklist aos serviços novos. O serviço que
      * sai do orçamento numa revisão nova deixa a cópia guardada, mas ela não trava o "pronto".
      */

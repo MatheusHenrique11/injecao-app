@@ -72,6 +72,7 @@ import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOficina.ChecklistDaOs;
+import br.com.calibra.app.casos.CasosOficina.MarcacaoDoItem;
 import br.com.calibra.app.casos.CasosOficina.NovaOs;
 import br.com.calibra.app.casos.CasosOficina.NovoAnexo;
 import br.com.calibra.app.casos.CasosOficina.OsAberta;
@@ -925,6 +926,30 @@ class OficinaUiTest {
             TelaDeTeste.esperar(() -> TelaDeTeste.janelaAberta("Serviço pronto com itens pendentes") == null
                     && "Pronta".equals(texto("status")), "o pronto gravar");
 
+            // Versão 0.3.2 (decisão 278): o cliente pede mais um serviço com a OS já pronta. O banco grava a hora por
+            // segundo; a aprovação vem um segundo depois do pronto, como na vida real.
+            Thread.sleep(1_100);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                revisaoComAlternadorDepoisDoPronto();
+                principal.osAberta().atualizar();
+                assertEquals("Pronto, mas a revisão aprovada depois do pronto pede mais serviço antes da entrega: "
+                        + "\"Entregar…\" diz o que falta.", texto("proximoPasso"));
+            });
+            TelaDeTeste.semEsperar(() -> TelaDeTeste.<Button>achar(cena, "botaoEntregar").fire(), falha);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertNull(TelaDeTeste.janelaAberta("Entregar o veículo"), "a janela da entrega não abre");
+                List<String> mensagens = principal.osAberta().mensagens();
+                assertEquals("• A revisão aprovada depois do pronto trouxe itens obrigatórios pendentes. Marque-os na "
+                        + "aba Execução ou, para entregar com algum pendente, retome o serviço e faça o pronto de novo, "
+                        + "com a justificativa:", mensagens.getFirst());
+                assertEquals(7, mensagens.size(), "e os 6 itens do alternador: " + mensagens);
+                salvar(cena, "oficina-45-entrega-travada.png");
+                List<MarcacaoDoItem> feitos = oficina.checklists(ana).get(1).checklist().itens().stream()
+                        .map(item -> new MarcacaoDoItem(item.id(), new Marcacao(SituacaoItem.FEITO, "", ""))).toList();
+                oficina.marcar(ana, feitos, null);
+                assertEquals(List.of(), oficina.travasDaEntrega(ana), "com os itens marcados, a entrega destrava");
+            });
+
             TelaDeTeste.naTelaDoJavaFx(() -> {
                 assertEquals("Pronta com itens obrigatórios do checklist pendentes: Instalação de som teste: Fotos de "
                         + "antes e depois. Justificativa: O cliente manda as fotos do som instalado.",
@@ -1545,6 +1570,30 @@ class OficinaUiTest {
                 Desconto.NENHUM, 1, "", 15, "", ""));
         orcamentos.marcarEnviado(orcamento.id());
         orcamentos.aprovar(orcamento.id(), agora.minusHours(2), MeioAprovacao.WHATSAPP, "Pode fazer.");
+    }
+
+    /**
+     * Versão 0.3.2: com a OS da Ana já pronta, o cliente pede também o "Reparo de alternador teste", com o checklist
+     * de partida e alternador; a revisão nova é aprovada agora.
+     */
+    private void revisaoComAlternadorDepoisDoPronto() {
+        CasosCatalogo catalogo = new CasosCatalogo(contexto.banco(), contexto.relogio());
+        ServicoPadrao alternador = new ServicoPadrao("Reparo de alternador teste", 2.0, "Tabela da oficina", null,
+                CategoriaServico.PARTIDA_CARGA, "", true, null,
+                catalogo.checklistsDasSementes().get(ServicosSugeridos.CHECKLIST_PARTIDA_E_ALTERNADOR));
+        ItemCatalogo<ServicoPadrao> servico = catalogo.criar(TipoCatalogo.SERVICO, alternador, new InfoCatalogo(
+                alternador.nome(), "Tabela da oficina", null, false, null, "Dados fictícios."));
+        CasosOrcamento orcamentos = new CasosOrcamento(contexto.banco(), contexto.relogio(),
+                new CasosProjeto(contexto.banco(), contexto.relogio(), contexto.versaoApp()));
+        OrcamentoSalvo aprovado = orcamentos.orcamentosDaOs(ana).getFirst().orcamento();
+        OrcamentoSalvo revisao = orcamentos.novaRevisao(aprovado.id());
+        List<ItemOrcamento> linhas = new ArrayList<>(aprovado.conteudo().itens());
+        linhas.add(ItemOrcamento.doServico(alternador.textoNoOrcamento(), alternador.horas(), null,
+                Dinheiro.ler("180,00"), servico.id(), servico.versao()));
+        orcamentos.salvar(revisao.id(), new Orcamento(linhas, Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(revisao.id());
+        orcamentos.aprovar(revisao.id(), LocalDateTime.now().withNano(0), MeioAprovacao.WHATSAPP,
+                "Pode fazer o alternador também.");
     }
 
     /**

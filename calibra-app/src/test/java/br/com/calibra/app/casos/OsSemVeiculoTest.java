@@ -206,6 +206,46 @@ class OsSemVeiculoTest {
         assertEquals("", oficina.buscar(os).os().entrega().quemRetirou(), "com o veículo, a entrega de sempre");
     }
 
+    /**
+     * Versão 0.3.2 (decisão 278): a OS só de bancada, pronta sem o veículo, ganha numa revisão a instalação, que
+     * precisa dele. A entrega fica travada: ela pede a entrada e o checklist da instalação. Com a entrada e os itens
+     * marcados, a entrega volta a passar, com o km.
+     */
+    @Test
+    void servicoQuePrecisaDoVeiculoAprovadoDepoisDoProntoTravaAEntrega() {
+        ItemCatalogo<ServicoPadrao> instalacao = instalacao();
+        long os = aprovadaSemEntrada(chicote());
+        oficina.mudarStatus(os, StatusOs.EM_EXECUCAO, "");
+        marcarFeitos(os, CHICOTE);
+        oficina.mudarStatus(os, StatusOs.PRONTA, "");
+        relogio.andar(Duration.ofMinutes(30));
+
+        OrcamentoSalvo primeira = orcamentos.orcamentosDaOs(os).getFirst().orcamento();
+        OrcamentoSalvo segunda = orcamentos.novaRevisao(primeira.id());
+        List<ItemOrcamento> linhas = new ArrayList<>(primeira.conteudo().itens());
+        linhas.add(ItemOrcamento.doServico(instalacao.dados().textoNoOrcamento(), instalacao.dados().horas(), null,
+                HORA, instalacao.id(), instalacao.versao()));
+        orcamentos.salvar(segunda.id(), new Orcamento(linhas, Desconto.NENHUM, 1, "", 15, "", ""));
+        orcamentos.marcarEnviado(segunda.id());
+        orcamentos.aprovar(segunda.id(), agora(), MeioAprovacao.WHATSAPP, "Pode instalar também.");
+        relogio.andar(Duration.ofMinutes(10));
+
+        List<String> travas = oficina.travasDaEntrega(os);
+        assertEquals("Registre a entrada do veículo (aba Entrada) e retome o serviço: " + INSTALACAO + " precisa do "
+                + "veículo na oficina.", travas.getFirst());
+        assertTrue(travas.size() > 2, "e os itens do checklist da instalação: " + travas);
+        assertEquals(travas, assertThrows(EntradaInvalidaException.class, () -> oficina.entregar(os,
+                new Entrega(agora(), null, new Garantia(90), "Oficina do João"))).erros());
+
+        oficina.registrarEntrada(os, new EntradaVeiculo(agora(), 120_000.0, NivelCombustivel.MEIO,
+                new Vistoria(List.of(new ItemVistoria("Lataria", "ok")), "")));
+        marcarFeitos(os, INSTALACAO);
+        assertEquals(List.of(), oficina.travasDaEntrega(os));
+        relogio.andar(Duration.ofHours(1));
+        oficina.entregar(os, new Entrega(agora(), 120_010.0, new Garantia(90)));
+        assertEquals(StatusOs.ENTREGUE, oficina.buscar(os).os().status());
+    }
+
     /** Sem serviço de bancada (só o que exige o veículo, ou só linha digitada), começar pede a entrada, como antes. */
     @Test
     void semBancadaComecarPedeAEntrada() {

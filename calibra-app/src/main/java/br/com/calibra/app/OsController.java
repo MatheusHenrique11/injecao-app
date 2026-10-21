@@ -449,7 +449,10 @@ public class OsController {
                 yield "Aguardando peças" + (quais == null || quais.isBlank() ? "" : ": " + quais)
                         + ". Quando chegarem, retome o serviço.";
             }
-            case PRONTA -> chegou ? "Pronto para retirar. Avise o cliente e registre a entrega."
+            case PRONTA -> !recursos.oficina().travasDaEntrega(osId).isEmpty()
+                    ? "Pronto, mas a revisão aprovada depois do pronto pede mais serviço antes da entrega: "
+                            + "\"Entregar…\" diz o que falta."
+                    : chegou ? "Pronto para retirar. Avise o cliente e registre a entrega."
                     : "Pronto para retirar. Avise o cliente e registre a entrega, com quem retirou (o veículo não "
                             + "passou pela oficina).";
             case ENTREGUE -> "Entregue em " + Datas.diaHora(os.entrega().quando()) + (os.entrega().quemRetirou()
@@ -512,13 +515,23 @@ public class OsController {
         return executar(() -> recursos.oficina().mudarStatus(osId, destino, observacao), sucesso);
     }
 
+    /**
+     * A janela da entrega. Com uma trava da entrega (versão 0.3.2: a revisão aprovada depois do pronto trouxe item
+     * pendente ou serviço que precisa do veículo), mostra o que falta, embaixo, e não abre a janela.
+     */
     @FXML
-    private void entregar() {
-        if (tudoSalvo(Momento.ENTREGA)) {
-            JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
-                    recursos.padroes().get().garantiaDias(), aberta.garantias(), !aberta.os().veiculoChegou())
-                    .ifPresent(this::entregar);
+    void entregar() {
+        if (!tudoSalvo(Momento.ENTREGA)) {
+            return;
         }
+        List<String> travas = recursos.oficina().travasDaEntrega(osId);
+        if (!travas.isEmpty()) {
+            mostrarErros(travas);
+            return;
+        }
+        JanelasOs.entrega(janela(), LocalDateTime.now(recursos.relogio()), nautico() ? "Horas de motor" : "Km",
+                recursos.padroes().get().garantiaDias(), aberta.garantias(), !aberta.os().veiculoChegou())
+                .ifPresent(this::entregar);
     }
 
     /** A entrega; com a aba Entrada mudada e não salva, avisa e não entrega (depois, a OS não muda mais). */

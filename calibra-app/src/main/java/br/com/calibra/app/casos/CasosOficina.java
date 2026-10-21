@@ -480,6 +480,8 @@ public final class CasosOficina {
      * não muda mais (só os recebimentos). Na OS em que o veículo não passou pela oficina (sem a entrada, Fase 3B), a
      * entrega registra quem retirou, no lugar do km de saída (teste nº 9 da fase). A última versão de cada ficha do
      * chicote fica "entregue", na mesma gravação.
+     *
+     * @throws EntradaInvalidaException com as {@link #travasDaEntrega(long) travas da entrega}, se houver
      */
     public Gravado entregar(long osId, Entrega entrega) {
         List<String> erros = entrega == null ? List.of("Informe a entrega.") : entrega.validar(agora());
@@ -488,6 +490,10 @@ public final class CasosOficina {
         }
         return banco.transacao(c -> {
             OrdemServicoSalva os = exigir(c, osId);
+            List<String> travas = travasDaEntrega(c, os);
+            if (!travas.isEmpty()) {
+                throw new EntradaInvalidaException(travas);
+            }
             if (os.entrada() == null && !entrega.validarSemVeiculo().isEmpty()) {
                 throw new EntradaInvalidaException(entrega.validarSemVeiculo());
             }
@@ -503,6 +509,38 @@ public final class CasosOficina {
             }
             return new Gravado(osId, avisos);
         });
+    }
+
+    /**
+     * O que impede a entrega da OS pronta (versão 0.3.2, decisão 278); vazio = pode entregar. A revisão aprovada com a
+     * OS já pronta traz o checklist dos serviços novos, que a trava do "pronto" não viu: o item obrigatório pendente
+     * dele trava a entrega e, sem a entrada, também o serviço que precisa do veículo. O que estava pendente no pronto e
+     * foi justificado ali não trava de novo.
+     */
+    public List<String> travasDaEntrega(long osId) {
+        return banco.ler(c -> travasDaEntrega(c, exigir(c, osId)));
+    }
+
+    private List<String> travasDaEntrega(Connection c, OrdemServicoSalva os) throws SQLException {
+        if (os.status() != StatusOs.PRONTA) {
+            return List.of();
+        }
+        List<String> travas = new ArrayList<>();
+        NecessidadeDoVeiculo necessidade = checklists.necessidadeDoVeiculo(c, os.id());
+        if (!os.veiculoChegou() && necessidade.exigeVeiculo()) {
+            List<String> servicos = necessidade.comVeiculo();
+            travas.add("Registre a entrada do veículo (aba Entrada) e retome o serviço: " + String.join(", ", servicos)
+                    + (servicos.size() == 1 ? " precisa" : " precisam") + " do veículo na oficina.");
+        }
+        List<Pendencia> pendencias = os.prontaEm() == null ? List.of()
+                : checklists.pendenciasCriadasDepois(c, os.id(), os.prontaEm());
+        if (!pendencias.isEmpty()) {
+            travas.add("A revisão aprovada depois do pronto trouxe itens obrigatórios pendentes. Marque-os na aba "
+                    + "Execução ou, para entregar com algum pendente, retome o serviço e faça o pronto de novo, com a "
+                    + "justificativa:");
+            pendencias.forEach(pendencia -> travas.add(pendencia.texto()));
+        }
+        return travas;
     }
 
     /** Cancela a OS (a qualquer momento antes da entrega), com o motivo. */

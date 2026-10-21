@@ -104,6 +104,11 @@ O cabeçalho mostra o número, o cliente, o veículo, a etapa, o valor e o que j
 - **Entregar…:** dia e hora, km na saída e garantia em dias (0 = sem garantia, até 3650 = 10 anos; já vem com a garantia padrão de Configurações › OS). A data em que a garantia vence aparece na OS. Se algum serviço do orçamento aprovado tiver **garantia própria** no catálogo (item 8), a janela avisa qual; a garantia digitada vale para os outros. Vale a garantia que o serviço tinha quando entrou no orçamento: mudar o catálogo depois não muda a OS. Na OS em que o veículo não passou pela oficina (sem a entrada), a janela pede **Quem retirou** (obrigatório, ex.: o próprio cliente ou outra oficina), no lugar do km de saída.
 - **Cancelar OS…:** a qualquer momento antes da entrega, com o motivo. A OS cancelada fica no histórico; OS não se apaga.
 
+**Revisão aprovada com a OS já pronta** (ex.: o cliente pediu mais um serviço na hora de buscar): a OS continua pronta, e os serviços novos ganham o checklist na aba Execução. "Entregar…" não abre a janela enquanto houver algo novo a fazer, e mostra embaixo o que falta. O próximo passo, no alto, avisa.
+
+- **Item obrigatório pendente nesse checklist novo:** marque-o na aba Execução. Para entregar com algum pendente, use "Retomar o serviço" e faça o "Serviço pronto" de novo, com a justificativa. O que já tinha sido justificado no primeiro pronto não trava de novo.
+- **Serviço que precisa do veículo, na OS que estava só na bancada:** registre a entrada (aba Entrada) e faça o serviço.
+
 Com algo mudado e não salvo na aba Entrada, Entregar e Cancelar pedem para salvar antes: depois, a OS não muda mais, e a mudança se perderia. Com marcações do checklist não salvas (aba Execução), o mesmo vale para Serviço pronto, Entregar e Cancelar.
 
 As abas:
