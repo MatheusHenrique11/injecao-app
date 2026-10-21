@@ -61,6 +61,7 @@ import br.com.calibra.dados.oficina.AnexoRepositorio;
 import br.com.calibra.dados.oficina.AnexoSalvo;
 import br.com.calibra.dados.oficina.ChecklistSalvo;
 import br.com.calibra.dados.oficina.DadosAbertura;
+import br.com.calibra.dados.oficina.FichaChicoteRepositorio;
 import br.com.calibra.dados.oficina.FiltroOs;
 import br.com.calibra.dados.oficina.ItemChecklistSalvo;
 import br.com.calibra.dados.oficina.MecanicoRepositorio;
@@ -271,6 +272,7 @@ public final class CasosOficina {
     private final OrdensDoProjeto ordensDoProjeto;
     private final CatalogoRepositorio catalogo;
     private final ChecklistsDaOs checklists;
+    private final FichaChicoteRepositorio fichasDeChicote;
 
     /** @param pastaAnexos a pasta de anexos dos dados, para onde vão as cópias das fotos e dos documentos */
     public CasosOficina(BancoDados banco, Clock relogio, CasosProjeto projetos, Path pastaAnexos) {
@@ -290,6 +292,7 @@ public final class CasosOficina {
         this.ordensDoProjeto = new OrdensDoProjeto(relogio);
         this.catalogo = new CatalogoRepositorio(relogio);
         this.checklists = new ChecklistsDaOs(relogio);
+        this.fichasDeChicote = new FichaChicoteRepositorio(relogio);
     }
 
     // ===================== Abertura e entrada =====================
@@ -473,7 +476,8 @@ public final class CasosOficina {
     /**
      * Entrega a OS pronta, com o km de saída e a garantia. O km atualiza o uso acumulado do veículo. Depois disso a OS
      * não muda mais (só os recebimentos). Na OS em que o veículo não passou pela oficina (sem a entrada, Fase 3B), a
-     * entrega registra quem retirou, no lugar do km de saída (teste nº 9 da fase).
+     * entrega registra quem retirou, no lugar do km de saída (teste nº 9 da fase). A última versão de cada ficha do
+     * chicote fica "entregue", na mesma gravação.
      */
     public Gravado entregar(long osId, Entrega entrega) {
         List<String> erros = entrega == null ? List.of("Informe a entrega.") : entrega.validar(agora());
@@ -489,6 +493,7 @@ public final class CasosOficina {
                 throw new EntradaInvalidaException("A entrega não pode ser antes da entrada do veículo.");
             }
             List<String> avisos = new ArrayList<>(entrega.avisos(os.entrada() == null ? null : os.entrada().uso()));
+            fichasDeChicote.marcarEntregues(c, osId);
             ordens.entregar(c, osId, entrega);
             List<String> doCadastro = atualizarUso(c, os.veiculoId(), entrega.usoSaida(), "da saída");
             if (avisos.isEmpty()) {
