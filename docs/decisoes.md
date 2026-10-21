@@ -994,3 +994,7 @@ O dono vai usar o app agora e quer que ele esteja 100% usável. Escolheu corrigi
     - **o que muda:** a anonimização do cliente troca o "quem retirou" das OS dele por "(apagado na anonimização)", na mesma gravação. Vale também para a OS entregue, que é a única que tem esse campo preenchido. O comprovante tirado depois sai com o texto novo;
     - **o banco (migração V14, em SQL; banco na versão 14):** o gatilho da V6 recusava qualquer mudança na OS entregue ou cancelada. Ele foi refeito com uma única exceção: trocar o "quem retirou" por esse texto, com todas as outras colunas iguais, conferidas uma a uma. Outro texto no "quem retirou", ou a troca junto com outra mudança, continua recusado (teste). A migração não muda dado nenhum;
     - **a coluna nova futura:** se uma fase seguinte acrescentar uma coluna à OS, a migração dela refaz este gatilho com a coluna na lista.
+280. **Versão 0.3.2:**
+    - os 6 `pom.xml` passam para 0.3.2. O CHANGELOG ganha a seção "[0.3.2]", e o README e o manual dizem o que mudou;
+    - **o manual, item 2,** passa a pedir "Fazer backup agora" antes de qualquer atualização (é o caminho de volta, decisão 276). Ele explica a atualização do 0.3.0 para o 0.3.2 (banco da 7 para a 14, o caso dos dados deste PC) e a do 0.3.1 para o 0.3.2 (só a V14);
+    - o MSI 0.3.2 é ensaiado como o 0.3.1: instalado por cima, com os testes de tela no instalado e a atualização numa cópia dos dados reais, apagada no fim.

@@ -6,7 +6,7 @@ O Calibra não usa internet e nunca grava nada na injeção (USB, CAN ou serial)
 
 A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do usuário em [docs/manual.md](docs/manual.md).
 
-## O que funciona hoje (versão 0.3.1)
+## O que funciona hoje (versão 0.3.2)
 
 ### Painel
 - As OS por etapa, os veículos na oficina e as entregas previstas até hoje (as de hoje e as atrasadas).
@@ -20,6 +20,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 - **Auto elétrica, na mesma OS:**
   - os checklists de execução, copiados do catálogo quando o serviço começa;
   - a trava do pronto, que pede justificativa para item obrigatório pendente;
+  - a trava da entrega, quando o cliente pede mais um serviço com a OS já pronta;
   - os laudos de diagnóstico elétrico;
   - as instalações do veículo;
   - as fichas do chicote de injeção programável, com versões;
@@ -30,7 +31,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
   - o laudo elétrico e a ficha do chicote;
   - os textos para o WhatsApp, só copiados (OS aberta, orçamento e pronto para retirar).
 - **Ficha do veículo:** o cliente, as OS, as instalações, os laudos, as fichas do chicote, os projetos e os anexos, com os documentos do próprio veículo.
-- **LGPD:** o consentimento do cliente e a anonimização. Ela apaga os dados pessoais e os documentos marcados como pessoais, e troca o nome dos arquivos que ficam.
+- **LGPD:** o consentimento do cliente e a anonimização. Ela apaga os dados pessoais, os documentos marcados como pessoais e o "quem retirou" das OS, e troca o nome dos arquivos que ficam.
 
 ### Preparação
 - Projetos com cliente, veículo (com histórico) e motor (com versões). O projeto fica ligado à OS.
@@ -67,7 +68,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 
 ## Instalar e atualizar
 
-- **Instalar:** dois cliques em `Calibra-0.3.1.msi`. Ele instala só para o usuário do Windows, sem senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`, com atalhos no menu Iniciar e na área de trabalho.
+- **Instalar:** dois cliques em `Calibra-0.3.2.msi`. Ele instala só para o usuário do Windows, sem senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`, com atalhos no menu Iniciar e na área de trabalho.
 - **Atualizar:** instale a versão nova por cima; os dados ficam. Antes, faça "Fazer backup agora" na versão antiga: é o caminho de volta, se precisar.
 - **Detalhes:** no manual, item 2 (inclusive como voltar para a versão anterior).
 
@@ -79,7 +80,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 | 1 e 1.1 | 0.1.0 e 0.1.1 | A calculadora de dimensionamento e o semáforo |
 | 2 | 0.2.0 | O banco com backup, os projetos, os catálogos, o orçamento em PDF e o instalador MSI |
 | 3 | 0.3.0 | A oficina: a OS, o Painel, os documentos, o catálogo de serviços e a ficha do veículo |
-| 3B | 0.3.1 | A auto elétrica: checklists, laudos, instalações, fichas do chicote, itens e kits |
+| 3B | 0.3.1 e 0.3.2 | A auto elétrica: checklists, laudos, instalações, fichas do chicote, itens e kits; na 0.3.2, a trava da entrega e o "quem retirou" na anonimização |
 
 Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
@@ -88,9 +89,6 @@ Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 - **Mapa base:** a calculadora dimensiona as peças, mas o app ainda não gera a tabela de injeção (é a Fase 4). O acerto continua no software da própria injeção.
 - **Agenda e lembretes:** não há agenda nem aviso automático (revisão, garantia vencendo, orçamento sem resposta). O Painel mostra só as OS e as entregas previstas.
 - **Estoque e financeiro:** ficaram de fora por escolha do dono. Os itens do catálogo não têm saldo, e o pagamento da OS não vira caixa nem conta.
-- **Duas melhorias conhecidas** (docs/decisoes.md, item 275):
-  - na anonimização, o "quem retirou" da OS entregue sem o veículo continua com o nome;
-  - com a OS já pronta, uma revisão nova aprovada traz o checklist dos serviços novos, mas a entrega não confere esses itens. Use "Retomar o serviço" antes de entregar.
 
 ## Funções futuras
 
@@ -172,5 +170,5 @@ powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes 
 - [docs/decisoes.md](docs/decisoes.md): decisões técnicas
 - [docs/manual.md](docs/manual.md): manual do usuário
 - [docs/fase0/](docs/fase0/): levantamentos da fase 0 (injeções, combustíveis, motores, planilha de conferência)
-- [docs/fase3/ensaio-instalador.md](docs/fase3/ensaio-instalador.md) e [docs/fase3b/ensaio-instalador.md](docs/fase3b/ensaio-instalador.md): ensaios dos instaladores 0.3.0 e 0.3.1
+- [docs/fase3/ensaio-instalador.md](docs/fase3/ensaio-instalador.md) e [docs/fase3b/ensaio-instalador.md](docs/fase3b/ensaio-instalador.md): ensaios dos instaladores 0.3.0, 0.3.1 e 0.3.2
 - [CHANGELOG.md](CHANGELOG.md)

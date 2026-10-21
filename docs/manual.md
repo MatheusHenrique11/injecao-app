@@ -1,32 +1,32 @@
 # Manual do usuário — Calibra
 
-Versão do app: 0.3.1 (fase 3B). Este manual cresce a cada fase.
+Versão do app: 0.3.2 (fase 3B). Este manual cresce a cada fase.
 
 ## 1. O que o Calibra faz
 
 Cuida da oficina e da preparação num app só. Na oficina: a ordem de serviço (OS) de mecânica e de auto elétrica, da entrada do veículo, com a vistoria e as fotos, ao orçamento, ao serviço com o checklist, à entrega com garantia e ao pagamento. Na preparação: transforma a meta do cliente (motor, potência, uso, combustível e injeção) em peças dimensionadas, orçamento, mapa base conservador e relatório final. O acerto fino continua sendo feito pelo calibrador, no software da própria injeção. O Calibra nunca grava nada na injeção e funciona sem internet.
 
-Nesta versão (0.3.1) já funcionam:
+Nesta versão (0.3.2) já funcionam:
 
 - a oficina (item 5): as ordens de serviço, o Painel, os documentos da OS e a ficha do veículo;
-- a auto elétrica, na mesma OS: os serviços do catálogo com categoria e garantia própria, os itens e kits no orçamento, os checklists de execução com a trava do pronto, os laudos de diagnóstico elétrico, as instalações do veículo, as fichas do chicote de injeção programável e o serviço de bancada sem o veículo;
+- a auto elétrica, na mesma OS: os serviços do catálogo com categoria e garantia própria, os itens e kits no orçamento, os checklists de execução com a trava do pronto e da entrega, os laudos de diagnóstico elétrico, as instalações do veículo, as fichas do chicote de injeção programável e o serviço de bancada sem o veículo;
 - os projetos de preparação, com cliente, veículo e motor; a calculadora de dimensionamento; os catálogos; o orçamento; o backup.
 
 O mapa base chega na fase 4.
 
 ## 2. Instalação
 
-- **Instalar:** dê dois cliques em `Calibra-0.3.1.msi`. O Calibra instala só para o seu usuário do Windows, sem pedir senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`. Ele cria atalhos no menu Iniciar (pasta Calibra) e na área de trabalho. As telas do instalador são as do Windows, em inglês.
-- **Atualizar:** instale a versão nova por cima, do mesmo jeito. Os dados ficam, e só uma versão aparece em "Aplicativos instalados".
-- **Atualizar do 0.3.0 para o 0.3.1:**
-  - **antes de instalar:** abra o 0.3.0 e faça **Fazer backup agora** (Configurações › Backup). É o caminho de volta, se um dia precisar (veja "Voltar para a versão anterior", abaixo). Ele sai da pasta quando deixar de estar entre os 30 mais recentes; para guardar por mais tempo, copie o `.zip` dele para um pen drive (no 0.3.0, as fotos vão dentro do `.zip`);
-  - **na primeira vez que o 0.3.1 abrir,** ele faz o backup "antes de atualizar o banco" e atualiza o banco da versão 7 para a 13 (os checklists da OS, os modelos de checklist, os laudos, as instalações, o "quem retirou" da entrega e as fichas do chicote). Essas mudanças só acrescentam: nada do que existe muda. Se algo der errado, o backup volta sozinho, e o app avisa;
+- **Instalar:** dê dois cliques em `Calibra-0.3.2.msi`. O Calibra instala só para o seu usuário do Windows, sem pedir senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`. Ele cria atalhos no menu Iniciar (pasta Calibra) e na área de trabalho. As telas do instalador são as do Windows, em inglês.
+- **Atualizar:** instale a versão nova por cima, do mesmo jeito. Os dados ficam, e só uma versão aparece em "Aplicativos instalados". Antes, faça **Fazer backup agora** (Configurações › Backup) na versão antiga: é o caminho de volta, se um dia precisar (veja "Voltar para a versão anterior", abaixo). Ele sai da pasta quando deixar de estar entre os 30 mais recentes; para guardar por mais tempo, copie-o para um pen drive.
+- **Atualizar do 0.3.0 para o 0.3.2:**
+  - **na primeira vez que o 0.3.2 abrir,** ele faz o backup "antes de atualizar o banco" e atualiza o banco da versão 7 para a 14 (os checklists da OS, os modelos de checklist, os laudos, as instalações, o "quem retirou" da entrega, as fichas do chicote e a regra que deixa a anonimização apagar o "quem retirou"). Essas mudanças só acrescentam: nada do que existe muda. Se algo der errado, o backup volta sozinho, e o app avisa;
   - **o que muda no uso:** os serviços que já estavam no catálogo aparecem na categoria "Outro" (troque na edição); os 7 modelos de checklist chegam em Catálogos › Checklists marcados "a verificar" (confira antes de ligar a um serviço); os backups passam a guardar cada foto e documento uma vez só, na pasta `backups\anexos-dos-backups` (item 10). Os backups do 0.3.0 continuam restaurando.
+- **Atualizar do 0.3.1 para o 0.3.2:** o banco vai da versão 13 para a 14, com o backup antes; nenhum dado muda. No uso, entram a trava da entrega (item 5.4) e o "quem retirou" apagado na anonimização (item 6.6).
 - **Atualizar de uma versão mais antiga (0.2.0):** a atualização passa por todas as versões de uma vez. Na passagem pelo 0.3.0, cada projeto que já tinha orçamento ganha uma OS, com a etapa tirada do orçamento (ex.: orçamento aprovado → OS aprovada); os números e o conteúdo dos orçamentos não mudam.
 - **Versão mais antiga por cima:** o Windows deixa instalar, mas ela não abre dados que uma versão mais nova já atualizou. O app avisa ("Instale a versão mais nova para abri-los") e não mexe em nada; é só instalar de novo a versão mais nova.
 - **Voltar para a versão anterior** (só se precisar): a versão anterior não abre os dados atualizados nem restaura os backups da versão nova (avisa que o backup "foi feito por uma versão mais nova"). O caminho é o backup feito nela antes de atualizar:
   1. instale o MSI da versão anterior por cima (ex.: `Calibra-0.3.0.msi`);
-  2. na pasta dos dados (item 3), renomeie `calibra.db` para, por exemplo, `calibra-0.3.1.db`. Não apague: é onde fica o que foi feito na versão nova;
+  2. na pasta dos dados (item 3), renomeie `calibra.db` para, por exemplo, `calibra-0.3.2.db`. Não apague: é onde fica o que foi feito na versão nova;
   3. abra o app: ele começa com o banco vazio;
   4. em Configurações › Backup, restaure o backup feito antes de atualizar.
 

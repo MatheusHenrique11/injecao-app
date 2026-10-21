@@ -2,6 +2,15 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [0.3.2] — 21/10/2026 — Fase 3B: as duas melhorias da revisão final
+
+### Adicionado
+- **Trava da entrega:** com a OS já pronta, a revisão aprovada traz o checklist dos serviços novos. A entrega não passa com item obrigatório pendente nesse checklist nem, na OS que estava só na bancada, com um serviço que precisa do veículo sem a entrada. "Entregar…" mostra o que falta, e o próximo passo avisa. O que foi justificado no pronto não trava de novo.
+
+### Mudado
+- **A anonimização apaga o "quem retirou"** das OS do cliente, também a entregue: ele vira "(apagado na anonimização)", e o comprovante tirado depois sai assim.
+- Banco de dados na versão 14 (V14: a regra do banco que não deixa mudar a OS entregue ganha uma exceção só, a troca do "quem retirou" na anonimização). Nenhum dado muda; como sempre, a atualização faz um backup antes.
+
 ## [0.3.1] — 21/10/2026 — Fase 3B (auto elétrica)
 
 ### Adicionado
@@ -40,7 +49,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
 - **Manual, item 2:** o jeito de voltar para a versão anterior foi corrigido. A versão anterior não abre os dados atualizados nem restaura os backups da nova; o caminho de volta é o backup feito nela antes de atualizar ("Fazer backup agora"), restaurado com o banco atual renomeado.
 
-### Para o dono decidir (revisão final, decisão 275)
+### Para o dono decidir (revisão final, decisão 275; corrigidos na 0.3.2)
 - O "quem retirou" da OS entregue sem o veículo fica depois da anonimização (a OS entregue não muda).
 - Com a OS pronta, a revisão aprovada traz o checklist dos serviços novos, mas a entrega não confere os itens deles: use "Retomar o serviço" antes de entregar.
 

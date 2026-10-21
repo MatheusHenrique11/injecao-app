@@ -11,7 +11,7 @@ class CalibraAppTest {
     @Test
     void versaoVemDoPom() {
         // Se o filtro do versao.properties parar de funcionar, Versao.atual() lança erro em vez de "${...}".
-        assertEquals("0.3.1", Versao.atual());
+        assertEquals("0.3.2", Versao.atual());
     }
 
     @Test
