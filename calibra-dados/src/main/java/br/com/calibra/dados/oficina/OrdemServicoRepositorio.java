@@ -220,6 +220,22 @@ public final class OrdemServicoRepositorio {
         registrarStatus(conexao, id, StatusOs.CANCELADA, agora, texto);
     }
 
+    /**
+     * LGPD (versão 0.3.2, decisão 279): troca o "quem retirou" das OS do cliente por "(apagado na anonimização)",
+     * também na OS entregue: o gatilho da V14 deixa só esta troca. As OS sem "quem retirou" ficam como estão.
+     *
+     * @return quantas OS mudaram
+     */
+    public int anonimizarQuemRetirou(Connection conexao, long clienteId) throws SQLException {
+        try (PreparedStatement atualizacao = conexao.prepareStatement(
+                "UPDATE ordem_servico SET retirado_por = ? WHERE cliente_id = ? AND retirado_por NOT IN ('', ?)")) {
+            atualizacao.setString(1, Auditoria.APAGADO);
+            atualizacao.setLong(2, clienteId);
+            atualizacao.setString(3, Auditoria.APAGADO);
+            return atualizacao.executeUpdate();
+        }
+    }
+
     /** Liga a OS a um projeto de preparação (ex.: criado a partir dela). Só OS em andamento e ainda sem projeto. */
     public void ligarProjeto(Connection conexao, long id, long projetoId) throws SQLException {
         OrdemServicoSalva atual = exigirEmAndamento(conexao, id);

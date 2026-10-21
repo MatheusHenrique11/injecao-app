@@ -168,6 +168,11 @@ class OsSemVeiculoTest {
         assertEquals("Oficina do João", entrega.quemRetirou());
         assertNull(entrega.usoSaida(), "sem km de saída");
         assertEquals(StatusOs.ENTREGUE, oficina.buscar(os).os().status());
+
+        oficina.anonimizarCliente(oficina.buscar(os).os().clienteId());
+        assertEquals("(apagado na anonimização)", oficina.buscar(os).os().entrega().quemRetirou(),
+                "versão 0.3.2 (decisão 279): a anonimização apaga quem retirou, também na OS entregue");
+        assertEquals(StatusOs.ENTREGUE, oficina.buscar(os).os().status());
     }
 
     /**

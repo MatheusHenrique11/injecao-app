@@ -366,6 +366,79 @@ class OrdemServicoRepositorioTest {
                 "Vistoria: Casco (2): risco na popa → risco fundo na popa"), correcoes(id));
     }
 
+    /**
+     * Versão 0.3.2 (V14, decisão 279): a anonimização troca o "quem retirou" das OS do cliente, também a entregue. O
+     * banco continua recusando qualquer outra mudança na OS entregue, também junto com a troca, e outro texto no
+     * "quem retirou".
+     */
+    @Test
+    void quemRetirouSaiNaAnonimizacao() {
+        long semVeiculo = abrirOs(1, cliente, veiculo, null);
+        ateFicarPronta(semVeiculo);
+        base.banco.transacao(c -> {
+            ordens.entregar(c, semVeiculo, new Entrega(LocalDateTime.of(2026, 10, 16, 17, 0), null, new Garantia(90),
+                    "João da Silva"));
+            return null;
+        });
+        long comVeiculo = abrirOs(2, cliente, veiculo, null);
+        ateFicarPronta(comVeiculo);
+        entregar(comVeiculo);
+        long maria = base.banco.transacao(c -> cadastros.clientes().inserir(c, Cadastros.cliente("Maria Souza")));
+        long carroDaMaria = base.banco.transacao(c -> cadastros.veiculos().inserir(c, maria, Cadastros.carro("XYZ9A87"),
+                null));
+        long daMaria = abrirOs(3, maria, carroDaMaria, null);
+        ateFicarPronta(daMaria);
+        base.banco.transacao(c -> {
+            ordens.entregar(c, daMaria, new Entrega(LocalDateTime.of(2026, 10, 16, 18, 0), null, new Garantia(90),
+                    "Maria Souza"));
+            return null;
+        });
+        OrdemServicoSalva antes = buscar(semVeiculo);
+
+        assertEquals(1, (int) base.banco.transacao(c -> ordens.anonimizarQuemRetirou(c, cliente)));
+        OrdemServicoSalva depois = buscar(semVeiculo);
+        assertEquals("(apagado na anonimização)", depois.entrega().quemRetirou());
+        assertEquals(antes.atualizadoEm(), depois.atualizadoEm(), "o resto da OS fica igual");
+        assertEquals(StatusOs.ENTREGUE, depois.status());
+        assertEquals("", buscar(comVeiculo).entrega().quemRetirou(), "a entregue com o veículo fica vazia");
+        assertEquals("Maria Souza", buscar(daMaria).entrega().quemRetirou(), "a da outra cliente fica");
+        assertEquals(0, (int) base.banco.transacao(c -> ordens.anonimizarQuemRetirou(c, cliente)), "de novo: nada");
+
+        assertThrows(ErroDados.class, () -> executar("UPDATE ordem_servico SET retirado_por = 'Outro nome' WHERE id = "
+                + daMaria), "outro texto no \"quem retirou\" é recusado");
+        assertThrows(ErroDados.class, () -> executar("UPDATE ordem_servico SET retirado_por = "
+                + "'(apagado na anonimização)', observacoes = 'x' WHERE id = " + daMaria), "junto com outra mudança");
+        assertThrows(ErroDados.class, () -> executar("UPDATE ordem_servico SET observacoes = 'x' WHERE id = "
+                + semVeiculo), "a OS entregue continua sem mudar");
+    }
+
+    /** A V14 sobre um banco que já está na V13, com uma OS entregue sem o veículo: o gatilho muda, e os dados não. */
+    @Test
+    void v14SobreUmBancoNaV13() throws Exception {
+        BaseDeTeste antiga = BaseDeTeste.semMigrar(pasta.resolve("v13"));
+        Flyway.configure().dataSource(antiga.banco.fonte()).locations(Migracoes.LOCAL_PADRAO).target("13").load()
+                .migrate();
+        Cadastros.Repositorios deAntes = Cadastros.Repositorios.de(antiga);
+        long dono = antiga.banco.transacao(c -> deAntes.clientes().inserir(c, Cadastros.cliente("Ana Costa")));
+        long carro = antiga.banco.transacao(c -> deAntes.veiculos().inserir(c, dono, Cadastros.carro("CDE3F45"), null));
+        OrdemServicoRepositorio deAntesOs = new OrdemServicoRepositorio(antiga.relogio);
+        long id = antiga.banco.transacao(c -> deAntesOs.inserir(c, new NumeroOs(2026, 1),
+                new DadosAbertura(dono, carro, null, "Chicote", null, null, "")));
+        antiga.banco.transacao(c -> {
+            try (Statement comando = c.createStatement()) {
+                return comando.executeUpdate("UPDATE ordem_servico SET status = 'ENTREGUE', "
+                        + "entregue_em = '2026-10-16T17:00:00', garantia_dias = 90, garantia_ate = '2027-01-14', "
+                        + "retirado_por = 'Ana Costa' WHERE id = " + id);
+            }
+        });
+        Migracoes.Resultado resultado = Migracoes.migrar(antiga.banco, antiga.backup);
+        assertEquals("13", resultado.versaoAntes());
+        assertEquals(BaseDeTeste.VERSAO_BANCO, resultado.versaoDepois());
+        assertEquals("Ana Costa", antiga.banco.ler(c -> deAntesOs.buscar(c, id)).orElseThrow().entrega()
+                .quemRetirou(), "a migração não muda dado");
+        assertEquals(1, (int) antiga.banco.transacao(c -> deAntesOs.anonimizarQuemRetirou(c, dono)));
+    }
+
     /** A V12 sobre um banco que já está na V11, com uma OS entregue: ela fica com "quem retirou" vazio. */
     @Test
     void v12SobreUmBancoNaV11() throws Exception {

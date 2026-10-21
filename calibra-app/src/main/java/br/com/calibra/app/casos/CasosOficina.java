@@ -840,7 +840,8 @@ public final class CasosOficina {
      * LGPD (SPEC 6.1 e 6.5): anonimiza o cliente e os veículos dele e apaga os anexos marcados como documento pessoal
      * (das OS dele e dos veículos dele), na mesma gravação; os arquivos que ficarem sem uso saem da pasta de anexos.
      * Fotos, laudos, notas fiscais, OS, projetos e cálculos ficam. Os anexos que ficam trocam o nome do arquivo por
-     * "arquivo anonimizado", com a extensão (item 4 da decisão 211); a descrição fica. Não tem volta.
+     * "arquivo anonimizado", com a extensão (item 4 da decisão 211); a descrição fica. O "quem retirou" das OS dele
+     * vira "(apagado na anonimização)" (versão 0.3.2, decisão 279). Não tem volta.
      */
     public Anonimizacao anonimizarCliente(long clienteId) {
         record Feito(List<AnexoSalvo> apagados, int nomes) {
@@ -853,6 +854,7 @@ public final class CasosOficina {
                 anexos.apagar(c, anexo.id());
             }
             int nomes = anexos.anonimizarNomes(c, clienteId);
+            ordens.anonimizarQuemRetirou(c, clienteId);
             clientes.anonimizar(c, clienteId);
             return new Feito(pessoais, nomes);
         });

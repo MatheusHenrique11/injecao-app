@@ -940,8 +940,8 @@ class OficinaUiTest {
                 assertNull(TelaDeTeste.janelaAberta("Entregar o veículo"), "a janela da entrega não abre");
                 List<String> mensagens = principal.osAberta().mensagens();
                 assertEquals("• A revisão aprovada depois do pronto trouxe itens obrigatórios pendentes. Marque-os na "
-                        + "aba Execução ou, para entregar com algum pendente, retome o serviço e faça o pronto de novo, "
-                        + "com a justificativa:", mensagens.getFirst());
+                        + "aba Execução ou, para entregar com algum pendente, retome o serviço e faça o pronto de "
+                        + "novo, com a justificativa:", mensagens.getFirst());
                 assertEquals(7, mensagens.size(), "e os 6 itens do alternador: " + mensagens);
                 salvar(cena, "oficina-45-entrega-travada.png");
                 List<MarcacaoDoItem> feitos = oficina.checklists(ana).get(1).checklist().itens().stream()

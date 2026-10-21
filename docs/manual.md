@@ -222,7 +222,7 @@ O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ qu
 - os dados pessoais dele e dos veículos dele: o nome vira "Cliente anonimizado #N"; placa, chassi e identificação da embarcação somem;
 - os anexos marcados como documento pessoal (como CNH e CRLV), os das OS dele e os dos veículos dele. O arquivo só sai da pasta de anexos se nenhum outro anexo usar o mesmo.
 
-Fotos, laudos, notas fiscais, instalações do veículo, fichas de chicote, OS, projetos, cálculos e orçamentos ficam. Os anexos que ficam (das OS dele e dos veículos dele) trocam o nome do arquivo por "arquivo anonimizado", com a extensão (ex.: uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal vira "arquivo anonimizado.jpg"). A descrição e a foto em si ficam como estão. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
+Fotos, laudos, notas fiscais, instalações do veículo, fichas de chicote, OS, projetos, cálculos e orçamentos ficam. Os anexos que ficam (das OS dele e dos veículos dele) trocam o nome do arquivo por "arquivo anonimizado", com a extensão (ex.: uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal vira "arquivo anonimizado.jpg"). A descrição e a foto em si ficam como estão. O **"quem retirou"** das OS dele entregues sem o veículo (item 5.4) vira "(apagado na anonimização)", também no comprovante tirado depois. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
 
 - Se um desses documentos estiver aberto em outro programa (como um PDF no leitor), o arquivo não sai da pasta na hora: o app avisa, e ele sai na próxima vez que o Calibra abrir. Feche o programa antes, se puder.
 - Depois de anonimizar, a placa, o chassi e a identificação da embarcação não voltam pela edição do veículo, e o cliente não recebe OS nova pelo orçamento do projeto nem documento pessoal novo. Se a pessoa voltar à oficina, cadastre-a de novo, com um consentimento novo.
@@ -231,7 +231,6 @@ O que a anonimização não alcança:
 
 - os **backups** feitos antes dela continuam com os dados e os documentos do cliente. Os da pasta de backups saem sozinhos quando deixam de estar entre os 30 mais recentes; os copiados para pen drive ou HD ficam até você apagar;
 - a **descrição dos anexos** que ficam e o que aparece na própria foto ou no PDF;
-- o **"quem retirou"** da OS entregue sem o veículo (item 5.4): a OS entregue não muda mais, e o nome continua nela e no comprovante tirado depois. Se foi o próprio cliente quem retirou, prefira escrever "o próprio cliente" e pegar a assinatura no comprovante;
 - os **textos livres da OS** (serviço pedido, observações, vistoria e observações dos recebimentos), também o antes e o depois deles nas correções da OS (aba Histórico), os **laudos elétricos** (a queixa e os outros textos) e as **instalações do veículo** (a descrição e as observações) não mudam. Evite escrever neles dados pessoais do cliente, como CPF, endereço ou telefone. Na queixa do laudo, o app avisa ao salvar quando parece ter o nome do cliente, um telefone ou documento, ou um e-mail (item 5.4).
 
 ## 7. Calculadora e dimensionamento

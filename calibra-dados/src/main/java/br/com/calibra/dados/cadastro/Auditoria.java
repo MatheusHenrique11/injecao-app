@@ -20,8 +20,11 @@ import br.com.calibra.dados.Sql;
  */
 public final class Auditoria {
 
-    /** O que fica no lugar de um valor pessoal apagado na anonimização. */
-    static final String APAGADO = "(apagado na anonimização)";
+    /**
+     * O que fica no lugar de um valor pessoal apagado na anonimização. É o mesmo texto que o gatilho da V14 aceita no
+     * "quem retirou" da OS entregue.
+     */
+    public static final String APAGADO = "(apagado na anonimização)";
 
     private Auditoria() {
     }
