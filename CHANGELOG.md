@@ -23,14 +23,18 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **Instalações na OS:** na aba Execução, "Registrar instalação…" já vem com a OS e a data de hoje. Depois da entrega, a OS só mostra; a instalação continua mudando pela ficha.
 - **Serviço de bancada sem o veículo:** com um serviço do catálogo que não exige o veículo (ex.: a confecção de chicote), a OS começa sem a entrada. O checklist dos serviços que precisam do veículo fica bloqueado até a entrada, e o pronto pede a entrada se algum serviço precisar dele.
 - **Entrega com "quem retirou":** na OS em que o veículo não passou pela oficina, a entrega pede quem retirou, no lugar do km de saída. A aba Entrega e pagamento e o comprovante mostram "retirado por", e a assinatura do comprovante é de quem retirou.
+- **Ficha do chicote:** na aba Execução, uma ficha para cada chicote de injeção programável: a injeção (do catálogo ou escrita), o motor do projeto, a versão, a fonte do pinout (obrigatória), os pontos (a função, o conector, o pino da injeção e a marca "a verificar"), os materiais e as observações. Com o projeto de preparação, a ficha nova já vem com a injeção e o motor dele. O app não confere pinagem nem bitola.
+- **Versões do chicote:** "Nova versão…" começa da ficha anterior (v1 vira v2); a anterior fica guardada, em cinza, só para ver.
+- **PDF da ficha do chicote:** a folha A4, feita na hora pela aba Execução ou pelo menu Documentos, com os pontos e os testes de bancada tirados do checklist da confecção (cada item, com quem marcou e quando). A ficha comum cabe numa página.
+- **Fichas de chicote na ficha do veículo:** as de todas as OS do veículo; o duplo clique abre a OS. Na entrega da OS, a última versão de cada chicote fica "entregue".
 
 ### Mudado
 - **Backup que guarda cada anexo uma vez:** o arquivo de cada backup leva o banco e a lista dos anexos; as fotos e os documentos ficam uma vez só na pasta `anexos-dos-backups`, ao lado dos backups, conferidos pela impressão digital na restauração. Antes, cada um dos 30 backups levava todas as fotos de novo. Os backups antigos continuam restaurando. A aba Backup mostra o espaço dos anexos guardados.
 - **Fotos e documentos copiados em segundo plano:** anexar na OS ou na ficha do veículo e abrir a Nova OS com as fotos não travam mais a tela; a janela de espera só aparece se a cópia passar de meio segundo.
 - **"Trazer as peças do cálculo de novo"** (orçamento de preparação) mantém os itens da aba Itens, além dos serviços; as peças digitadas continuam sendo trocadas pelas do cálculo.
-- Banco de dados na versão 12 (V8: os checklists da OS; V9: os 7 modelos de checklist; V10: os laudos elétricos; V11: as instalações do veículo; V12: "quem retirou" na entrega). As cinco só acrescentam; nada do que existe muda. Como sempre, a atualização faz um backup antes.
+- Banco de dados na versão 13 (V8: os checklists da OS; V9: os 7 modelos de checklist; V10: os laudos elétricos; V11: as instalações do veículo; V12: "quem retirou" na entrega; V13: as fichas de chicote). As seis só acrescentam; nada do que existe muda. Como sempre, a atualização faz um backup antes.
 - Os modelos de checklist ficam em Catálogos › Checklists, e não em Configurações, como a SPEC dizia: assim ganham busca, versões, duplicar e arquivar.
-- O PDF do laudo é feito na hora, como a via e o comprovante, sem cópia nos anexos (a SPEC dizia "anexo da OS"). O aviso de dado pessoal na queixa só aparece quando ela parece ter um, e não a cada gravação.
+- O PDF do laudo e o da ficha do chicote são feitos na hora, como a via e o comprovante, sem cópia nos anexos (a SPEC dizia "anexo da OS"). O aviso de dado pessoal na queixa só aparece quando ela parece ter um, e não a cada gravação.
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
 
 ## [0.3.0] — 19/10/2026 — Fase 3

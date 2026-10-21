@@ -902,3 +902,47 @@ Plano aprovado em 20/10/2026, em duas entregas, com parada para aprovar entre el
 264. **O banco** (migração V12, em SQL; banco na versão 12):
     - a coluna `retirado_por` na OS, vazia nas OS que já existem (elas foram entregues com o veículo);
     - o teste sobe um banco na V11, com uma OS entregue, até a V12: a entrega de antes continua igual, com "quem retirou" vazio. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.
+
+#### Entrega B: a ficha do chicote
+
+265. **A ficha, campo a campo** (SPEC 6.6.5):
+    - **injeção:** do catálogo de injeções ou, com "(texto livre)", escrita. A ficha guarda o nome e, quando é do catálogo, o item; a injeção arquivada depois continua aparecendo na ficha que a usa;
+    - **motor:** a versão do motor do projeto de preparação da OS; sem projeto, o campo não aparece. O caso de uso recusa a versão de outro projeto;
+    - **a ficha nova** vem com a versão "v1", em confecção e, com o projeto ligado à OS, com a injeção dele e a versão de agora do motor (regra 4 da 6.6.5);
+    - **fonte do pinout:** obrigatória. Os pontos ficam no editor de linhas do 3B.4 (função, conector, pino da injeção, observação e "a verificar"); na linha começada, a função é obrigatória, e a linha sem texto fica de fora. O app não confere pinagem nem bitola (decisão 224);
+    - **materiais e observações:** texto livre. As fotos ficam nos anexos da OS, sem campo próprio na ficha;
+    - **situação:** em confecção ou testado, escolhida na ficha. "Entregue" não se escolhe: vem com a entrega da OS (decisão 269).
+266. **As versões** (resposta do dono):
+    - **"Nova versão…"** abre a janela com uma cópia da ficha escolhida, a próxima versão ("v1" vira "v2"; outro nome ganha " v2") e a situação de volta a em confecção. Nada é gravado até "Gravar";
+    - **a anterior** fica guardada, só para ver, em cinza, com "(versão anterior, só para ver)" na situação. O PDF dela continua saindo. O caso de uso e o banco recusam mudar ou apagar a versão que já tem uma nova (teste nº 13 da fase);
+    - **uma linha só:** cada versão tem no máximo uma nova (o banco não deixa duas versões novas da mesma), e a nova é da mesma OS;
+    - **apagar:** só a última versão, feita por engano, com a OS em andamento. Apagada a nova, a anterior volta a mudar.
+267. **Os testes de bancada vêm do checklist da OS** (resposta do dono):
+    - **quais itens:** os do checklist dos serviços de bancada da OS (os que não exigem o veículo, como a confecção do chicote), como estão marcados na aba Execução: a situação, a observação (ou, no "não se aplica", a justificativa), quem marcou e quando. Nada se anota duas vezes;
+    - **onde:** a janela mostra quantos itens estão feitos; o PDF traz cada um, numa tabela. Sem checklist de bancada, o PDF diz que a OS não tem;
+    - **todos os itens**, e não só continuidade, isolamento e curto: o checklist da confecção é o procedimento de bancada inteiro, e escolher só alguns pelo texto quebraria quando o dono mudasse o modelo.
+268. **O PDF é feito na hora** (resposta do dono), como o laudo e o comprovante, sem cópia nos anexos:
+    - **onde sai:**
+      - na área das fichas, com a ficha escolhida;
+      - no menu Documentos da OS, em "Ficha do chicote: gerar PDF…" e "imprimir…", desligados sem ficha; com mais de uma (ou mais de uma versão), o app pergunta qual, com a mais nova já marcada;
+      - o arquivo se chama, por exemplo, `OS-2026-0002-chicote-v1.pdf`;
+    - **o que tem:** a OS, a versão e a situação, o cliente e o veículo, a seção "Chicote" (situação, injeção, motor e fonte do pinout), a tabela dos pontos, os testes de bancada, os materiais e as observações, e a assinatura do responsável pela confecção;
+    - **uma página:** no primeiro desenho, a assinatura da ficha comum (6 pontos e 4 itens de bancada) caiu sozinha na segunda página. A situação foi para a seção "Chicote", e os materiais e as observações ficaram numa seção só. A ficha comum, e a do teste de tela com os 12 itens do checklist, cabem numa página; a tabela de um chicote grande continua na página seguinte (teste com 60 pontos).
+269. **A situação "entregue" vem com a entrega da OS:**
+    - na mesma gravação da entrega, antes de a OS ficar entregue, a última versão de cada chicote fica "entregue". A versão anterior fica como era (ela já não muda);
+    - na OS cancelada, as fichas ficam como estavam, só para ver;
+    - assim a ficha não fica "em confecção" numa OS entregue, e o dono não precisa lembrar de marcar.
+270. **Quando a ficha muda e onde aparece:**
+    - **quando:** em qualquer etapa antes da entrega, como o laudo. Depois da entrega ou do cancelamento, só para ver: o caso de uso recusa, e o banco também (gatilhos da V13). O teste da ficha da OS entregue é o mesmo do nº 6, para a ficha;
+    - **aba Execução:** a área "Fichas do chicote", no fim, depois das instalações. A lista mostra a versão, a injeção, quantos pontos, a situação e quando mudou; os botões são "Nova ficha…", "Abrir…" (ou o duplo clique), "Nova versão…", "Gerar PDF…", "Imprimir…" e "Apagar…". Com a versão anterior escolhida, "Nova versão…" e "Apagar…" ficam desligados;
+    - **ficha do veículo:** a seção "Fichas de chicote", depois dos laudos, com as de todas as OS, da mais nova para a mais antiga; o duplo clique abre a OS;
+    - **anonimização:** a ficha é dado técnico e fica igual; o PDF tirado depois sai com o nome anonimizado.
+271. **O banco** (migração V13, em SQL; banco na versão 13):
+    - **a tabela `ficha_chicote`:** a OS, a versão anterior (única: uma versão nova por versão), o conteúdo em JSON e quando foi criada e mudada;
+    - **os gatilhos:**
+      - a OS entregue ou cancelada não ganha ficha, e a ficha dela não muda nem se apaga;
+      - a versão que já tem uma nova não muda nem se apaga;
+      - a versão nova é da mesma OS;
+      - a ficha não muda de OS nem de versão anterior;
+    - **o formato do JSON** fica fixo num teste, pelo arquivo de exemplo `ficha-chicote-0.3.1.json`;
+    - **só acrescenta:** o teste sobe um banco na V12, com uma OS, até a V13. No 3B.7, o ensaio do MSI repete isso numa cópia dos dados reais.

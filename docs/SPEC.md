@@ -368,21 +368,21 @@ Regras:
 2. Se a OS tem os dois serviços, a bancada pode começar antes de o veículo chegar; a instalação só começa com a entrada registrada.
 3. **Injeção e peças do cliente:** a ECU e outros itens podem ser marcados `fornecidoPeloCliente` (6.6.4).
 4. **Vínculo com a preparação:** se a OS tem projeto de preparação com `injecaoEscolhida`, a ficha do chicote já vem com a injeção preenchida; sem projeto, a injeção vem do catálogo ou é texto livre. O mapa base e o acerto continuam nas Fases 4 e 6; estes serviços não os substituem, e o app continua não gravando mapa na injeção (seção 2).
-5. **Ficha do chicote** (uma por chicote, pertence à OS; PDF A4 e anexo da OS):
+5. **Ficha do chicote** (uma por chicote, pertence à OS; PDF A4 gerado na hora, sem cópia nos anexos, como o laudo — escolha do dono em 20/10/2026; a proposta dizia "PDF A4 e anexo da OS"):
 
 | Campo | Regra |
 | --- | --- |
-| `injecao` | do catálogo (opcional) ou texto livre |
-| `motorVersaoId` | opcional: a versão da configuração do motor (6.3) |
-| `versaoChicote` | texto (ex.: v1); nova versão não apaga a anterior |
+| `injecao` | do catálogo (opcional) ou texto livre; com o projeto de preparação ligado à OS, a ficha nova já vem com a injeção dele |
+| `motorVersaoId` | opcional: a versão da configuração do motor (6.3), do projeto de preparação da OS; a ficha nova vem com a de agora |
+| `versaoChicote` | texto (ex.: v1); nova versão não apaga a anterior, que fica só para leitura (escolha do dono em 20/10/2026) |
 | `fontePinout` | texto obrigatório: de onde veio o pinout (manual, modelo do fabricante) |
-| `pontos` | lista editável: `funcao` (ex.: bico do cilindro 1, bobina, TPS, MAP), `conector`, `pinoDaInjecao`, `observacao`, `aVerificar` |
+| `pontos` | lista editável: `funcao` (ex.: bico do cilindro 1, bobina, TPS, MAP; obrigatória na linha começada), `conector`, `pinoDaInjecao`, `observacao`, `aVerificar` |
 | `materiais` | texto livre (cabo, bitola, conectores, proteção); **o app não valida pinagem nem bitola** |
-| `testesBancada` | vem do checklist (continuidade, isolamento, curto), com resultado e quem fez |
-| `fotos`, `observacoes` | anexos e texto |
-| `situacao` | EM_CONFECCAO, TESTADO, ENTREGUE |
+| `testesBancada` | vem do checklist (continuidade, isolamento, curto), com resultado e quem fez: os itens do checklist dos serviços de bancada da OS, como estão marcados na aba Execução, sem anotar de novo (escolha do dono em 20/10/2026) |
+| `fotos`, `observacoes` | anexos da OS e texto |
+| `situacao` | EM_CONFECCAO, TESTADO (escolhidas na ficha), ENTREGUE (vem sozinha na entrega da OS, na última versão de cada chicote) |
 
-A ficha é o ponto de partida da tabela de circuitos da Fase 8.
+A ficha se cria e se muda até a entrega ou o cancelamento da OS; depois, fica só para leitura (o banco também recusa). Ela aparece na aba Execução (área Chicotes), no menu Documentos da OS e na ficha do veículo. Detalhes fixados no bloco 3B.6 (20/10/2026 — ver docs/decisoes.md, itens 265 a 271). A ficha é o ponto de partida da tabela de circuitos da Fase 8.
 
 ---
 
@@ -551,7 +551,7 @@ Os números do mapa do compressor e a linha do torque × câmbio foram alterados
    - lista de OS com busca por placa, cliente, embarcação ou número da OS e filtro por status;
    - botão "Nova OS": cliente e veículo existentes ou novos (a busca do cliente acha pela placa), serviço pedido e, se o veículo já chegou, a entrada com a vistoria e as fotos;
    - **OS:** os passos do serviço ficam no cabeçalho (começar, aguardando peças, retomar, pronto, entregar, cancelar), com o próximo passo, a ficha do veículo e o menu Documentos (via do cliente, comprovante de entrega, imprimir e os textos para o WhatsApp; na Fase 3B, também o laudo elétrico e a ficha do chicote); as abas são Entrada · Orçamento · Preparação (o projeto ligado, ou ligar ou criar um) · Execução (Fase 3B) · Entrega e pagamento · Anexos · Histórico. Alterado em 16/10/2026 e em 17/10/2026 — ver docs/decisoes.md, itens 184 e 196.
-   - **Aba Execução (Fase 3B):** as áreas *Checklists* (um bloco por serviço), *Laudos* (lista, com "Novo laudo"), *Instalações* (as da OS, com "Registrar instalação"; bloco 3B.5, item 258) e *Chicotes* (as fichas do chicote, com "Nova ficha"). Em OS sem projeto de preparação, a aba Preparação continua mostrando só "ligar ou criar um projeto".
+   - **Aba Execução (Fase 3B):** as áreas *Checklists* (um bloco por serviço), *Laudos* (lista, com "Novo laudo"), *Instalações* (as da OS, com "Registrar instalação"; bloco 3B.5, item 258) e *Chicotes* (as fichas do chicote, com "Nova ficha" e "Nova versão"; bloco 3B.6, item 270). Em OS sem projeto de preparação, a aba Preparação continua mostrando só "ligar ou criar um projeto".
 10. **Ficha do veículo (fase 3):** o cliente e o veículo (editar, histórico e anonimizar), todas as OS e todos os projetos do veículo (também os arquivados) e os anexos de todas as OS, com os documentos do próprio veículo (ex.: o CRLV, com a validade). Abre pela OS e pelo cabeçalho do projeto. Ver docs/decisoes.md, itens 199 a 201. Na Fase 3B, ganha a seção **Instalações** (6.2) e os laudos e as fichas de chicote de todas as OS do veículo.
 11. **Agenda (fase 5):** agendamentos do dia e da semana; o agendamento vira OS quando o veículo chega.
 
