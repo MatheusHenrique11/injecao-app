@@ -2,7 +2,7 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
-## [Não lançado] — Fase 3B (auto elétrica)
+## [0.3.1] — 21/10/2026 — Fase 3B (auto elétrica)
 
 ### Adicionado
 - **Serviços do catálogo com categoria, descrição, garantia própria e "exige o veículo na oficina":** a categoria (Som, Vidros e travas, Partida e carga, Iluminação, Diagnóstico elétrico, Injeção programável, Preparação ou Outro) organiza a lista; a descrição vira o texto da linha do orçamento; a garantia própria (em dias) vale no lugar da garantia da OS; o serviço de bancada (ex.: confecção de chicote) fica marcado como feito sem o veículo. Os serviços já cadastrados aparecem como Outro, sem perder nada.
@@ -38,6 +38,11 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 - **Anonimização com o nome dos arquivos:** os anexos que ficam (fotos, laudos, notas) trocam o nome do arquivo por "arquivo anonimizado", com a extensão; a descrição fica. Antes, uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal continuava com esse nome.
 - O PDF do laudo e o da ficha do chicote são feitos na hora, como a via e o comprovante, sem cópia nos anexos (a SPEC dizia "anexo da OS"). O aviso de dado pessoal na queixa só aparece quando ela parece ter um, e não a cada gravação.
 - SPEC 1.2: a auto elétrica entra como segunda linha de serviço, com a Fase 3B antes da Fase 4 e a Fase 8 (chicote e caixa de fusíveis).
+- **Manual, item 2:** o jeito de voltar para a versão anterior foi corrigido. A versão anterior não abre os dados atualizados nem restaura os backups da nova; o caminho de volta é o backup feito nela antes de atualizar ("Fazer backup agora"), restaurado com o banco atual renomeado.
+
+### Para o dono decidir (revisão final, decisão 275)
+- O "quem retirou" da OS entregue sem o veículo fica depois da anonimização (a OS entregue não muda).
+- Com a OS pronta, a revisão aprovada traz o checklist dos serviços novos, mas a entrega não confere os itens deles: use "Retomar o serviço" antes de entregar.
 
 ## [0.3.0] — 19/10/2026 — Fase 3
 
