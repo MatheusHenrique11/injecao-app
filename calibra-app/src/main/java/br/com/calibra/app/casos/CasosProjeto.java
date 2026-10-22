@@ -518,8 +518,9 @@ public final class CasosProjeto {
             motivos.add("o motor mudou: este cálculo usou a v" + calculo.numeroVersaoMotor() + " e o motor está na v"
                     + atual.numero());
         }
-        if (!VersaoNucleo.ATUAL.equals(calculo.versaoNucleo())) {
-            motivos.add("o núcleo de cálculo mudou: " + calculo.versaoNucleo() + " → " + VersaoNucleo.ATUAL);
+        if (VersaoNucleo.anterior(calculo.versaoNucleo(), VersaoNucleo.ULTIMA_MUDANCA_DO_DIMENSIONAMENTO)) {
+            motivos.add("as contas do dimensionamento mudaram: " + calculo.versaoNucleo() + " → "
+                    + VersaoNucleo.ATUAL);
         }
         return motivos;
     }

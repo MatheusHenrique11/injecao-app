@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.mapa.RegrasMapaBase;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
 import br.com.calibra.core.unidades.UnidadesPreferidas;
@@ -32,6 +33,10 @@ public record Chave<T>(String nome, Class<T> tipo, Supplier<T> padrao) {
     /** As unidades preferidas na tela e nos PDFs (fase 4, decisão 289). */
     public static final Chave<UnidadesPreferidas> UNIDADES =
             new Chave<>("unidades", UnidadesPreferidas.class, UnidadesPreferidas::padrao);
+
+    /** As regras do mapa base: lambda, riqueza extra, reduções de ignição e travas (fase 4, decisão 294). */
+    public static final Chave<RegrasMapaBase> MAPA_BASE =
+            new Chave<>("mapa_base", RegrasMapaBase.class, RegrasMapaBase::padrao);
 
     /** Pasta de backup escolhida pelo usuário. */
     public static final Chave<ConfiguracaoBackup> BACKUP =
