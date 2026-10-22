@@ -1,9 +1,9 @@
-﻿# Gera o instalador MSI do Calibra (SPEC 10) e para no primeiro erro:
+﻿# Gera o instalador MSI do GarageTech (antes Calibra; SPEC 10) e para no primeiro erro:
 #   1. testes (mvn verify);
 #   2. o app e as bibliotecas (perfil "instalador");
 #   3. o Java embutido (jlink): só os módulos que o app usa (jdeps), mais o JavaFX e o idioma pt-BR;
 #   4. a conferência do pacote no Java embutido (Inicio --conferir);
-#   5. o MSI (jpackage + WiX 3.14), em dist\Calibra-<versão>.msi.
+#   5. o MSI (jpackage + WiX 3.14), em dist\GarageTech-<versão>.msi.
 #
 # Uso (na raiz do projeto):
 #   powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1
@@ -11,7 +11,9 @@
 #   ... -PularTestes        não roda o mvn verify (só para repetir o empacotamento)
 #
 # O app instala por usuário, sem precisar de administrador, em %LOCALAPPDATA%\Programs\Calibra. Os dados ficam em
-# %LOCALAPPDATA%\Calibra e não são apagados ao desinstalar.
+# %LOCALAPPDATA%\Calibra e não são apagados ao desinstalar. Desde a 0.3.3 (decisão 285), o nome no Windows (atalho,
+# menu Iniciar, "Aplicativos instalados" e o .exe) é GarageTech; as duas pastas mantêm o nome de antes, para as
+# instalações e os dados que já existem.
 param(
     [string]$VersaoMsi = '',
     [switch]$PularTestes,
@@ -22,8 +24,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# UpgradeCode fixo do Calibra: é ele que faz o Windows trocar a versão antiga pela nova ao instalar por cima, sem
-# duplicar o app em "Aplicativos instalados". Nunca mudar (docs\decisoes.md).
+# UpgradeCode fixo do app (o mesmo desde o Calibra 0.2.0): é ele que faz o Windows trocar a versão antiga pela nova
+# ao instalar por cima, sem duplicar o app em "Aplicativos instalados", também na troca de Calibra para GarageTech.
+# Nunca mudar (docs\decisoes.md).
 $UpgradeCode = '45107A4F-BD64-4EDB-815D-3611CD926209'
 
 $raiz = Split-Path -Parent $PSScriptRoot
@@ -84,7 +87,7 @@ $versao = if ($VersaoMsi) { $VersaoMsi } else { $versaoPom -replace '-SNAPSHOT$'
 if ($versaoPom -like '*-SNAPSHOT') {
     Write-Warning "Versão de desenvolvimento ($versaoPom): o MSI sai como $versao."
 }
-Write-Host "Calibra $versaoPom · MSI $versao · JDK $Jdk"
+Write-Host "GarageTech $versaoPom · MSI $versao · JDK $Jdk"
 
 # ---------- 1. Testes ----------
 if ($PularTestes) {
@@ -145,19 +148,19 @@ Executar (Join-Path $runtime 'bin\java.exe') @('--enable-native-access=javafx.gr
 Passo '5/5 MSI (jpackage + WiX)'
 $dist = Join-Path $raiz 'dist'
 New-Item -ItemType Directory -Force $dist | Out-Null
-$msi = Join-Path $dist "Calibra-$versao.msi"
+$msi = Join-Path $dist "GarageTech-$versao.msi"
 if (Test-Path $msi) {
     Remove-Item $msi -Force
 }
-Executar (Join-Path $bin 'jpackage.exe') @('--type', 'msi', '--dest', $dist, '--name', 'Calibra',
-    '--app-version', $versao, '--vendor', 'Calibra',
-    '--description', 'Dimensiona peças, faz orçamento e prepara o mapa base de injeção programável (offline).',
+Executar (Join-Path $bin 'jpackage.exe') @('--type', 'msi', '--dest', $dist, '--name', 'GarageTech',
+    '--app-version', $versao, '--vendor', 'GarageTech',
+    '--description', 'Gestão e Tecnologia Automotiva',
     '--icon', (Join-Path $raiz 'calibra-app\src\main\instalador\calibra.ico'),
     '--input', $app, '--main-jar', $jarApp, '--main-class', 'br.com.calibra.app.Inicio',
     '--runtime-image', $runtime, '--java-options', '--enable-native-access=javafx.graphics,ALL-UNNAMED',
     '--java-options', '-splash:$APPDIR\abertura.jpg',
     '--win-per-user-install', '--install-dir', 'Programs\Calibra',
-    '--win-menu', '--win-menu-group', 'Calibra', '--win-shortcut',
+    '--win-menu', '--win-menu-group', 'GarageTech', '--win-shortcut',
     '--win-upgrade-uuid', $UpgradeCode)
 
 $arquivo = Get-Item $msi

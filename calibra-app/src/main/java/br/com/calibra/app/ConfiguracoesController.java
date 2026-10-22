@@ -482,7 +482,8 @@ public class ConfiguracoesController {
         Path zip = escolhido.get();
         Optional<InfoBackup> info = Backup.lerInfo(zip);
         if (info.isEmpty()) {
-            mostrarErros(mensagensBackup, List.of("O arquivo " + zip.getFileName() + " não é um backup do GarageTech."));
+            mostrarErros(mensagensBackup, List.of("O arquivo " + zip.getFileName()
+                    + " não é um backup do GarageTech."));
             return;
         }
         if (!confirmarRestauracao(info.get())) {
