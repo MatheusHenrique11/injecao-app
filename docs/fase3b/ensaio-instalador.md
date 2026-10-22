@@ -143,7 +143,7 @@ A primeira rodada dos testes de tela pegou um erro: o logo da barra lateral tinh
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1
-msiexec /i dist\Calibra-0.3.2.msi /passive
+msiexec /i dist\GarageTech-0.3.3.msi /passive
 mvn -q install -DskipTests
 powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1
 ```
