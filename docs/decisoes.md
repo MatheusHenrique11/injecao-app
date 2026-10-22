@@ -1061,3 +1061,14 @@ Pedido do dono: o app passa a se apresentar como **GarageTech — Gestão e Tecn
     - **SPEC:** a nota no topo e na seção 12;
     - **documento novo:** `docs/marca/identidade-visual.md`;
     - **CLAUDE.md:** só o nome do MSI, na linha do comando do instalador.
+288. **O MSI 0.3.3 e o ensaio:**
+    - **a instalação:** o MSI foi instalado por cima do Calibra 0.3.2 neste PC, e o mesmo UpgradeCode fez o Windows trocar um pelo outro:
+      - ficou uma entrada só, "GarageTech 0.3.3";
+      - os atalhos viraram GarageTech;
+      - o `GarageTech.exe` entrou no lugar do `Calibra.exe`, na mesma pasta;
+    - **o app instalado:** os 29 testes de tela passaram, e ele abre em 1,9 a 2,1 s;
+    - **a tela de abertura e a janela:** duas fotos da tela mostram o logo grande na abertura, depois a janela com o título, o ícone e a barra lateral novos;
+    - **a atualização:** da versão 7 para a 14, numa cópia dos dados reais, apagada no fim;
+    - **os dados reais:** intocados;
+    - **o que os testes pegaram:** o id `marca` do logo colidia com o campo da marca do veículo. Corrigido (`logoDaMarca`) antes do MSI final;
+    - os números estão em `docs/fase3b/ensaio-instalador.md`.

@@ -102,6 +102,43 @@ A cópia e a pasta de teste foram apagadas no fim.
 
 O app instalado agora é o 0.3.2. Os seus dados sobem da versão 7 para a 14 quando você abrir o app, com o backup antes.
 
+## Versão 0.3.3: GarageTech (21/10/2026, à noite)
+
+Esta versão troca a marca, de Calibra para GarageTech (decisões 282 a 288), sem mudar regra nem dado. O ensaio foi o mesmo, com o mesmo OK do dono.
+
+**MSI:** `dist\GarageTech-0.3.3.msi`, 63,0 MB, SHA-256 `16D443C88D28785D49FCD5252A9E1150C2FB35DCD1D697DD206575FBD772A7BC`. Antes dele:
+- passaram os 899 testes do `mvn -q verify` e os 29 de tela no código;
+- a conferência do pacote deu 5 de 5, agora com o título "GarageTech 0.3.3 · conferência do pacote".
+
+A primeira rodada dos testes de tela pegou um erro: o logo da barra lateral tinha o id `marca`, o mesmo do campo da marca do veículo, e 3 testes pegavam o logo no lugar do campo. O id virou `logoDaMarca`, os 29 passaram, e o MSI foi gerado de novo.
+
+| # | Teste | Resultado |
+|---|---|---|
+| 1 | Instalar por cima (Calibra 0.3.2 → GarageTech 0.3.3) | **Passou.** 11 s, código 0. Os detalhes estão na tabela abaixo. |
+| 2 | Abrir em menos de 5 s | **Passou.** 1,9 a 2,1 s nas aberturas normais (2,3 s do comando). A primeira, criando o banco do zero e tirando as fotos, levou 3,2 s. Todas fecharam pelo X. |
+| 3 | Testes de tela no app instalado | **Passou: 29 de 29.** A opção `-splash` ficou fora dos testes, e a imagem dela foi conferida no pacote. Os recálculos levaram de 31 a 61 ms. |
+| 4 | Atualização do banco numa cópia dos dados reais | **Passou.** Da versão 7 para a 14, com o backup "antes de atualizar o banco": 14 migrações, nenhuma com falha, SQLite "ok", nenhuma chave estrangeira quebrada e nenhum erro no log. A cópia foi apagada. |
+| 5 | Dados reais intocados | **Passou.** O mesmo SHA-256 (`2F138B6F…DC11`) e os mesmos 69 arquivos, com a última mudança em 18/10, às 20:52:44. |
+
+**Antes e depois da instalação:**
+
+| | Antes (Calibra 0.3.2) | Depois (GarageTech 0.3.3) |
+|---|---|---|
+| "Aplicativos instalados" | uma entrada, "Calibra 0.3.2" | uma entrada, "GarageTech 0.3.3"; a do Calibra saiu |
+| Menu Iniciar | `Calibra\Calibra.lnk` | `GarageTech\GarageTech.lnk` |
+| Área de trabalho | `Calibra.lnk` | `GarageTech.lnk` |
+| Pasta do programa | `Programs\Calibra`, com o `Calibra.exe` | a mesma pasta, com o `GarageTech.exe`; o `Calibra.exe` saiu |
+| Jars | 0.3.2 | só os 0.3.3, com o jar do app igual ao do build |
+
+- **O `GarageTech.cfg`** tem a opção `-splash:$APPDIR\abertura.jpg`, e as 5 imagens da abertura estão na pasta do app.
+- **Os dois atalhos** apontam para o `GarageTech.exe` e usam o ícone dele: o símbolo da marca no quadrado escuro.
+
+**A tela de abertura e a janela, com duas fotos da tela em pixels reais** (feitas neste PC e não guardadas no repositório, porque mostram a área de trabalho):
+- **0,7 s depois do clique:** o logo grande aparece centralizado, em 960 × 400 pixels (a imagem de 125%), sobre a área de trabalho, antes de o Java terminar de carregar;
+- **com a janela aberta:** a abertura já tinha sumido. A barra de título mostrava "GarageTech — Gestão e Tecnologia Automotiva", com o ícone novo, e o mesmo ícone aparecia na barra de tarefas. A barra lateral tinha o logo e a frase, e a barra de baixo, "GarageTech 0.3.3 · núcleo 1.1.0 · offline".
+
+**Fica para conferir com o uso:** se havia um atalho do Calibra fixado na barra de tarefas, ele apontava para o `Calibra.exe`, que saiu. É preciso fixar de novo o GarageTech (o manual diz isso). Este PC não tinha atalho fixado.
+
 ## Como repetir
 
 ```
