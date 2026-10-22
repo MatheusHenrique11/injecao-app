@@ -99,4 +99,13 @@ class NumeroBrTest {
         NumberFormatException erro = assertThrows(NumberFormatException.class, () -> NumeroBr.lerLista("500 1.5 2000"));
         assertTrue(erro.getMessage().startsWith("número 2:"), erro.getMessage());
     }
+
+    /** Fase 4: as células de uma tabela, coladas do software ou do Excel, uma linha por linha da tabela. */
+    @Test
+    void leGradeDeNumeros() {
+        assertEquals(List.of(List.of(1.0, 2.5), List.of(3.0, 4.0)), NumeroBr.lerGrade("1\t2,5\r\n\r\n3\t4\r\n"));
+        assertEquals(List.of(), NumeroBr.lerGrade(""));
+        NumberFormatException erro = assertThrows(NumberFormatException.class, () -> NumeroBr.lerGrade("1 2\n3 x"));
+        assertTrue(erro.getMessage().startsWith("linha 2, número 2:"), erro.getMessage());
+    }
 }

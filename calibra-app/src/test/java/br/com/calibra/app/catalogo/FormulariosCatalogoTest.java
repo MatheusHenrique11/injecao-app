@@ -19,6 +19,8 @@ import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.ModeloIgnicao;
+import br.com.calibra.core.mapa.ModeloVe;
 import br.com.calibra.core.mapa.TipoCarga;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
@@ -171,6 +173,36 @@ class FormulariosCatalogoTest {
                 .texto(FormaInjecao.tabela(FuncaoTabela.LAMBDA_ALVO, "carga"), "");
         assertEquals(List.of("Tabela de ignição, pontos de carga: os pontos precisam crescer, do menor para o maior "
                 + "(o ponto 2 não é maior que o anterior)."), formulario.ler(valores).erros());
+    }
+
+    /**
+     * Fase 4 (decisão 293): a VE em % na tela e em fração no núcleo; a ignição colada como está na tela da injeção
+     * (aqui, com a carga nas colunas e a rotação maior em cima) volta igual ao modelo.
+     */
+    @Test
+    void modelosDeVeEIgnicaoComoTexto() {
+        FormularioCatalogo<ModeloVe> ve = FormasCatalogo.de(TipoCatalogo.MODELO_VE);
+        Exemplo<ModeloVe> exemploVe = ExemplosCatalogo.modeloVe();
+        ValoresForm valoresVe = ve.escrever(exemploVe.dados(), exemploVe.info());
+        assertEquals("0,2 1 1,5", valoresVe.texto(FormaModeloVe.ROTACOES));
+        assertEquals("50\t52\t55\n90\t97\t95", valoresVe.texto(FormaModeloVe.VE));
+        assertEquals(List.of("4 válvulas · comando original e leve", "50% a 97%", "3 rotações × 2 cargas"),
+                ve.resumo(exemploVe.dados()));
+        valoresVe.texto(FormaModeloVe.VE, "50 52\n90 97 95");
+        assertEquals(List.of("VE: a linha 1 tem 2 número(s), e o eixo de rotação tem 3 ponto(s)."),
+                ve.ler(valoresVe).erros());
+
+        FormularioCatalogo<ModeloIgnicao> ignicao = FormasCatalogo.de(TipoCatalogo.MODELO_IGNICAO);
+        Exemplo<ModeloIgnicao> exemplo = ExemplosCatalogo.modeloIgnicao();
+        ValoresForm valores = ignicao.escrever(exemplo.dados(), exemplo.info())
+                .texto(FormaModeloIgnicao.COLUNAS, "CARGA")
+                .texto(FormaModeloIgnicao.LINHAS, "CRESCE_PARA_CIMA")
+                .texto(FormaModeloIgnicao.AVANCO, "36,5\t30\t18\n18\t12\t8\n");
+        assertEquals(exemplo.dados(), ignicao.ler(valores).dados());
+        assertEquals(List.of("VW AP 2.0 8v turbo", "E32", "8° a 36,5°", "2 rotações × 3 cargas"),
+                ignicao.resumo(exemplo.dados()));
+        assertEquals(List.of("Avanço: linha 2, número 1: \"x\" não é um número válido: use vírgula para decimais "
+                + "(ex.: 3,5)."), ignicao.ler(valores.texto(FormaModeloIgnicao.AVANCO, "1 2 3\nx 2 3")).erros());
     }
 
     @Test

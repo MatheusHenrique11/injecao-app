@@ -67,6 +67,32 @@ public final class NumeroBr {
     }
 
     /**
+     * Lê uma grade de números, como as células de uma tabela copiadas do software da injeção ou do Excel: uma linha
+     * do texto por linha da tabela, com os números separados como em {@link #lerLista(String)}. As linhas em branco
+     * ficam de fora.
+     *
+     * @throws NumberFormatException com a linha, a posição e a explicação, em português, no primeiro número inválido
+     */
+    public static List<List<Double>> lerGrade(String texto) {
+        List<List<Double>> linhas = new ArrayList<>();
+        if (texto == null) {
+            return linhas;
+        }
+        String[] partes = texto.split("\\R");
+        for (int i = 0; i < partes.length; i++) {
+            if (partes[i].isBlank()) {
+                continue;
+            }
+            try {
+                linhas.add(lerLista(partes[i]));
+            } catch (NumberFormatException erro) {
+                throw new NumberFormatException("linha " + (i + 1) + ", " + erro.getMessage());
+            }
+        }
+        return linhas;
+    }
+
+    /**
      * Como {@link #ler(String)}, mas exato (sem o arredondamento do ponto flutuante): para quantidades de orçamento,
      * que multiplicam dinheiro. "2,5" vira 2.5 exatamente.
      *

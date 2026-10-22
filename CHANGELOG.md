@@ -5,6 +5,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 ## [Não lançado] — Fase 4: mapa base
 
 ### Adicionado
+- **Modelos de VE e de ignição** no catálogo. Os 4 modelos de VE que vêm com o app (2 e 4 válvulas, comando normal e agressivo) têm os valores iniciais da SPEC, todos "a verificar". Nenhum modelo de ignição vem com o app. Banco de dados na versão 15 (V15: só acrescenta os modelos de VE ao catálogo).
 - **Perfil da injeção** no catálogo: impedância aceita, bicos por saída, modelo de combustível (ms, VE ou modelo físico), se a tabela em ms inclui o tempo morto, temperatura de referência do ar, formato de importação e exportação, proteção contra água e as tabelas de combustível, ignição e lambda alvo, com os eixos colados do software e a orientação da tela da injeção. As injeções já cadastradas continuam valendo, com o perfil em branco.
 - **Unidades preferidas** (Configurações › Unidades): pressão, temperatura, potência e vazão de bico. A escolhida vem primeiro nos resultados e nos PDFs, com as outras ao lado; o padrão continua mostrando todas, como antes.
 - **"Atualizando os dados…" na tela de abertura** enquanto uma atualização faz o backup e atualiza o banco.

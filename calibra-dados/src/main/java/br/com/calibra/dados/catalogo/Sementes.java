@@ -16,16 +16,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import br.com.calibra.dados.json.Json;
 
 /**
- * Itens que vêm com o app (SPEC 8.5 e pedido C), todos com fonte, em arquivos JSON legíveis: os combustíveis da
- * SPEC 7.2 e os motores e montagens da pesquisa ({@code sementes/catalogo.json}, migração V4) e os modelos de
- * checklist da SPEC 6.6.2 ({@code sementes/checklists.json}, migração V9, Fase 3B). Cada arquivo entra numa migração
- * e não muda depois dela.
+ * Itens que vêm com o app (SPEC 8.5 e pedido C), todos com fonte, em arquivos JSON legíveis:
+ * <ul>
+ *   <li>os combustíveis da SPEC 7.2 e os motores e montagens da pesquisa ({@code sementes/catalogo.json}, V4);</li>
+ *   <li>os modelos de checklist da SPEC 6.6.2 ({@code sementes/checklists.json}, V9, Fase 3B);</li>
+ *   <li>os modelos de VE da SPEC 7.5, a validar ({@code sementes/modelos-ve.json}, V15, fase 4).</li>
+ * </ul>
+ * Cada arquivo entra numa migração e não muda depois dela.
  */
 public final class Sementes {
 
     static final String RECURSO = "/br/com/calibra/dados/sementes/catalogo.json";
     /** Os modelos de checklist da SPEC 6.6.2 (migração V9). */
     public static final String CHECKLISTS = "/br/com/calibra/dados/sementes/checklists.json";
+    /** Os modelos de VE iniciais da SPEC 7.5, a validar (migração V15, fase 4). */
+    public static final String MODELOS_VE = "/br/com/calibra/dados/sementes/modelos-ve.json";
 
     /** Um item semente: a chave que o identifica, o tipo, os dados técnicos e a informação comum. */
     public record Semente(String chave, TipoCatalogo<?> tipo, Object dados, InfoCatalogo info) {

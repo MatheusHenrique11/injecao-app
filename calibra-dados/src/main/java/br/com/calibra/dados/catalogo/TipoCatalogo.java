@@ -5,6 +5,8 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.mapa.ModeloIgnicao;
+import br.com.calibra.core.mapa.ModeloVe;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.ItemMaterial;
@@ -19,8 +21,7 @@ import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.Turbo;
 
 /**
- * Um tipo de catálogo (SPEC 8.5) e o record do núcleo que guarda os dados técnicos dos itens dele. Os modelos de
- * VE e de ignição entram na fase 3.
+ * Um tipo de catálogo (SPEC 8.5) e o record do núcleo que guarda os dados técnicos dos itens dele.
  *
  * @param <T> o record do núcleo
  */
@@ -42,6 +43,12 @@ public final class TipoCatalogo<T> {
             new TipoCatalogo<>("CAMBIO", "Câmbios", "câmbio", Cambio.class, null);
     /** Turbos com o mapa do compressor (bloco 2.4). */
     public static final TipoCatalogo<Turbo> TURBO = new TipoCatalogo<>("TURBO", "Turbos", "turbo", Turbo.class, null);
+    /** Modelos de VE por família de motor, para o mapa base (fase 4, SPEC 7.5; decisão 293). */
+    public static final TipoCatalogo<ModeloVe> MODELO_VE =
+            new TipoCatalogo<>("MODELO_VE", "Modelos de VE", "modelo de VE", ModeloVe.class, null);
+    /** Modelos de ignição por família de motor, digitados pelo mecânico (fase 4, SPEC 7.5; decisão 293). */
+    public static final TipoCatalogo<ModeloIgnicao> MODELO_IGNICAO = new TipoCatalogo<>("MODELO_IGNICAO",
+            "Modelos de ignição", "modelo de ignição", ModeloIgnicao.class, null);
     /** Serviços da oficina, com o tempo padrão (bloco 3.3). */
     public static final TipoCatalogo<ServicoPadrao> SERVICO =
             new TipoCatalogo<>("SERVICO", "Serviços", "serviço", ServicoPadrao.class, null);
@@ -55,7 +62,7 @@ public final class TipoCatalogo<T> {
             new TipoCatalogo<>("CHECKLIST", "Checklists", "checklist", ChecklistModelo.class, null);
 
     private static final List<TipoCatalogo<?>> TODOS = List.of(MOTOR, COMBUSTIVEL, BICO, BOMBA, INJECAO, INTERCOOLER,
-            SENSOR, CAMBIO, TURBO, SERVICO, ITEM, KIT, CHECKLIST);
+            SENSOR, CAMBIO, TURBO, MODELO_VE, MODELO_IGNICAO, SERVICO, ITEM, KIT, CHECKLIST);
 
     private final String codigo;
     private final String plural;

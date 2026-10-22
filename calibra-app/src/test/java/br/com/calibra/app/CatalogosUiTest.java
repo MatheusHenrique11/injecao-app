@@ -44,6 +44,8 @@ import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.ModeloIgnicao;
+import br.com.calibra.core.mapa.ModeloVe;
 import br.com.calibra.core.mapa.OrientacaoTabela;
 import br.com.calibra.core.mapa.PerfilTabela;
 import br.com.calibra.core.motor.ModeloMotor;
@@ -133,6 +135,44 @@ class CatalogosUiTest {
                 assertNull(gravada.perfil().tabelaMsIncluiTempoMorto(), "não informado");
                 assertEquals(List.of("ms · tabela de combustível"), coluna(injecoes.tabela(), "Perfil"));
                 salvar(cena, "captura-catalogo-injecoes.png");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    /**
+     * Fase 4 (decisão 293): a aba dos modelos de VE vem com os 4 da SPEC 7.5, "a verificar" e sem preço; a janela
+     * mostra a VE em %, e a aba dos modelos de ignição começa vazia (o app não inventa avanço).
+     */
+    @Test
+    void modelosDeVeEIgnicao() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaMODELO_VE"));
+                PainelCatalogo<ModeloVe> modelos = achar(cena, "painelMODELO_VE");
+                assertEquals(4, modelos.tabela().getItems().size());
+                assertTrue(modelos.tabela().getColumns().stream()
+                        .noneMatch(c -> c.getText().equals("Preço de referência")), "o modelo não tem preço");
+                assertTrue(coluna(modelos.tabela(), "VE").contains("40% a 97%"),
+                        () -> coluna(modelos.tabela(), "VE").toString());
+                salvar(cena, "captura-catalogo-modelos-ve.png");
+
+                ItemCatalogo<ModeloVe> quatro = modelos.tabela().getItems().stream()
+                        .filter(i -> "modelo-ve:4v-normal".equals(i.chaveSemente())).findFirst().orElseThrow();
+                JanelaItemCatalogo<ModeloVe> janela = modelos.janelaEditar(quatro);
+                String ve = ((TextArea) janela.tela().controle("ve")).getText();
+                assertTrue(ve.startsWith("50\t50\t50"), ve);
+                assertTrue(ve.endsWith("97\t97"), ve);
+                fotografar(janela.dialogo(), "captura-catalogo-modelo-ve.png");
+
+                abas.getSelectionModel().select(aba(abas, "abaMODELO_IGNICAO"));
+                PainelCatalogo<ModeloIgnicao> ignicoes = achar(cena, "painelMODELO_IGNICAO");
+                assertTrue(ignicoes.tabela().getItems().isEmpty(), "nenhum modelo de ignição vem com o app");
             });
         } finally {
             if (principal != null) {

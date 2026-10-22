@@ -20,6 +20,8 @@ public final class FormasCatalogo {
             new FormularioCatalogo<>(new FormaSensor()),
             new FormularioCatalogo<>(new FormaCambio()),
             new FormularioCatalogo<>(new FormaMotor()),
+            new FormularioCatalogo<>(new FormaModeloVe()),
+            new FormularioCatalogo<>(new FormaModeloIgnicao()),
             new FormularioCatalogo<>(new FormaServico()),
             new FormularioCatalogo<>(new FormaItem()),
             new FormularioCatalogo<>(new FormaKit()),

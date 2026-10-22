@@ -1135,3 +1135,38 @@ O bloco 4.0 fecha as pendências das decisões 152 e 160.
       - `JsonTest.injecaoComPerfilEInjecaoAntiga`;
       - `FormulariosCatalogoTest.injecaoComPerfilEixosEmTextoEVagasDasTabelas` e a ida e volta do exemplo com o perfil;
       - `CatalogosUiTest.injecaoComPerfil`, que cadastra pela janela de verdade.
+
+## 22/10/2026 — Fase 4, bloco 4.2: os modelos de VE e de ignição no catálogo
+
+293. **Dois catálogos novos: "Modelos de VE" e "Modelos de ignição"** (SPEC 7.5 e 8.5).
+    - **a tabela comum (`Tabela`, núcleo):** os pontos de rotação e de carga, do menor para o maior, e as células (vazia = null). Ela é usada pelos modelos, pelo mapa base e, depois, pelo editor. Ela interpola em duas direções (bilinear) e **nunca extrapola**. Uma célula vazia não vira zero: se a conta precisar dela, o resultado fica vazio. O modelo de VE, que precisa de valor no mapa todo, usa a borda fora dos eixos (`interpolarNaBorda`), e o gerador avisa;
+    - **a orientação da tela da injeção:** a `OrientacaoTabela` leva a tabela para a ordem da tela (`naTela`) e traz de volta (`daTela`). Isso serve para colar uma tabela copiada do software e, no bloco 4.6, para a folha de transcrição;
+    - **modelo de VE:** a família (válvulas por cilindro e comandos; em branco, qualquer), com eixos relativos:
+      - **rotação relativa** = rpm ÷ rpm do torque máximo, porque o pico da VE fica perto do torque máximo (SPEC 7.5);
+      - **carga relativa** = MAP ÷ 100 kPa.
+
+      Assim o mesmo modelo serve para motores de rotações e pressões diferentes. Na tela, a VE fica em %; no núcleo, em fração;
+    - **os 4 modelos que vêm com o app** (migração V15, `sementes/modelos-ve.json`), todos "a verificar" e com a fonte "SPEC 7.5, valores iniciais, a validar":
+      - 4 válvulas com comando original, leve ou médio; 4 válvulas com comando agressivo;
+      - 2 válvulas com comando original, leve ou médio; 2 válvulas com comando agressivo.
+    - **como os valores foram montados, só com o que a SPEC dá:**
+      - **marcha lenta:** 50%, o meio da faixa de 40% a 60%;
+      - **pico na plena carga:** 97% com 4 válvulas e 88% com 2 (o meio das faixas de 95% a 99% e de 80% a 95%);
+      - **entre a marcha lenta e a plena carga:** linear na carga, entre 35 kPa (a carga da marcha lenta) e 100 kPa;
+      - **acima de 100 kPa:** o valor da plena carga;
+      - **na rotação:** a mesma VE em todas as colunas. A forma na rotação vem do projeto, que manda nos pontos do torque e da potência (bloco 4.3);
+      - **comando agressivo** ("reduz a VE em baixa"): 20% a menos até 0,4 × a rotação de torque, o que leva a marcha lenta a 40% (o limite de baixo da faixa), voltando ao normal na rotação de torque;
+      - **3 e 5 válvulas:** nenhum modelo semente bate. O mecânico escolhe um na tela do mapa base ou cadastra o dele;
+    - **modelo de ignição:** a família (texto livre), o combustível do mapa (código), a temperatura do ar do mapa e o avanço em rpm × kPa. O avanço é digitado ou colado como está na tela da injeção, dizendo o que fica nas colunas e o sentido das linhas. **O app não traz nenhum** (SPEC 7.5: "o app não inventa avanço");
+    - **os dois catálogos não têm preço** (não são peças);
+    - **no formulário:**
+      - os eixos e as células são texto: o eixo numa linha e as células uma linha por linha da tabela, separadas por tabulação (`GradeTexto`), para colar do software ou do Excel;
+      - a janela de texto das células é pequena. O editor de tabela de verdade é o bloco 4.5;
+    - **testes:**
+      - `TabelaTest`: a interpolação, as células vazias, as quatro orientações e os modelos;
+      - `NumeroBrTest.leGradeDeNumeros`;
+      - `SementesDosModelosDeVeTest`: o checksum da V15 e os valores da SPEC em cada modelo;
+      - `FormulariosCatalogoTest.modelosDeVeEIgnicaoComoTexto` e a ida e volta dos exemplos;
+      - `CatalogosUiTest.modelosDeVeEIgnicao`, na janela de verdade.
+
+      O banco vai para a versão 15.

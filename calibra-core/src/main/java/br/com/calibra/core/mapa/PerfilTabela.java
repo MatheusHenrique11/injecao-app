@@ -42,35 +42,11 @@ public record PerfilTabela(
         if (nome.isEmpty()) {
             erros.add(qual + ": informe o nome dela no software da injeção.");
         }
-        erros.addAll(validarEixo(qual + ", pontos de rotação", rotacoes, 1, 20000));
+        erros.addAll(Eixos.validar(qual + ", pontos de rotação", rotacoes, 1, 20000));
         if (tipoCarga == TipoCarga.MAP_KPA) {
-            erros.addAll(validarEixo(qual + ", pontos de carga", cargas, 1, 1000));
+            erros.addAll(Eixos.validar(qual + ", pontos de carga", cargas, 1, 1000));
         } else {
-            erros.addAll(validarEixo(qual + ", pontos de carga", cargas, 0, 100));
-        }
-        return erros;
-    }
-
-    private static List<String> validarEixo(String qual, List<Double> pontos, double minimo, double maximo) {
-        List<String> erros = new ArrayList<>();
-        if (pontos.size() < 2) {
-            erros.add(qual + ": informe pelo menos 2 pontos.");
-            return erros;
-        }
-        if (pontos.size() > MAXIMO_PONTOS) {
-            erros.add(qual + ": no máximo " + MAXIMO_PONTOS + " pontos.");
-        }
-        for (int i = 0; i < pontos.size(); i++) {
-            double ponto = pontos.get(i);
-            if (!(ponto >= minimo && ponto <= maximo)) {
-                erros.add(qual + ": o ponto " + (i + 1) + " está fora da faixa aceita.");
-                return erros;
-            }
-            if (i > 0 && ponto <= pontos.get(i - 1)) {
-                erros.add(qual + ": os pontos precisam crescer, do menor para o maior (o ponto " + (i + 1)
-                        + " não é maior que o anterior).");
-                return erros;
-            }
+            erros.addAll(Eixos.validar(qual + ", pontos de carga", cargas, 0, 100));
         }
         return erros;
     }
