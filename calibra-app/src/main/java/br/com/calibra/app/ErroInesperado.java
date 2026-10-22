@@ -49,8 +49,12 @@ final class ErroInesperado {
                 + ". Se o problema continuar, guarde esse arquivo para mostrar a quem dá suporte ao app.";
     }
 
-    /** Janela de erro; antes de a tela abrir, só fica o log e a saída de erro. */
+    /**
+     * Janela de erro; antes de a tela abrir, só fica o log e a saída de erro. A tela de abertura (o logo grande) fecha
+     * antes, para não ficar na frente da mensagem.
+     */
     static void mostrar(String titulo, String mensagem) {
+        TelaDeAbertura.fechar();
         Runnable janela = () -> {
             if (!MOSTRANDO.compareAndSet(false, true)) {
                 return;

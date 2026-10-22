@@ -68,6 +68,8 @@
                         <!-- O app de desenvolvimento usa uma pasta de dados só dele: os dados de verdade ficam com o
                              app instalado, que não abriria um banco atualizado por uma versão mais nova (decisão 168). -->
                         <option>-Dcalibra.pasta=${env.LOCALAPPDATA}\Calibra-dev</option>
+                        <!-- A tela de abertura do GarageTech, como no app instalado (decisão 283). -->
+                        <option>-splash:${project.basedir}\src\main\instalador\abertura.jpg</option>
                     </options>
                 </configuration>
             </plugin>

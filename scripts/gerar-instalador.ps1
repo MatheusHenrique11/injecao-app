@@ -105,6 +105,9 @@ $app = Join-Path $alvo 'app'
 $javafx = Join-Path $alvo 'javafx'
 $jarApp = "calibra-app-$versaoPom.jar"
 Copy-Item (Join-Path $raiz "calibra-app\target\$jarApp") $app
+# A tela de abertura (o logo grande, decisão 283): o lançador mostra a imagem da escala da tela antes de o Java
+# carregar. As imagens ficam na pasta do app, ao lado dos jars ($APPDIR na opção -splash, no passo 5).
+Copy-Item (Join-Path $raiz 'calibra-app\src\main\instalador\abertura*.jpg') $app
 $jars = @(Get-ChildItem $app -Filter *.jar | ForEach-Object { $_.FullName })
 Write-Host "$($jars.Count) jars no classpath do app; JavaFX: $((Get-ChildItem $javafx -Filter *.jar).Count) módulos"
 
@@ -152,6 +155,7 @@ Executar (Join-Path $bin 'jpackage.exe') @('--type', 'msi', '--dest', $dist, '--
     '--icon', (Join-Path $raiz 'calibra-app\src\main\instalador\calibra.ico'),
     '--input', $app, '--main-jar', $jarApp, '--main-class', 'br.com.calibra.app.Inicio',
     '--runtime-image', $runtime, '--java-options', '--enable-native-access=javafx.graphics,ALL-UNNAMED',
+    '--java-options', '-splash:$APPDIR\abertura.jpg',
     '--win-per-user-install', '--install-dir', 'Programs\Calibra',
     '--win-menu', '--win-menu-group', 'Calibra', '--win-shortcut',
     '--win-upgrade-uuid', $UpgradeCode)

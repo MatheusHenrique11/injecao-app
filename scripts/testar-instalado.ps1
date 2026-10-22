@@ -1,11 +1,13 @@
 ﻿<#
 .SYNOPSIS
-Roda os testes de interface (tag ui) no Calibra instalado pelo MSI.
+Roda os testes de interface (tag ui) no GarageTech (antes Calibra) instalado pelo MSI.
 
 .DESCRIPTION
 Usa o Java embutido (pasta runtime) e os jars da pasta de instalação, com as opções do Java do atalho
-(Calibra.cfg), no lugar do Java e das classes do Maven. Assim confere que o pacote tem tudo o que as telas usam:
-módulos do Java, recursos, fontes e imagens do PDF, área de transferência e backup.
+(GarageTech.cfg; Calibra.cfg até a versão 0.3.2), no lugar do Java e das classes do Maven. Assim confere que o
+pacote tem tudo o que as telas usam: módulos do Java, recursos, fontes e imagens do PDF, área de transferência e
+backup. A opção da tela de abertura (-splash) fica de fora: os testes não abrem a janela principal, que é quem a
+fecha; o script só confere que a imagem dela está no pacote.
 
 Os testes usam pastas temporárias: os dados em %LOCALAPPDATA%\Calibra não são tocados. As janelas aparecem na
 tela durante o teste (precisa da área de trabalho). Nada é baixado: o JUnit vem do repositório local do Maven.
@@ -26,9 +28,11 @@ $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 
 $java = Join-Path $Instalado 'runtime\bin\java.exe'
-$cfg = Join-Path $Instalado 'app\Calibra.cfg'
-if (-not (Test-Path $java) -or -not (Test-Path $cfg)) {
-    throw "Calibra instalado não encontrado em $Instalado. Instale o MSI antes."
+# O .cfg tem o nome do app no instalador: GarageTech desde a 0.3.3, Calibra antes.
+$cfg = @('GarageTech.cfg', 'Calibra.cfg') | ForEach-Object { Join-Path $Instalado "app\$_" } |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not (Test-Path $java) -or -not $cfg) {
+    throw "GarageTech instalado não encontrado em $Instalado. Instale o MSI antes."
 }
 $classesDeTeste = Join-Path $raiz 'calibra-app\target\test-classes'
 if (-not (Test-Path $classesDeTeste)) {
@@ -129,10 +133,17 @@ if ($Testes.Count -eq 0) {
     $classes = $Testes | ForEach-Object { if ($_.Contains('.')) { $_ } else { "br.com.calibra.app.$_" } }
 }
 
-# As opções do Java do atalho, lidas do Calibra.cfg (ex.: --enable-native-access).
+# As opções do Java do atalho, lidas do .cfg (ex.: --enable-native-access). A da tela de abertura (-splash) só tem
+# a imagem conferida: nos testes, ninguém fecharia a abertura.
 $appDir = Join-Path $Instalado 'app'
-$opcoes = Get-Content $cfg | Where-Object { $_ -like 'java-options=*' } |
-    ForEach-Object { $_.Substring('java-options='.Length).Replace('$APPDIR', $appDir) }
+$opcoes = @(Get-Content $cfg | Where-Object { $_ -like 'java-options=*' } |
+    ForEach-Object { $_.Substring('java-options='.Length).Replace('$APPDIR', $appDir) })
+foreach ($abertura in @($opcoes | Where-Object { $_ -like '-splash:*' })) {
+    if (-not (Test-Path $abertura.Substring('-splash:'.Length))) {
+        throw "A imagem da tela de abertura não está no pacote: $abertura"
+    }
+}
+$opcoes = @($opcoes | Where-Object { $_ -notlike '-splash:*' })
 
 # Log dos testes só com avisos e erros (o Flyway e o backup escrevem muito em INFO).
 $configLog = Join-Path $saida 'logging.properties'

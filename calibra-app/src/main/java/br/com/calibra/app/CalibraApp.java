@@ -36,6 +36,7 @@ public class CalibraApp extends Application {
             contexto = Partida.abrir(Partida.pastas(), Versao.atual(), Clock.systemDefaultZone());
         } catch (IOException | ErroDados erro) {
             LOG.log(Level.SEVERE, "O app não conseguiu abrir os dados", erro);
+            TelaDeAbertura.fechar();
             String mensagem = erro instanceof ErroDados ? erro.getMessage()
                     : "Não foi possível criar a pasta de dados do Calibra: " + erro.getMessage();
             ErroInesperado.mostrar("Não foi possível abrir", mensagem);
@@ -64,6 +65,8 @@ public class CalibraApp extends Application {
         // Notebook com tela pequena (1366 × 768): a janela abre maximizada e as telas rolam.
         palco.setMaximized(!cabe);
         palco.show();
+        // A tela de abertura (o logo grande) sai quando a janela principal já está na tela.
+        TelaDeAbertura.fechar();
         LOG.info(() -> "Tela aberta em " + Inicio.msDesdeOInicio() + " ms.");
         principal.ligarBackupAutomatico();
     }
