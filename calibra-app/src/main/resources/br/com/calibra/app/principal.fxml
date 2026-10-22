@@ -4,6 +4,7 @@
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -20,7 +21,12 @@
 
   <left>
     <VBox styleClass="navegacao" spacing="4.0">
-      <Label styleClass="marca" text="Calibra"/>
+      <!-- A marca GarageTech: o logo (a imagem entra pelo controlador, no tamanho dos pixels da tela) e a frase. -->
+      <VBox styleClass="marca" spacing="2.0">
+        <ImageView fx:id="marca" fitWidth="174.0" preserveRatio="true" smooth="true"
+                   accessibleText="GarageTech"/>
+        <Label styleClass="marca-frase" text="Gestão e Tecnologia Automotiva"/>
+      </VBox>
       <ToggleButton fx:id="navPainel" text="Painel" toggleGroup="$navegacao"
                     maxWidth="Infinity" onAction="#mostrarPainel"/>
       <ToggleButton fx:id="navOficina" text="Oficina" toggleGroup="$navegacao"

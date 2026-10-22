@@ -429,7 +429,7 @@ public class ConfiguracoesController {
     @FXML
     private void escolherPastaBackup() {
         DirectoryChooser escolha = new DirectoryChooser();
-        escolha.setTitle("Pasta de backup do Calibra");
+        escolha.setTitle("Pasta de backup do GarageTech");
         File pasta = escolha.showDialog(janela());
         if (pasta == null) {
             return;
@@ -482,7 +482,7 @@ public class ConfiguracoesController {
         Path zip = escolhido.get();
         Optional<InfoBackup> info = Backup.lerInfo(zip);
         if (info.isEmpty()) {
-            mostrarErros(mensagensBackup, List.of("O arquivo " + zip.getFileName() + " não é um backup do Calibra."));
+            mostrarErros(mensagensBackup, List.of("O arquivo " + zip.getFileName() + " não é um backup do GarageTech."));
             return;
         }
         if (!confirmarRestauracao(info.get())) {
@@ -513,12 +513,12 @@ public class ConfiguracoesController {
         ButtonType restaurar = new ButtonType("Restaurar", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelar = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
         Alert alerta = Alertas.criar(AlertType.CONFIRMATION, "Todos os dados atuais (projetos, cadastros e "
-                + "configurações) serão trocados pelos do backup.\n\nAntes, o Calibra guarda os dados atuais num "
+                + "configurações) serão trocados pelos do backup.\n\nAntes, o GarageTech guarda os dados atuais num "
                 + "backup de segurança na pasta padrão. Ele aparece na lista de backups se você quiser voltar.\n\n"
                 + "O que estiver digitado e não salvo nas telas será perdido.", restaurar, cancelar);
         alerta.initOwner(janela());
         alerta.setTitle("Restaurar backup");
-        alerta.setHeaderText("Restaurar o backup de " + ServicoBackup.descrever(info) + " (Calibra "
+        alerta.setHeaderText("Restaurar o backup de " + ServicoBackup.descrever(info) + " (GarageTech "
                 + info.manifesto().versaoApp() + ")?");
         return alerta.showAndWait().filter(restaurar::equals).isPresent();
     }

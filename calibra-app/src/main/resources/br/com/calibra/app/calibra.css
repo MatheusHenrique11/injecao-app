@@ -1,7 +1,10 @@
-/* Tema claro, fonte mínima de 13 px (SPEC 8). */
+/* Tema claro, fonte mínima de 13 px (SPEC 8). As cores de destaque são as da marca GarageTech (decisão 284): o azul
+   #1362f9 (contraste de 5:1 com texto branco) e, mais escuro, #0f4cc2 para borda e texto sobre fundo claro. */
 .root {
     -fx-font-size: 14px;
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-accent: #1362f9;
+    -fx-focus-color: #1362f9;
 }
 
 .pagina {
@@ -89,11 +92,15 @@
     -fx-border-color: transparent #cfd8dc transparent transparent;
 }
 
+/* A marca GarageTech no alto da barra: o logo (174 px, a largura da barra sem as margens) e a frase. */
 .navegacao .marca {
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #1565c0;
-    -fx-padding: 0 0 12px 6px;
+    -fx-padding: 0 0 14px 0;
+    -fx-alignment: center;
+}
+
+.navegacao .marca-frase {
+    -fx-font-size: 11px;
+    -fx-text-fill: #171717;
 }
 
 .navegacao .toggle-button {
@@ -108,13 +115,13 @@
 }
 
 .navegacao .toggle-button:selected {
-    -fx-background-color: #1565c0;
+    -fx-background-color: #1362f9;
     -fx-text-fill: white;
     -fx-font-weight: bold;
 }
 
 .navegacao .toggle-button:focused {
-    -fx-border-color: #0d47a1;
+    -fx-border-color: #0f4cc2;
     -fx-border-radius: 4px;
 }
 
@@ -139,11 +146,11 @@
 
 .cartao:hover {
     -fx-background-color: #e3f2fd;
-    -fx-border-color: #1565c0;
+    -fx-border-color: #1362f9;
 }
 
 .cartao:focused {
-    -fx-border-color: #0d47a1;
+    -fx-border-color: #0f4cc2;
     -fx-border-width: 2px;
     -fx-padding: 9px 13px;
 }
@@ -151,7 +158,7 @@
 .cartao .cartao-numero {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1565c0;
+    -fx-text-fill: #1362f9;
 }
 
 .cartao:vazio .cartao-numero {
@@ -172,7 +179,7 @@
 
 /* Configurações: valor diferente do padrão da SPEC. */
 .text-field:editado {
-    -fx-text-fill: #0d47a1;
+    -fx-text-fill: #0f4cc2;
     -fx-font-weight: bold;
 }
 
@@ -182,7 +189,7 @@
 }
 
 .etapa-atual {
-    -fx-text-fill: #1565c0;
+    -fx-text-fill: #1362f9;
     -fx-font-weight: bold;
 }
 
@@ -201,7 +208,7 @@
 .etiqueta-status {
     -fx-padding: 4px 12px;
     -fx-background-color: #e3f2fd;
-    -fx-text-fill: #0d47a1;
+    -fx-text-fill: #0f4cc2;
     -fx-background-radius: 12px;
     -fx-font-weight: bold;
 }

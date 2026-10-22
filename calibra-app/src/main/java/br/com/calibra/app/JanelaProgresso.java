@@ -55,7 +55,7 @@ final class JanelaProgresso {
         } else {
             janela.initModality(Modality.APPLICATION_MODAL);
         }
-        janela.setTitle("Calibra");
+        janela.setTitle("GarageTech");
         janela.setResizable(false);
         janela.setOnCloseRequest(Event::consume);
         ProgressIndicator indicador = new ProgressIndicator();

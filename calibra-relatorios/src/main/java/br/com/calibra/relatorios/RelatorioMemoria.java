@@ -47,7 +47,7 @@ public final class RelatorioMemoria {
     private static final String SEPARADOR = " · ";
 
     static final String RESPONSABILIDADE = "Estimativa para dimensionar peças e preparar o mapa base. O acerto final é "
-            + "feito pelo calibrador, com wideband, no dinamômetro, na rua ou na água. O Calibra não grava nada na "
+            + "feito pelo calibrador, com wideband, no dinamômetro, na rua ou na água. O GarageTech não grava nada na "
             + "injeção. Itens vermelhos só seguem com justificativa escrita.";
 
     private RelatorioMemoria() {
@@ -74,7 +74,7 @@ public final class RelatorioMemoria {
             resultados(pdf, d);
             listas(pdf, d, dados.resultado());
             memoria(pdf, dados.resultado());
-            pdf.terminar("Calibra · Memória de cálculo · gerado em " + dados.geradoEm().format(DATA_HORA));
+            pdf.terminar("GarageTech · Memória de cálculo · gerado em " + dados.geradoEm().format(DATA_HORA));
             // Salva num temporário e troca depois: um PDF aberto no leitor nunca fica pela metade.
             Path temporario = destino.resolveSibling(destino.getFileName() + ".tmp");
             documento.save(temporario.toFile());
@@ -83,8 +83,8 @@ public final class RelatorioMemoria {
     }
 
     private static void cabecalho(EscritorPdf pdf, DadosRelatorio dados) throws IOException {
-        pdf.titulo("Calibra — Memória de cálculo");
-        pdf.subtitulo("Gerado em " + dados.geradoEm().format(DATA_HORA) + SEPARADOR + "Calibra " + dados.versaoApp()
+        pdf.titulo("GarageTech — Memória de cálculo");
+        pdf.subtitulo("Gerado em " + dados.geradoEm().format(DATA_HORA) + SEPARADOR + "GarageTech " + dados.versaoApp()
                 + SEPARADOR + "núcleo " + dados.resultado().versaoNucleo());
         IdentificacaoProjeto projeto = dados.projeto();
         if (projeto != null) {

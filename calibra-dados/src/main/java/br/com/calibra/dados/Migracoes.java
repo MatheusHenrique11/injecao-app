@@ -78,7 +78,7 @@ public final class Migracoes {
 
     private static MigracaoFalhouException falhou(FlywayException erro, InfoBackup copia, Backup backup) {
         if (copia == null) {
-            return new MigracaoFalhouException("Não foi possível criar o banco de dados do Calibra. Detalhe: "
+            return new MigracaoFalhouException("Não foi possível criar o banco de dados do GarageTech. Detalhe: "
                     + erro.getMessage(), erro);
         }
         try {
@@ -96,7 +96,7 @@ public final class Migracoes {
     private static void recusarBancoMaisNovo(MigrationInfoService info) {
         for (MigrationInfo migracao : info.all()) {
             if (migracao.getState().name().startsWith("FUTURE")) {
-                throw new BancoMaisNovoException("Estes dados foram gravados por uma versão mais nova do Calibra "
+                throw new BancoMaisNovoException("Estes dados foram gravados por uma versão mais nova do GarageTech "
                         + "(banco v" + migracao.getVersion() + "). Instale a versão mais nova para abri-los.");
             }
         }

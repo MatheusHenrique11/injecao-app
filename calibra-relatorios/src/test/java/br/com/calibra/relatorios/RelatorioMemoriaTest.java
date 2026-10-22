@@ -100,7 +100,7 @@ class RelatorioMemoriaTest {
         assertTrue(Files.size(destino) > 5_000, "PDF pequeno demais");
         String texto = texto(destino.toFile());
         assertTrue(texto.contains("Memória de cálculo"), "título");
-        assertTrue(texto.contains("Calibra 0.1.0-teste"), "versão do app");
+        assertTrue(texto.contains("GarageTech 0.1.0-teste"), "versão do app");
         assertTrue(texto.contains("núcleo " + VersaoNucleo.ATUAL), "versão do núcleo");
         assertTrue(texto.contains("09/10/2026 10:30"), "data e hora");
         assertTrue(texto.contains("VERMELHO"), "DC vermelho no semáforo");

@@ -47,7 +47,7 @@ public final class RelatorioLaudo {
             diagnostico(pdf, laudo);
             pdf.assinaturas(List.of("Mecânico responsável" + (dados.mecanico().isEmpty() ? ""
                     : ": " + dados.mecanico()), "Cliente: " + dados.cliente()));
-            pdf.terminar("Calibra" + SEPARADOR + dados.numeroOs() + SEPARADOR + "laudo de diagnóstico elétrico"
+            pdf.terminar("GarageTech" + SEPARADOR + dados.numeroOs() + SEPARADOR + "laudo de diagnóstico elétrico"
                     + SEPARADOR + "gerado em " + dados.geradoEm().format(DATA_HORA));
             pdf.salvar(destino);
         }

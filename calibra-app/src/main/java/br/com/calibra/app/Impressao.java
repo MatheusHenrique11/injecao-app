@@ -48,7 +48,7 @@ final class Impressao {
                     + "impressora (ou use a \"Microsoft Print to PDF\") ou gere o PDF e imprima por ele.");
             return;
         }
-        trabalho.getJobSettings().setJobName("Calibra · " + titulo);
+        trabalho.getJobSettings().setJobName("GarageTech · " + titulo);
         if (!trabalho.showPrintDialog(janela)) {
             trabalho.cancelJob();
             return;

@@ -31,7 +31,7 @@ final class EscolhaBackup {
             @Override
             protected void updateItem(InfoBackup info, boolean vazio) {
                 super.updateItem(info, vazio);
-                setText(vazio || info == null ? null : ServicoBackup.descrever(info) + " · Calibra "
+                setText(vazio || info == null ? null : ServicoBackup.descrever(info) + " · GarageTech "
                         + info.manifesto().versaoApp() + "\n" + info.arquivo().getParent());
             }
         });
@@ -65,8 +65,8 @@ final class EscolhaBackup {
 
     private static Path escolherArquivo(Window dono, Path pastaInicial) {
         FileChooser escolha = new FileChooser();
-        escolha.setTitle("Arquivo de backup do Calibra");
-        escolha.getExtensionFilters().add(new FileChooser.ExtensionFilter("Backup do Calibra (zip)", "*.zip"));
+        escolha.setTitle("Arquivo de backup do GarageTech");
+        escolha.getExtensionFilters().add(new FileChooser.ExtensionFilter("Backup do GarageTech (zip)", "*.zip"));
         if (pastaInicial != null && Files.isDirectory(pastaInicial)) {
             escolha.setInitialDirectory(pastaInicial.toFile());
         }

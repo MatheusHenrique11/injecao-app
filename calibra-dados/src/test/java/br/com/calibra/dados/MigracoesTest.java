@@ -95,7 +95,7 @@ class MigracoesTest {
         // O app de hoje não conhece a V900.
         BancoMaisNovoException erro =
                 assertThrows(BancoMaisNovoException.class, () -> Migracoes.migrar(base.banco, base.backup));
-        assertTrue(erro.getMessage().contains("versão mais nova do Calibra"), erro.getMessage());
+        assertTrue(erro.getMessage().contains("versão mais nova do GarageTech"), erro.getMessage());
         assertEquals(BaseDeTeste.VERSAO_FUTURA, base.banco.versaoDoEsquema(), "nada foi alterado");
     }
 

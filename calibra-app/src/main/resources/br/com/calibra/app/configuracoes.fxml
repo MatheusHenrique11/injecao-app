@@ -26,7 +26,7 @@
       <VBox styleClass="pagina">
         <Label styleClass="titulo-secao" text="Dados da oficina para os PDFs"/>
         <Label styleClass="dica" wrapText="true"
-               text="Todos opcionais. Aparecem no cabeçalho dos documentos que o Calibra gera."/>
+               text="Todos opcionais. Aparecem no cabeçalho dos documentos que o GarageTech gera."/>
         <GridPane styleClass="grade">
           <columnConstraints>
             <ColumnConstraints minWidth="160.0"/>
@@ -259,7 +259,7 @@
       <VBox styleClass="pagina">
         <Label styleClass="titulo-secao" text="Pasta de backup"/>
         <Label styleClass="dica" wrapText="true"
-               text="Use um HD externo ou pen drive para ter uma cópia fora do computador. Se ele não estiver ligado, o backup vai para a pasta padrão e o Calibra avisa."/>
+               text="Use um HD externo ou pen drive para ter uma cópia fora do computador. Se ele não estiver ligado, o backup vai para a pasta padrão e o GarageTech avisa."/>
         <HBox spacing="10.0" alignment="CENTER_LEFT">
           <Label text="Pasta atual:"/>
           <Label fx:id="backupPasta" styleClass="negrito" wrapText="true"/>

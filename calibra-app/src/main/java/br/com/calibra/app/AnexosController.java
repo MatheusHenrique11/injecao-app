@@ -219,7 +219,7 @@ public class AnexosController {
         Optional<Path> arquivo = casos.arquivoDoAnexo(anexo);
         if (arquivo.isEmpty()) {
             erros.accept(List.of("O arquivo de " + anexo.nomeOriginal() + " não está na pasta de anexos (foi apagado "
-                    + "fora do Calibra?). Restaure um backup ou anexe de novo."));
+                    + "fora do GarageTech?). Restaure um backup ou anexe de novo."));
         } else if (servicos != null) {
             servicos.showDocument(arquivo.get().toUri().toString());
         }

@@ -45,9 +45,9 @@ public final class RelatorioOrcamento {
             if (dados.dePreparacao()) {
                 resumoTecnico(pdf, dados.preparacao());
                 pdf.espaco(8f);
-                pdf.caixa(TextoOrcamento.NOTA_MAPA_BASE + " O Calibra não grava nada na injeção.");
+                pdf.caixa(TextoOrcamento.NOTA_MAPA_BASE + " O GarageTech não grava nada na injeção.");
             }
-            pdf.terminar("Calibra · Orçamento " + dados.numero().comRevisao() + " · gerado em "
+            pdf.terminar("GarageTech · Orçamento " + dados.numero().comRevisao() + " · gerado em "
                     + dados.geradoEm().format(DATA_HORA));
             pdf.salvar(destino);
         }

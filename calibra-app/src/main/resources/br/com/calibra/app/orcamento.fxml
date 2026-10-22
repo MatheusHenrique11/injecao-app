@@ -93,7 +93,7 @@
 
     <Label styleClass="titulo-secao" text="Envio e resposta do cliente"/>
     <Label styleClass="dica" wrapText="true"
-           text="O Calibra não envia nada: gere o PDF ou copie o texto e mande você mesmo. Depois marque como enviado (a validade conta a partir daí) e registre a resposta do cliente. Aprovado não muda mais: para alterar, abra uma revisão nova."/>
+           text="O GarageTech não envia nada: gere o PDF ou copie o texto e mande você mesmo. Depois marque como enviado (a validade conta a partir daí) e registre a resposta do cliente. Aprovado não muda mais: para alterar, abra uma revisão nova."/>
     <HBox spacing="10.0">
       <Button fx:id="botaoPdf" text="Gerar PDF…" onAction="#gerarPdf"/>
       <Button fx:id="botaoWhatsApp" text="Copiar texto para WhatsApp" onAction="#copiarWhatsApp"/>

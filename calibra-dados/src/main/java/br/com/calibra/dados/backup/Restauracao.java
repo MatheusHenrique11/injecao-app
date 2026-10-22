@@ -74,9 +74,9 @@ public final class Restauracao {
             Manifesto manifesto = extrairEConferir(zip, pasta, true);
             String atual = backup.banco().versaoDoEsquema();
             if (maisNova(manifesto.versaoBanco(), atual)) {
-                throw new BackupInvalidoException("Este backup é de uma versão mais nova do Calibra ("
+                throw new BackupInvalidoException("Este backup é de uma versão mais nova do GarageTech ("
                         + manifesto.versaoApp() + ", banco v" + manifesto.versaoBanco()
-                        + "). Atualize o Calibra antes de restaurar.");
+                        + "). Atualize o GarageTech antes de restaurar.");
             }
             InfoBackup seguranca = backup.fazer(backup.pastas().backupsPadrao(), MotivoBackup.ANTES_DE_RESTAURAR);
             trocar(pasta);
@@ -121,8 +121,8 @@ public final class Restauracao {
         try (ZipFile arquivo = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
             Manifesto manifesto = lerManifesto(arquivo);
             if (manifesto.formato() > Manifesto.FORMATO) {
-                throw new BackupInvalidoException("Este backup foi feito por uma versão mais nova do Calibra ("
-                        + manifesto.versaoApp() + "). Atualize o Calibra antes de restaurar.");
+                throw new BackupInvalidoException("Este backup foi feito por uma versão mais nova do GarageTech ("
+                        + manifesto.versaoApp() + "). Atualize o GarageTech antes de restaurar.");
             }
             ZipEntry entradaBanco = arquivo.getEntry(Backup.ENTRADA_BANCO);
             if (entradaBanco == null) {
@@ -143,7 +143,7 @@ public final class Restauracao {
             conferirBanco(banco, manifesto);
             return manifesto;
         } catch (ZipException erro) {
-            throw new BackupInvalidoException("O arquivo não é um backup do Calibra (zip inválido).", erro);
+            throw new BackupInvalidoException("O arquivo não é um backup do GarageTech (zip inválido).", erro);
         } catch (IOException erro) {
             throw new BackupInvalidoException("Não foi possível ler o backup: " + erro.getMessage(), erro);
         }
@@ -152,7 +152,7 @@ public final class Restauracao {
     private static Manifesto lerManifesto(ZipFile arquivo) throws IOException {
         ZipEntry entrada = arquivo.getEntry(Backup.ENTRADA_MANIFESTO);
         if (entrada == null) {
-            throw new BackupInvalidoException("O arquivo não é um backup do Calibra (falta o manifesto).");
+            throw new BackupInvalidoException("O arquivo não é um backup do GarageTech (falta o manifesto).");
         }
         try (InputStream dados = arquivo.getInputStream(entrada)) {
             return Json.ler(new String(dados.readAllBytes(), StandardCharsets.UTF_8), Manifesto.class);

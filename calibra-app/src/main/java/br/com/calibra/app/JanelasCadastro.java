@@ -168,7 +168,7 @@ final class JanelasCadastro {
         }
         return (presos == 1 ? " 1 arquivo estava aberto em outro programa e ainda não saiu da pasta"
                 : " " + presos + " arquivos estavam abertos em outro programa e ainda não saíram da pasta")
-                + ": feche o programa; o Calibra apaga na próxima vez que abrir.";
+                + ": feche o programa; o GarageTech apaga na próxima vez que abrir.";
     }
 
     /** A janela de edição: Salvar grava e fecha; com erro, mostra a mensagem e fica aberta. */

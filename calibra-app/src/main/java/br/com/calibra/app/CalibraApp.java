@@ -38,7 +38,7 @@ public class CalibraApp extends Application {
             LOG.log(Level.SEVERE, "O app não conseguiu abrir os dados", erro);
             TelaDeAbertura.fechar();
             String mensagem = erro instanceof ErroDados ? erro.getMessage()
-                    : "Não foi possível criar a pasta de dados do Calibra: " + erro.getMessage();
+                    : "Não foi possível criar a pasta de dados do GarageTech: " + erro.getMessage();
             ErroInesperado.mostrar("Não foi possível abrir", mensagem);
             Platform.exit();
             return;

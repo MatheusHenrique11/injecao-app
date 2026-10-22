@@ -110,7 +110,7 @@ final class Conferencia {
 
     /** Escreve o resultado e devolve o código de saída: 0 se tudo deu certo. */
     static int imprimir(List<Item> itens, PrintStream saida) {
-        saida.println("Calibra " + Versao.atual() + " · conferência do pacote · Java " + Runtime.version());
+        saida.println("GarageTech " + Versao.atual() + " · conferência do pacote · Java " + Runtime.version());
         for (Item item : itens) {
             saida.println((item.ok() ? "OK      " : "FALHOU  ") + item.nome() + ": " + item.detalhe());
         }

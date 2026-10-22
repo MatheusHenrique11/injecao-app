@@ -86,7 +86,7 @@ public final class RelatorioOs {
             pdf.titulo(titulo);
             pdf.subtitulo(subtitulo);
             conteudo.escrever(pdf);
-            pdf.terminar("Calibra" + SEPARADOR + dados.numero() + SEPARADOR + rodape
+            pdf.terminar("GarageTech" + SEPARADOR + dados.numero() + SEPARADOR + rodape
                     + dados.geradoEm().format(DATA_HORA));
             pdf.salvar(destino);
         }

@@ -57,7 +57,7 @@ public final class RelatorioChicote {
                 }
             }
             pdf.assinaturas(List.of("Responsável pela confecção (nome e assinatura)"));
-            pdf.terminar("Calibra" + SEPARADOR + dados.numeroOs() + SEPARADOR + "ficha do chicote "
+            pdf.terminar("GarageTech" + SEPARADOR + dados.numeroOs() + SEPARADOR + "ficha do chicote "
                     + ficha.versaoChicote() + SEPARADOR + "gerada em " + dados.geradoEm().format(DATA_HORA));
             pdf.salvar(destino);
         }

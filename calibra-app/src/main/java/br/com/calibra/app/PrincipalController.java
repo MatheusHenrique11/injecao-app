@@ -2,6 +2,8 @@ package br.com.calibra.app;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URL;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -18,7 +20,10 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import br.com.calibra.app.casos.CasosCatalogo;
@@ -44,6 +49,13 @@ public class PrincipalController implements Navegacao {
 
     private static final Logger LOG = Logger.getLogger(PrincipalController.class.getName());
 
+    /** O nome comercial do app (decisão 282); os nomes técnicos (pacotes, pasta de dados) continuam "calibra". */
+    static final String MARCA = "GarageTech";
+    static final String DESCRICAO_DA_MARCA = "Gestão e Tecnologia Automotiva";
+    /** A largura do logo na barra lateral: a da barra (190 px) sem as margens. */
+    private static final double LARGURA_DA_MARCA = 174;
+
+    @FXML private ImageView marca;
     @FXML private ToggleGroup navegacao;
     @FXML private ToggleButton navPainel;
     @FXML private ToggleButton navOficina;
@@ -99,7 +111,8 @@ public class PrincipalController implements Navegacao {
 
     @FXML
     private void initialize() {
-        rotuloVersao.setText("Calibra " + Versao.atual() + " · núcleo " + VersaoNucleo.ATUAL + " · offline");
+        mostrarMarca();
+        rotuloVersao.setText(MARCA + " " + Versao.atual() + " · núcleo " + VersaoNucleo.ATUAL + " · offline");
         // Clicar de novo no botão da tela aberta não pode deixar a navegação sem nada escolhido.
         navegacao.selectedToggleProperty().addListener((obs, antes, depois) -> {
             if (depois == null && antes != null) {
@@ -395,12 +408,24 @@ public class PrincipalController implements Navegacao {
         mostrar(telaConfiguracoes, navConfiguracoes, "Configurações");
     }
 
+    /**
+     * Mostra a tela, com o nome dela no título da janela. No Painel, a tela de entrada, o título traz a descrição da
+     * marca: "GarageTech — Gestão e Tecnologia Automotiva".
+     */
     private void mostrar(Parent tela, ToggleButton botao, String titulo) {
         conteudo.getChildren().setAll(tela);
         botao.setSelected(true);
         if (palco != null) {
-            palco.setTitle("Calibra " + Versao.atual() + " — " + titulo);
+            palco.setTitle(MARCA + " — " + (botao == navPainel ? DESCRICAO_DA_MARCA : titulo));
         }
+    }
+
+    /** O logo da barra lateral, carregado já no tamanho dos pixels da tela (125%, 150%...), para ficar nítido. */
+    private void mostrarMarca() {
+        double escala = Math.max(1, Screen.getPrimary().getOutputScaleX());
+        URL arquivo = Objects.requireNonNull(PrincipalController.class.getResource("icones/marca-garagetech.png"),
+                "marca-garagetech.png");
+        marca.setImage(new Image(arquivo.toExternalForm(), LARGURA_DA_MARCA * escala, 0, true, true));
     }
 
     /** Os dados mudaram todos: as telas são montadas de novo a partir do banco restaurado. */
@@ -440,7 +465,7 @@ public class PrincipalController implements Navegacao {
                 },
                 erro -> {
                     erroDeBackup = "O backup automático falhou: " + ConfiguracoesController.mensagemDeErro(erro)
-                            + " O Calibra tenta de novo daqui a uma hora.";
+                            + " O GarageTech tenta de novo daqui a uma hora.";
                     atualizarStatus();
                 });
     }
@@ -511,7 +536,7 @@ public class PrincipalController implements Navegacao {
 
     private boolean sairMesmoAssim(String mensagem) {
         ButtonType sair = new ButtonType("Sair sem backup", ButtonBar.ButtonData.OK_DONE);
-        ButtonType ficar = new ButtonType("Continuar no Calibra", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType ficar = new ButtonType("Continuar no GarageTech", ButtonBar.ButtonData.CANCEL_CLOSE);
         Alert alerta = Alertas.criar(AlertType.WARNING, mensagem + "\n\nSe sair agora, as mudanças desde o último "
                 + "backup ficam só no banco de dados deste computador.", sair, ficar);
         alerta.initOwner(palco);
