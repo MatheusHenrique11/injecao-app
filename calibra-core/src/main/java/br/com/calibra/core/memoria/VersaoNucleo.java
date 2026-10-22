@@ -6,8 +6,11 @@ package br.com.calibra.core.memoria;
  */
 public final class VersaoNucleo {
 
-    /** 1.1.0: mapa do compressor, ponto de torque, meta pela pressão e torque × câmbio (fase 2, bloco 2.4). */
-    public static final String ATUAL = "1.1.0";
+    /**
+     * 1.2.0: o gerador do mapa base (fase 4, bloco 4.3). As contas do dimensionamento não mudaram.
+     * <br>1.1.0: mapa do compressor, ponto de torque, meta pela pressão e torque × câmbio (fase 2, bloco 2.4).
+     */
+    public static final String ATUAL = "1.2.0";
 
     private VersaoNucleo() {
     }

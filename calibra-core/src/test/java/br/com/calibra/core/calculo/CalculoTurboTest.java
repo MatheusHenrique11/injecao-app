@@ -35,8 +35,8 @@ class CalculoTurboTest {
 
     @Test
     void resultadoVemComONucleo110() {
-        assertEquals("1.1.0", VersaoNucleo.ATUAL);
-        assertEquals("1.1.0", CalculoDimensionamento.calcular(Fixtures.casoB()).versaoNucleo());
+        assertEquals("1.2.0", VersaoNucleo.ATUAL, "1.2.0: o mapa base, sem mudar as contas do dimensionamento");
+        assertEquals(VersaoNucleo.ATUAL, CalculoDimensionamento.calcular(Fixtures.casoB()).versaoNucleo());
     }
 
     /** Ida e volta: potência → MAP → potência pela pressão, com diferença de até 0,1%. */

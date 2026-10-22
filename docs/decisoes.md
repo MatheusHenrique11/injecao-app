@@ -1170,3 +1170,93 @@ O bloco 4.0 fecha as pendências das decisões 152 e 160.
       - `CatalogosUiTest.modelosDeVeEIgnicao`, na janela de verdade.
 
       O banco vai para a versão 15.
+
+## 22/10/2026 — Fase 4, bloco 4.3: o gerador do mapa base (núcleo 1.2.0)
+
+294. **O gerador do mapa base (`GeradorMapaBase`, núcleo)** segue a SPEC 7.5. As contas de cada célula são as da SPEC 7.1, as mesmas do dimensionamento. O núcleo vai para a versão 1.2.0, e as contas do dimensionamento não mudaram.
+    - **a entrada:**
+      - o cálculo do projeto: motor, meta, combustível, bico, VEs, lambda e padrões. O gerador refaz o dimensionamento para pegar o MAP, a Tm e a P_atm;
+      - a injeção, com o perfil (opcional);
+      - o modelo de VE;
+      - a fonte da ignição (opcional);
+      - as regras;
+      - a mola da wastegate (opcional).
+
+      **Sem bico ou sem a rotação de torque máximo, não gera**, e a mensagem diz o que falta;
+    - **os eixos:**
+      - os da tabela do perfil, só por MAP;
+      - a ignição e o lambda sem tabela própria seguem a de combustível;
+      - sem perfil, os padrão da SPEC: de 500 em 500 rpm até a máxima (a máxima entra no fim) e de 20 kPa até 1,1 × o MAP máximo, arredondado para cima de 10 em 10 (aspirado: até 105 kPa);
+    - **a VE de cada célula** = VE do modelo (rpm ÷ rpm do torque, MAP ÷ 100 kPa) × o fator do projeto:
+      - no torque máximo, o fator é a VE do torque ÷ a VE do modelo ali;
+      - na potência máxima, a VE da potência ÷ a VE do modelo ali;
+      - entre as duas, linear; antes do torque e depois da potência, o da ponta.
+
+      Assim a célula da potência máxima, no MAP do dimensionamento, tem a VE do projeto, e o modelo dá a forma do resto;
+    - **o lambda** (SPEC 7.5):
+      - 1,00 até 70 kPa;
+      - de 70 a 100 kPa, linear até o lambda de plena carga: no aspirado, o alvo do projeto; no turbo, o lambda aspirado de plena carga do combustível;
+      - acima de 100 kPa, o alvo do projeto, que vem do lambda sob pressão do combustível e pode ser editado;
+      - acima de 90 kPa, 0,03 mais rico; em NÁUTICO e CIRCUITO/ENDURANCE, mais 0,02.
+
+      A SPEC só fala do 1,00 "em RUA"; nos outros usos, o mapa usa o mesmo valor e avisa (informação);
+    - **o combustível:**
+      - **em ms:** o TI de cada célula com o ar na temperatura de referência do perfil (sem ela, 25 °C e um alerta amarelo). O tempo morto entra se o perfil disser que a tabela inclui; sem saber, entra (mais rico) e há um alerta amarelo;
+      - **por VE e no modelo físico:** a VE em %, e o lambda vai na tabela dele.
+
+      **Teste dos casos golden:** com o ar de referência na Tm e sem a riqueza extra, a célula (rpm da potência, MAP do dimensionamento) dá o TI e o DC do dimensionamento: 14,81 ms e 86% no caso B; 15,19 ms e 70% no caso C;
+    - **o DC de cada célula** usa a temperatura do ar esperada nela, porque a injeção corrige a tabela por ela:
+      - até 100 kPa, o ar ambiente mais o acréscimo do aspirado;
+      - acima, linear até a Tm no MAP do dimensionamento, e continua subindo depois.
+
+      Dois ajustes vieram de conferir um mapa de verdade:
+      - **com a temperatura de referência**, o DC da célula da potência dava 95% contra os 86% do dimensionamento;
+      - **onde se julga o DC:** o semáforo do DC vale até a rotação de potência e o MAP máximo. Acima da potência, o mapa mantém a VE (mais rico, de propósito), e o DC de lá vai só como informação. Senão, todo motor com o limitador acima da potência teria vermelho;
+    - **a ignição** (o app não inventa avanço):
+      - **sem fonte:** a tabela vazia e o vermelho "ignição sem modelo";
+      - **com fonte:** o avanço interpolado da fonte, sem estender: fora dos eixos dela, a célula fica vazia, com vermelho;
+      - **reduções configuráveis:**
+        - por pressão: graus a cada 10 kPa acima de 100;
+        - por temperatura do ar: graus a cada 10 °C acima da temperatura da fonte;
+        - por troca de combustível: graus fixos.
+
+        Nunca somam avanço;
+      - **a fonte antes das reduções** fica gravada junto, para a tela mostrar a diferença célula a célula;
+      - **a SPEC não dá número para as reduções:** elas começam vazias, e o mapa avisa em amarelo enquanto não forem configuradas;
+    - **as travas:**
+      - a pressão alvo do turbo é o menor valor entre a mola da wastegate e 50% da prevista (MAP máximo − P_atm);
+      - o limitador fica 500 rpm abaixo da máxima;
+      - os cortes de proteção vão para o checklist (bloco 4.6);
+    - **os alertas (`AlertaMapa`),** com a cor do semáforo. O vermelho só passa com justificativa, como no dimensionamento.
+      - **vermelhos:**
+        - ignição sem fonte ou incompleta;
+        - DC acima do amarelo;
+        - eixo de carga da injeção abaixo do MAP máximo (a injeção repetiria a última linha: pobre);
+        - tabela da injeção por TPS (esta versão só gera por MAP);
+        - duas bancadas por cilindro (o mapa soma a vazão das duas, e a divisão se configura na injeção);
+      - **amarelos:**
+        - o perfil incompleto ou sem injeção;
+        - o eixo de rotação curto;
+        - o modelo de VE de outra família;
+        - as reduções de ignição não configuradas;
+        - o TI efetivo na marcha lenta abaixo do mínimo;
+    - **a memória:**
+      - **as contas comuns,** como o bico, os fatores da VE e as travas, ficam no resultado;
+      - **as de cada célula** saem na hora, pela mesma conta (`memoriaDaCelula`), para a tela mostrar ao clicar;
+    - **testes (`GeradorMapaBaseTest`, 19):**
+      - os casos golden B e C;
+      - os pontos de torque e de potência;
+      - a troca do modelo;
+      - as regras de lambda (também náutico e aspirado);
+      - os eixos padrão;
+      - as travas;
+      - a ignição sem fonte, com fonte, fora da fonte e com as reduções;
+      - o perfil (eixos, tempo morto, VE) e os alertas;
+      - "trocar o bico não muda a VE" (SPEC 7.6);
+      - DC e duas bancadas;
+      - as recusas;
+      - de 3 a 12 cilindros.
+    - **para a Parada 1 (o dono confere):**
+      - **os números das reduções de ignição;**
+      - **o lambda da carga parcial** fora de RUA;
+      - **se alguma das injeções dele usa tabela de uma dimensão** (combustível só por MAP, com correção por rotação à parte). O gerador desta versão faz tabelas de rotação × MAP.
