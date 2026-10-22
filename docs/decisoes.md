@@ -1004,3 +1004,60 @@ O dono vai usar o app agora e quer que ele esteja 100% usável. Escolheu corrigi
     - a atualização da versão 7 para a 14 passou numa cópia dos dados reais, apagada no fim;
     - os dados reais não foram tocados: sobem para a 14 quando o dono abrir o 0.3.2;
     - os números estão em `docs/fase3b/ensaio-instalador.md`.
+
+## 21/10/2026 — Versão 0.3.3: a marca GarageTech
+
+Pedido do dono: o app passa a se apresentar como **GarageTech — Gestão e Tecnologia Automotiva**, com o logo, o ícone e as cores da imagem aprovada (`docs/marca/garagetech-identidade.png`) e uma tela de abertura com o logo grande. Plano aprovado em 21/10/2026, com estas respostas do dono:
+- GarageTech também no Windows (atalho, menu Iniciar, "Aplicativos instalados");
+- a versão 0.3.3;
+- o azul da marca no app.
+
+282. **Só a apresentação muda; o nome técnico fica.**
+    - **O que muda:** o nome comercial passa a ser GarageTech onde ele aparece para o usuário:
+      - o título da janela, a barra lateral e a barra de baixo;
+      - as mensagens e os títulos de janelas;
+      - os textos de tela;
+      - os rodapés e títulos dos PDFs;
+      - o instalador.
+    - **O que fica "Calibra", e por quê:**
+      - **o código:** os pacotes `br.com.calibra`, os módulos e as classes. Renomear não muda nada para quem usa, e arrisca quebrar referências;
+      - **a pasta dos dados:** `%LOCALAPPDATA%\Calibra`, com o `calibra.db` e os backups `calibra-backup-*.zip`. Mudar faria o app novo não achar os dados nem os backups;
+      - **a pasta do programa e o UpgradeCode:** com eles, a instalação por cima substitui a antiga;
+      - **as sementes do catálogo:** as migrações conferem a soma delas (o checksum), e mudar o texto impediria qualquer banco de abrir;
+      - **as linhas de log:** os scripts de ensaio as procuram;
+      - **o histórico:** as decisões, a SPEC e os relatórios dos ensaios.
+    - **Como foi feito:** não houve troca automática de "Calibra" por "GarageTech". Cada ocorrência foi conferida, e a busca final só deixou nome técnico ou histórico.
+    - **Os dois testes que conferiam o nome** (`MigracoesTest` e `RelatorioMemoriaTest`) passaram a esperar "GarageTech", porque a exigência mudou. Nenhum teste foi afrouxado.
+    - **Os PDFs e os dados já gravados não mudam:** só os documentos gerados daqui em diante saem com o nome novo.
+283. **A tela de abertura usa o `-splash` do próprio Java**, sem framework novo:
+    - **quando aparece:** o lançador mostra a imagem no instante do clique, antes de o Java carregar. É o momento mais demorado (o Java e o JavaFX), e uma janela do próprio app só apareceria depois dele;
+    - **as escalas da tela:** o Java escolhe sozinho a imagem da escala do Windows (`abertura@125pct.jpg` neste PC, que está em 125%). Conferido com uma foto da tela: a imagem aparece no tamanho exato e centralizada;
+    - **quando some:** ela fecha logo depois de a janela principal aparecer, sem espera artificial. Também fecha antes de qualquer janela de erro da abertura (banco que não abre, dados de versão mais nova, erro inesperado): ela não esconde a mensagem e não fica presa. Quem fecha é `TelaDeAbertura.fechar()`, que pode ser chamado mais de uma vez e não faz nada sem a abertura (os testes);
+    - **onde liga:** no instalador (`--java-options -splash:$APPDIR\abertura.jpg`, com as imagens na pasta do app) e no `javafx:run`;
+    - **o teste do app instalado** não repassa a opção (lá ninguém fecharia a abertura) e confere que a imagem está no pacote;
+    - **JPEG de qualidade 95:** em PNG, cada escala teria quase 1 MB. O fundo é um degradê, e o JPEG não deixa marca visível.
+284. **A marca dentro do app:**
+    - **título:** "GarageTech — Gestão e Tecnologia Automotiva" no Painel e "GarageTech — <tela>" nas outras. A versão foi para a barra de baixo ("GarageTech 0.3.3 · núcleo … · offline");
+    - **barra lateral:** o logo para fundo claro, sem fundo, com a frase como texto. O logo é carregado no tamanho dos pixels da tela, para ficar nítido em 125%, 150%…;
+    - **cores:** o azul de destaque `#1565C0` virou o azul da marca `#1362F9`, com contraste de 5:1 com texto branco. O azul escuro `#0D47A1` virou `#0F4CC2`. O `-fx-accent` e o `-fx-focus-color` do JavaFX passaram para `#1362F9` (seleção em listas e foco). O `#0386FE` fica para o próprio logo: tem pouco contraste com o branco (3,6:1). As cores dos gráficos do mapa do compressor não mudaram: são cores técnicas da curva.
+285. **GarageTech no Windows** (resposta do dono):
+    - **o que muda no jpackage:** `--name GarageTech`, que dá o nome do atalho, do menu Iniciar, de "Aplicativos instalados" e do `GarageTech.exe`; também `--vendor GarageTech`, a descrição e o grupo do menu. O MSI sai como `dist\GarageTech-<versão>.msi`;
+    - **o que fica:** a pasta do programa (`--install-dir Programs\Calibra`) e o UpgradeCode. Instalar por cima do Calibra 0.3.2 o substitui, sem duas entradas (ensaio no item 288);
+    - **o `testar-instalado.ps1`** acha o `.cfg` pelo nome novo ou pelo antigo;
+    - **atalho fixado na barra de tarefas:** se havia um do Calibra, ele aponta para o `.exe` antigo. Fixe de novo o GarageTech (o manual diz isso).
+286. **Os arquivos da marca saem da imagem aprovada, sem redesenho:**
+    - **o script:** `scripts\gerar-icone.ps1` (antes, desenhava o manômetro) recorta a imagem aprovada, com o System.Drawing do Windows;
+    - **o que sai:**
+      - o ícone: o símbolo sem o fundo, sobre o quadrado escuro do ícone de app aprovado, nos mesmos arquivos de antes;
+      - a marca da barra lateral;
+      - as 5 imagens da abertura.
+    - **as transparências** saem pelo método "cor para transparência", com o fundo de cada ponto tirado dos cantos da área (o painel principal tem degradê);
+    - **conferido a olho:** o ícone de 16 a 256 px, a marca e a abertura, sem distorção e na proporção original;
+    - **os originais do designer:** se um dia chegarem, entram no lugar dos recortes (`docs/marca/identidade-visual.md`).
+287. **Versão 0.3.3 e documentos:**
+    - **versão:** os 6 `pom.xml` e o CHANGELOG ("[0.3.3]");
+    - **README:** o título "GarageTech — Gestão e Tecnologia Automotiva", a imagem da abertura e a nota do nome anterior;
+    - **manual:** o nome do produto trocado, os caminhos e nomes de arquivo mantidos (com a explicação) e "Atualizar do 0.3.2 para o 0.3.3";
+    - **SPEC:** a nota no topo e na seção 12;
+    - **documento novo:** `docs/marca/identidade-visual.md`;
+    - **CLAUDE.md:** só o nome do MSI, na linha do comando do instalador.

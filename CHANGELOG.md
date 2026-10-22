@@ -2,6 +2,19 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [0.3.3] — 21/10/2026 — GarageTech
+
+### Mudado
+- **O app agora é GarageTech — Gestão e Tecnologia Automotiva** (antes Calibra), com a marca aprovada pelo dono:
+  - **tela de abertura:** o logo grande aparece no instante do clique e some quando a janela abre;
+  - **ícone novo:** o símbolo da marca, na janela, na barra de tarefas, no atalho e em "Aplicativos instalados";
+  - **barra lateral:** o logo e a frase;
+  - **título da janela e barra de baixo:** o nome novo;
+  - **cores:** o azul dos botões, das abas e dos destaques passa a ser o azul da marca (#1362F9);
+  - **mensagens, janelas e PDFs:** os documentos gerados daqui em diante trazem GarageTech no rodapé.
+- **No Windows:** o atalho, o menu Iniciar e "Aplicativos instalados" mostram GarageTech, e o programa é o GarageTech.exe. Instalar por cima substitui o Calibra, sem duplicar.
+- **Nada muda nos dados:** a pasta dos dados (`%LOCALAPPDATA%\Calibra`), a do programa e os backups mantêm o nome antigo, e o banco continua na versão 14.
+
 ## [0.3.2] — 21/10/2026 — Fase 3B: as duas melhorias da revisão final
 
 ### Adicionado

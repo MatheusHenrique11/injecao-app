@@ -1,12 +1,16 @@
-# Calibra (nome provisório)
+# GarageTech — Gestão e Tecnologia Automotiva
+
+![GarageTech — Gestão e Tecnologia Automotiva](calibra-app/src/main/instalador/abertura.jpg)
 
 App desktop para Windows, 100% offline, só da minha oficina: gratuito, num computador e sem login. Ele faz a gestão do dia a dia (ordens de serviço de mecânica e de auto elétrica e, depois, agenda e lembretes) e a preparação: dimensiona as peças, faz o orçamento e gera o mapa base conservador de injeção programável para motores 4 tempos de 3 a 12 cilindros. O acerto fino continua com o calibrador.
 
-O Calibra não usa internet e nunca grava nada na injeção (USB, CAN ou serial).
+O GarageTech não usa internet e nunca grava nada na injeção (USB, CAN ou serial).
+
+**Nome anterior:** até a versão 0.3.2, o app se chamava **Calibra**. Na troca, só o nome e a marca mudaram. O código continua nos pacotes `br.com.calibra` e nos módulos `calibra-*`. Os dados continuam em `%LOCALAPPDATA%\Calibra` e o programa em `%LOCALAPPDATA%\Programs\Calibra`, para as instalações e os backups que já existem continuarem valendo. A identidade visual está em [docs/marca/identidade-visual.md](docs/marca/identidade-visual.md).
 
 A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do usuário em [docs/manual.md](docs/manual.md).
 
-## O que funciona hoje (versão 0.3.2)
+## O que funciona hoje (versão 0.3.3)
 
 ### Painel
 - As OS por etapa, os veículos na oficina e as entregas previstas até hoje (as de hoje e as atrasadas).
@@ -68,7 +72,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 
 ## Instalar e atualizar
 
-- **Instalar:** dois cliques em `Calibra-0.3.2.msi`. Ele instala só para o usuário do Windows, sem senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`, com atalhos no menu Iniciar e na área de trabalho.
+- **Instalar:** dois cliques em `GarageTech-0.3.3.msi`. Ele instala só para o usuário do Windows, sem senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`, com atalhos no menu Iniciar e na área de trabalho.
 - **Atualizar:** instale a versão nova por cima; os dados ficam. Antes, faça "Fazer backup agora" na versão antiga: é o caminho de volta, se precisar.
 - **Detalhes:** no manual, item 2 (inclusive como voltar para a versão anterior).
 
@@ -81,6 +85,7 @@ A especificação completa está em [docs/SPEC.md](docs/SPEC.md), e o manual do 
 | 2 | 0.2.0 | O banco com backup, os projetos, os catálogos, o orçamento em PDF e o instalador MSI |
 | 3 | 0.3.0 | A oficina: a OS, o Painel, os documentos, o catálogo de serviços e a ficha do veículo |
 | 3B | 0.3.1 e 0.3.2 | A auto elétrica: checklists, laudos, instalações, fichas do chicote, itens e kits; na 0.3.2, a trava da entrega e o "quem retirou" na anonimização |
+| — | 0.3.3 | A marca GarageTech: o nome, o logo, o ícone, a tela de abertura e as cores (antes, Calibra) |
 
 Pesquisa de mercado em [docs/pesquisa/](docs/pesquisa/).
 
@@ -152,7 +157,7 @@ mvn -q verify                          # compila e roda os testes
 mvn -q install -DskipTests             # instala os módulos no repositório local
 mvn -q -pl calibra-app javafx:run      # abre o app (depois do install), com os dados em %LOCALAPPDATA%\Calibra-dev
 mvn -q -pl calibra-app verify -Dgroups=ui -Dtestes.excluidos=nenhum   # teste de interface (opcional)
-powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1  # gera dist\Calibra-<versão>.msi
+powershell -ExecutionPolicy Bypass -File scripts\gerar-instalador.ps1  # gera dist\GarageTech-<versão>.msi
 powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes de interface no app instalado
 ```
 
@@ -160,8 +165,8 @@ powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes 
 - **`gerar-instalador.ps1`:** roda os testes, monta o Java embutido, confere o pacote (`Inicio --conferir`) e gera o MSI.
   - `-VersaoMsi 0.1.99` gera um MSI de teste com outra versão (o ensaio de instalar por cima);
   - `-PularTestes` só repete o empacotamento;
-  - o ícone sai de `scripts\gerar-icone.ps1`.
-- **`testar-instalado.ps1`:** roda os testes de interface com o Java embutido e os jars do Calibra instalado pelo MSI (depois de `mvn -q install -DskipTests`). Os testes usam pastas temporárias e não tocam nos dados do app.
+  - o ícone, a marca da barra lateral e a tela de abertura saem de `scripts\gerar-icone.ps1`, recortados da imagem aprovada (`docs\marca\garagetech-identidade.png`).
+- **`testar-instalado.ps1`:** roda os testes de interface com o Java embutido e os jars do GarageTech instalado pelo MSI (depois de `mvn -q install -DskipTests`). Os testes usam pastas temporárias e não tocam nos dados do app.
   - `-Testes FluxoCompletoUiTest` roda só o ensaio do cadastro ao orçamento aprovado, com backup e restauração.
 
 ## Documentação
@@ -169,6 +174,7 @@ powershell -ExecutionPolicy Bypass -File scripts\testar-instalado.ps1  # testes 
 - [docs/SPEC.md](docs/SPEC.md): especificação
 - [docs/decisoes.md](docs/decisoes.md): decisões técnicas
 - [docs/manual.md](docs/manual.md): manual do usuário
+- [docs/marca/identidade-visual.md](docs/marca/identidade-visual.md): a marca GarageTech (cores, arquivos e como gerar de novo)
 - [docs/fase0/](docs/fase0/): levantamentos da fase 0 (injeções, combustíveis, motores, planilha de conferência)
-- [docs/fase3/ensaio-instalador.md](docs/fase3/ensaio-instalador.md) e [docs/fase3b/ensaio-instalador.md](docs/fase3b/ensaio-instalador.md): ensaios dos instaladores 0.3.0, 0.3.1 e 0.3.2
+- [docs/fase3/ensaio-instalador.md](docs/fase3/ensaio-instalador.md) e [docs/fase3b/ensaio-instalador.md](docs/fase3b/ensaio-instalador.md): ensaios dos instaladores 0.3.0 a 0.3.3
 - [CHANGELOG.md](CHANGELOG.md)

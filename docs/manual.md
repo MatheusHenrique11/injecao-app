@@ -1,12 +1,14 @@
-# Manual do usuário — Calibra
+# Manual do usuário — GarageTech
 
-Versão do app: 0.3.2 (fase 3B). Este manual cresce a cada fase.
+Versão do app: 0.3.3 (fase 3B). Este manual cresce a cada fase.
 
-## 1. O que o Calibra faz
+**GarageTech — Gestão e Tecnologia Automotiva** se chamava **Calibra** até a versão 0.3.2. Só o nome e a marca mudaram: a pasta dos dados (`%LOCALAPPDATA%\Calibra`), a pasta do programa (`%LOCALAPPDATA%\Programs\Calibra`) e os arquivos de backup (`calibra-backup-…zip`) continuam com o nome antigo, para os dados e os backups que já existem continuarem valendo.
 
-Cuida da oficina e da preparação num app só. Na oficina: a ordem de serviço (OS) de mecânica e de auto elétrica, da entrada do veículo, com a vistoria e as fotos, ao orçamento, ao serviço com o checklist, à entrega com garantia e ao pagamento. Na preparação: transforma a meta do cliente (motor, potência, uso, combustível e injeção) em peças dimensionadas, orçamento, mapa base conservador e relatório final. O acerto fino continua sendo feito pelo calibrador, no software da própria injeção. O Calibra nunca grava nada na injeção e funciona sem internet.
+## 1. O que o GarageTech faz
 
-Nesta versão (0.3.2) já funcionam:
+Cuida da oficina e da preparação num app só. Na oficina: a ordem de serviço (OS) de mecânica e de auto elétrica, da entrada do veículo, com a vistoria e as fotos, ao orçamento, ao serviço com o checklist, à entrega com garantia e ao pagamento. Na preparação: transforma a meta do cliente (motor, potência, uso, combustível e injeção) em peças dimensionadas, orçamento, mapa base conservador e relatório final. O acerto fino continua sendo feito pelo calibrador, no software da própria injeção. O GarageTech nunca grava nada na injeção e funciona sem internet.
+
+Nesta versão (0.3.3) já funcionam:
 
 - a oficina (item 5): as ordens de serviço, o Painel, os documentos da OS e a ficha do veículo;
 - a auto elétrica, na mesma OS: os serviços do catálogo com categoria e garantia própria, os itens e kits no orçamento, os checklists de execução com a trava do pronto e da entrega, os laudos de diagnóstico elétrico, as instalações do veículo, as fichas do chicote de injeção programável e o serviço de bancada sem o veículo;
@@ -16,12 +18,13 @@ O mapa base chega na fase 4.
 
 ## 2. Instalação
 
-- **Instalar:** dê dois cliques em `Calibra-0.3.2.msi`. O Calibra instala só para o seu usuário do Windows, sem pedir senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`. Ele cria atalhos no menu Iniciar (pasta Calibra) e na área de trabalho. As telas do instalador são as do Windows, em inglês.
+- **Instalar:** dê dois cliques em `GarageTech-0.3.3.msi`. O GarageTech instala só para o seu usuário do Windows, sem pedir senha de administrador, em `%LOCALAPPDATA%\Programs\Calibra`. Ele cria o atalho GarageTech no menu Iniciar (pasta GarageTech) e na área de trabalho, com o ícone da marca. Ao abrir, a tela de abertura mostra o logo grande enquanto o app carrega, e some sozinha quando a janela aparece. As telas do instalador são as do Windows, em inglês.
 - **Atualizar:** instale a versão nova por cima, do mesmo jeito. Os dados ficam, e só uma versão aparece em "Aplicativos instalados". Antes, faça **Fazer backup agora** (Configurações › Backup) na versão antiga: é o caminho de volta, se um dia precisar (veja "Voltar para a versão anterior", abaixo). Ele sai da pasta quando deixar de estar entre os 30 mais recentes; para guardar por mais tempo, copie-o para um pen drive.
-- **Atualizar do 0.3.0 para o 0.3.2:**
-  - **na primeira vez que o 0.3.2 abrir,** ele faz o backup "antes de atualizar o banco" e atualiza o banco da versão 7 para a 14 (os checklists da OS, os modelos de checklist, os laudos, as instalações, o "quem retirou" da entrega, as fichas do chicote e a regra que deixa a anonimização apagar o "quem retirou"). Essas mudanças só acrescentam: nada do que existe muda. Se algo der errado, o backup volta sozinho, e o app avisa;
+- **Atualizar do 0.3.0 para o 0.3.2 (ou direto para o 0.3.3):**
+  - **na primeira vez que a versão nova abrir,** ele faz o backup "antes de atualizar o banco" e atualiza o banco da versão 7 para a 14 (os checklists da OS, os modelos de checklist, os laudos, as instalações, o "quem retirou" da entrega, as fichas do chicote e a regra que deixa a anonimização apagar o "quem retirou"). Essas mudanças só acrescentam: nada do que existe muda. Se algo der errado, o backup volta sozinho, e o app avisa;
   - **o que muda no uso:** os serviços que já estavam no catálogo aparecem na categoria "Outro" (troque na edição); os 7 modelos de checklist chegam em Catálogos › Checklists marcados "a verificar" (confira antes de ligar a um serviço); os backups passam a guardar cada foto e documento uma vez só, na pasta `backups\anexos-dos-backups` (item 10). Os backups do 0.3.0 continuam restaurando.
 - **Atualizar do 0.3.1 para o 0.3.2:** o banco vai da versão 13 para a 14, com o backup antes; nenhum dado muda. No uso, entram a trava da entrega (item 5.4) e o "quem retirou" apagado na anonimização (item 6.6).
+- **Atualizar do 0.3.2 para o 0.3.3 (Calibra → GarageTech):** só a apresentação muda. O banco continua na versão 14, e nenhum dado nem pasta muda. Instalado por cima, o "Calibra" sai de "Aplicativos instalados" e entra o "GarageTech"; os atalhos "Calibra" dão lugar aos "GarageTech". Se você tinha fixado o Calibra na barra de tarefas, fixe de novo o GarageTech. Do 0.3.0 direto para o 0.3.3, vale também o que está acima para o 0.3.2.
 - **Atualizar de uma versão mais antiga (0.2.0):** a atualização passa por todas as versões de uma vez. Na passagem pelo 0.3.0, cada projeto que já tinha orçamento ganha uma OS, com a etapa tirada do orçamento (ex.: orçamento aprovado → OS aprovada); os números e o conteúdo dos orçamentos não mudam.
 - **Versão mais antiga por cima:** o Windows deixa instalar, mas ela não abre dados que uma versão mais nova já atualizou. O app avisa ("Instale a versão mais nova para abri-los") e não mexe em nada; é só instalar de novo a versão mais nova.
 - **Voltar para a versão anterior** (só se precisar): a versão anterior não abre os dados atualizados nem restaura os backups da versão nova (avisa que o backup "foi feito por uma versão mais nova"). O caminho é o backup feito nela antes de atualizar:
@@ -31,12 +34,12 @@ O mapa base chega na fase 4.
   4. em Configurações › Backup, restaure o backup feito antes de atualizar.
 
   O que foi feito na versão nova fica só no arquivo renomeado.
-- **Desinstalar:** Configurações do Windows → Aplicativos → Aplicativos instalados → Calibra → Desinstalar. **Os dados não são apagados** (item 3); se reinstalar, tudo volta.
-- O Calibra não usa internet: não atualiza sozinho, não manda nada para fora e não precisa de conta.
+- **Desinstalar:** Configurações do Windows → Aplicativos → Aplicativos instalados → GarageTech → Desinstalar. **Os dados não são apagados** (item 3); se reinstalar, tudo volta.
+- O GarageTech não usa internet: não atualiza sozinho, não manda nada para fora e não precisa de conta.
 
 ## 3. Onde ficam os dados
 
-Tudo fica em `%LOCALAPPDATA%\Calibra\` (para abrir, cole esse endereço na barra do Explorador de Arquivos):
+Tudo fica em `%LOCALAPPDATA%\Calibra\` (para abrir, cole esse endereço na barra do Explorador de Arquivos). A pasta mantém o nome antigo do app, Calibra: é nela que o GarageTech guarda e lê os dados.
 
 | Pasta ou arquivo | O que tem |
 |---|---|
@@ -217,14 +220,14 @@ Rascunho → Dimensionado (primeiro cálculo salvo) → Orçado (orçamento envi
 
 ### 6.6 Dados pessoais (LGPD)
 
-O Calibra guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ quando precisar de documento, com o consentimento registrado. **Anonimizar cliente** (na aba Resumo do projeto ou na ficha do veículo) apaga:
+O GarageTech guarda só o necessário do cliente: nome e telefone, e CPF ou CNPJ quando precisar de documento, com o consentimento registrado. **Anonimizar cliente** (na aba Resumo do projeto ou na ficha do veículo) apaga:
 
 - os dados pessoais dele e dos veículos dele: o nome vira "Cliente anonimizado #N"; placa, chassi e identificação da embarcação somem;
 - os anexos marcados como documento pessoal (como CNH e CRLV), os das OS dele e os dos veículos dele. O arquivo só sai da pasta de anexos se nenhum outro anexo usar o mesmo.
 
 Fotos, laudos, notas fiscais, instalações do veículo, fichas de chicote, OS, projetos, cálculos e orçamentos ficam. Os anexos que ficam (das OS dele e dos veículos dele) trocam o nome do arquivo por "arquivo anonimizado", com a extensão (ex.: uma foto chamada "CNH do João.jpg" e não marcada como documento pessoal vira "arquivo anonimizado.jpg"). A descrição e a foto em si ficam como estão. O **"quem retirou"** das OS dele entregues sem o veículo (item 5.4) vira "(apagado na anonimização)", também no comprovante tirado depois. **Não tem volta.** PDFs gerados depois disso já saem anonimizados.
 
-- Se um desses documentos estiver aberto em outro programa (como um PDF no leitor), o arquivo não sai da pasta na hora: o app avisa, e ele sai na próxima vez que o Calibra abrir. Feche o programa antes, se puder.
+- Se um desses documentos estiver aberto em outro programa (como um PDF no leitor), o arquivo não sai da pasta na hora: o app avisa, e ele sai na próxima vez que o GarageTech abrir. Feche o programa antes, se puder.
 - Depois de anonimizar, a placa, o chassi e a identificação da embarcação não voltam pela edição do veículo, e o cliente não recebe OS nova pelo orçamento do projeto nem documento pessoal novo. Se a pessoa voltar à oficina, cadastre-a de novo, com um consentimento novo.
 
 O que a anonimização não alcança:
@@ -284,7 +287,7 @@ Se você mudar qualquer campo depois de calcular, o resultado fica **desatualiza
   - **Garantia própria (dias)** (opcional, de 0 a 3650): em branco, o serviço fica com a garantia da OS; 0 quer dizer sem garantia para aquele serviço (ex.: um diagnóstico). Ela aparece na entrega e no comprovante (itens 5.4 e 5.5);
   - **Exige o veículo na oficina** (vem marcado): desmarque no serviço de bancada, feito sem o veículo, como a confecção de chicote;
   - **Checklist** (opcional): o modelo da aba Checklists que a OS copia quando o serviço começa (item 5.4). Com "(nenhum)", o serviço não tem checklist. A lista de serviços mostra a coluna "Checklist" (sim ou —). Ligar um checklist a um serviço vale para as OS que começarem depois.
-- **Serviços sugeridos…** (na aba Serviços, ao lado de "Cadastrar…"): uma lista de partida de auto elétrica e injeção programável (som, vidros e travas, partida e carga, iluminação, diagnóstico elétrico e injeção programável). Marque os que a oficina faz e preencha as **horas ou o preço** de cada um (digitar já marca a linha): a lista vem sem os dois, porque o Calibra não inventa tempo de serviço. "Adicionar ao catálogo" grava todos de uma vez; se faltar algo, a janela mostra o que e não grava nenhum. O que já existe no catálogo com o mesmo nome aparece como "já cadastrado". Cada um entra com o checklist da categoria dele (na injeção programável, só a confecção de chicote e a instalação). Depois, edite cada um como os outros (descrição, garantia própria, checklist).
+- **Serviços sugeridos…** (na aba Serviços, ao lado de "Cadastrar…"): uma lista de partida de auto elétrica e injeção programável (som, vidros e travas, partida e carga, iluminação, diagnóstico elétrico e injeção programável). Marque os que a oficina faz e preencha as **horas ou o preço** de cada um (digitar já marca a linha): a lista vem sem os dois, porque o GarageTech não inventa tempo de serviço. "Adicionar ao catálogo" grava todos de uma vez; se faltar algo, a janela mostra o que e não grava nenhum. O que já existe no catálogo com o mesmo nome aparece como "já cadastrado". Cada um entra com o checklist da categoria dele (na injeção programável, só a confecção de chicote e a instalação). Depois, edite cada um como os outros (descrição, garantia própria, checklist).
 - **Checklists:** o que conferir em cada tipo de serviço. Cada modelo tem o nome e os itens, na ordem em que se confere; cada item tem o texto e as marcas **obrigatório** (pendente, trava o pronto da OS até uma justificativa) e **a verificar** (o texto ainda não foi conferido). Na janela do modelo, "+ Item" acrescenta um item (já obrigatório); ↑ e ↓ mudam a ordem; ✕ tira. O item sem texto fica de fora. Vêm cadastrados os 7 modelos da SPEC (Som, Vidro e trava elétrica, Partida e alternador, Iluminação, Confecção de chicote para injeção programável, Instalação de injeção programável e Diagnóstico elétrico), com todos os itens obrigatórios e "a verificar": confira cada um, desmarque "obrigatório" no que for opcional e "a verificar" no que já conferiu. Onde o item pede para anotar algo (ex.: a medição), use a observação do item na OS. Mudar um modelo grava uma versão nova; as OS que já começaram ficam com a cópia que fizeram.
 - **Itens:** o material que entra no orçamento, como cabo, fusível, relé, conector ou a ECU: o nome, a **unidade** (vem "un"; mude para m, par, kit...) e o preço de referência. A fonte já vem "Tabela da oficina". Não há saldo nem estoque. No orçamento, entram pelo "+ Item do catálogo…" (item 9).
 - **Kits:** um conjunto de itens e serviços do catálogo, cada um com a quantidade (ex.: "Alimentação do som": 5 m de cabo, 1 fusível e a instalação). O kit com serviço é um **pacote** (ex.: "chicote + instalação"). Na janela do kit, "+ Item do catálogo…" e "+ Serviço do catálogo…" põem as linhas; mude a quantidade de cada uma ou tire com o ✕. O kit não tem preço próprio: no orçamento, ele vira as linhas, com o preço de agora de cada uma (item 9). A lista mostra as linhas ("2 itens, 1 serviço") e se é pacote.
@@ -324,7 +327,7 @@ O orçamento pertence à OS. Ele aparece na aba **Orçamento** da OS e, quando a
    Os valores continuam editáveis, e os totais aparecem enquanto você digita. Na peça que o cliente traz (ex.: a ECU que ele já comprou), marque **"do cliente"**: ela entra com valor zero e não soma no total; desmarcar devolve o valor de antes.
 2. **Desconto, prazo e condições:** desconto em reais ou em %, prazo em dias úteis (0 = a combinar), validade em dias, condições de pagamento e observações. Os padrões vêm de Configurações.
 3. **Salvar rascunho:** grava o orçamento com o número `ORC-ano-sequência` (ex.: ORC-2026-0001). O rascunho pode ser editado à vontade.
-4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo e a validade; no de preparação, também o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. A peça do cliente sai com "(fornecido pelo cliente)" e R$ 0,00; no WhatsApp, "1 un, fornecido pelo cliente". O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O Calibra não envia nada. Se o Windows não deixar copiar naquele instante (outro programa usando a área de transferência), a tela avisa: clique de novo.
+4. **Gerar PDF…** e **Copiar texto para WhatsApp:** o PDF tem o cabeçalho da oficina com o logo, as peças, os serviços, os totais, o prazo e a validade; no de preparação, também o resumo técnico do cálculo (com o semáforo e as justificativas) e a nota do mapa base conservador. A peça do cliente sai com "(fornecido pelo cliente)" e R$ 0,00; no WhatsApp, "1 un, fornecido pelo cliente". O texto do WhatsApp vai para a área de transferência: cole na conversa (Ctrl+V) e envie você mesmo. O GarageTech não envia nada. Se o Windows não deixar copiar naquele instante (outro programa usando a área de transferência), a tela avisa: clique de novo.
 5. **Marcar como enviado:** depois de mandar ao cliente. A validade conta a partir daí; a OS passa para Aguardando aprovação e o projeto, se houver, para Orçado.
 6. **Aprovado pelo cliente…** ou **Recusado…:** informe a data, a hora e como o cliente respondeu (pessoalmente, WhatsApp ou telefone). Aprovado leva a OS para Aprovada e o projeto para Aprovado. **Orçamento aprovado não muda mais.**
 7. **Nova revisão:** para mudar um orçamento enviado, aprovado ou recusado. A revisão nova sai com o mesmo número ("ORC-2026-0001 rev. 2"), em rascunho, e a anterior fica como substituída. A tabela "Revisões" mostra todas.

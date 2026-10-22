@@ -1,4 +1,6 @@
-# SPEC — Calibra (nome provisório)
+# SPEC — GarageTech (antes Calibra)
+
+**Nome comercial desde a versão 0.3.3 (21/10/2026):** GarageTech — Gestão e Tecnologia Automotiva. "Calibra" era o nome provisório. Ele fica no código (pacotes, módulos), na pasta de dados, no histórico deste documento e nas decisões. A marca está em docs/marca/identidade-visual.md, e as decisões nos itens 282 a 287.
 
 App desktop offline da minha oficina: gestão do dia a dia (ordens de serviço, agenda e lembretes), auto elétrica e preparação (dimensionamento, orçamento, mapa base e acerto de injeção programável).
 
@@ -660,7 +662,7 @@ Testes obrigatórios da fase:
 
 Pronto quando: 4 OS reais passam pelo app instalado (uma de som, uma de vidro ou trava, uma de partida ou alternador e uma de injeção programável, com chicote, instalação ou os dois), cada uma com checklist cumprido; ao menos uma com laudo em PDF e a de injeção com ficha do chicote em PDF.
 
-Situação em 21/10/2026: os blocos 3B.0 a 3B.7 estão prontos no código, com os 14 testes acima, e o MSI 0.3.1 foi gerado e ensaiado neste PC (docs/fase3b/ensaio-instalador.md). As duas escolhas da revisão final (docs/decisoes.md, item 275) foram corrigidas na versão 0.3.2 (itens 278 e 279), a pedido do dono, antes do uso com dados reais. Falta o critério de pronto, com as 4 OS reais.
+Situação em 21/10/2026: os blocos 3B.0 a 3B.7 estão prontos no código, com os 14 testes acima, e o MSI 0.3.1 foi gerado e ensaiado neste PC (docs/fase3b/ensaio-instalador.md). As duas escolhas da revisão final (docs/decisoes.md, item 275) foram corrigidas na versão 0.3.2 (itens 278 e 279), a pedido do dono, antes do uso com dados reais. Na 0.3.3, o app ganhou a marca GarageTech (itens 282 a 287), sem mudar regra nem dado. Falta o critério de pronto, com as 4 OS reais.
 
 **Fase 4 — Mapa base** (era a fase 3)
 - Perfis de injeção, gerador de tabelas (seção 7.5), editor de tabela com cores e vista 3D, saída nível C para todas as injeções e nível B para uma marca, checklist de primeira partida.
