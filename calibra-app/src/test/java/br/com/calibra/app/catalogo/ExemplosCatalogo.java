@@ -8,6 +8,10 @@ import java.util.Set;
 import br.com.calibra.core.cadastro.TipoCambio;
 import br.com.calibra.core.combustivel.Combustivel;
 import br.com.calibra.core.combustivel.GasolinaComEtanol;
+import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.OrientacaoTabela;
+import br.com.calibra.core.mapa.PerfilTabela;
+import br.com.calibra.core.mapa.TipoCarga;
 import br.com.calibra.core.motor.Aspiracao;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.oficina.ChecklistModelo;
@@ -20,9 +24,12 @@ import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
 import br.com.calibra.core.pecas.CalibracaoImagem;
 import br.com.calibra.core.pecas.Cambio;
+import br.com.calibra.core.pecas.ImpedanciaBico;
 import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.core.pecas.Intercooler;
 import br.com.calibra.core.pecas.MapaCompressor;
+import br.com.calibra.core.pecas.ModeloCombustivel;
+import br.com.calibra.core.pecas.PerfilInjecao;
 import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.pecas.Sensor;
 import br.com.calibra.core.pecas.TempoMorto;
@@ -75,8 +82,18 @@ public final class ExemplosCatalogo {
     }
 
     public static Exemplo<Injecao> injecao() {
+        OrientacaoTabela orientacao = new OrientacaoTabela(OrientacaoTabela.EixoDasColunas.ROTACAO,
+                OrientacaoTabela.OrdemDasLinhas.CRESCE_PARA_CIMA);
+        PerfilInjecao perfil = new PerfilInjecao(ImpedanciaBico.ALTA, 2, ModeloCombustivel.MS, List.of(
+                new PerfilTabela("Mapa principal", FuncaoTabela.COMBUSTIVEL, TipoCarga.MAP_KPA, "ms",
+                        List.of(500.0, 1000.0, 2500.0, 7500.0), List.of(20.0, 60.5, 100.0, 250.0), orientacao),
+                new PerfilTabela("Avanço", FuncaoTabela.IGNICAO, TipoCarga.TPS_PERCENTUAL, "°",
+                        List.of(1000.0, 8000.0), List.of(0.0, 100.0),
+                        new OrientacaoTabela(OrientacaoTabela.EixoDasColunas.CARGA,
+                                OrientacaoTabela.OrdemDasLinhas.CRESCE_PARA_BAIXO))),
+                22.5, Boolean.FALSE, "Cola células separadas por tabulação.", "IP67");
         return new Exemplo<>(TipoCatalogo.INJECAO, new Injecao("Marca Teste", "ECU 8", 8, 8, 8,
-                Set.of(Recurso.DETONACAO, Recurso.WIDEBAND), FONTE, DATA), info("Marca Teste ECU 8"));
+                Set.of(Recurso.DETONACAO, Recurso.WIDEBAND), perfil, FONTE, DATA), info("Marca Teste ECU 8"));
     }
 
     public static Exemplo<Combustivel> combustivel() {

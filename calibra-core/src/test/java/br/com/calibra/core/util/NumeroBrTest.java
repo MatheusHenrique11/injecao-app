@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -84,5 +86,17 @@ class NumeroBrTest {
         assertEquals("35 KB", NumeroBr.tamanhoArquivo(35 * 1024));
         assertEquals("1,5 MB", NumeroBr.tamanhoArquivo(1_572_864));
         assertEquals("20,0 MB", NumeroBr.tamanhoArquivo(20L * 1024 * 1024));
+    }
+
+    /** Fase 4: o eixo de uma tabela, colado do software em linha, em coluna ou separado por ponto e vírgula. */
+    @Test
+    void leListaDeNumeros() {
+        assertEquals(List.of(500.0, 1000.0, 1500.0), NumeroBr.lerLista("500 1.000 1.500"));
+        assertEquals(List.of(500.0, 1000.0, 1500.0), NumeroBr.lerLista("500\t1000\t1500\n"));
+        assertEquals(List.of(20.0, 30.5, 40.0), NumeroBr.lerLista("20\r\n30,5\r\n40"));
+        assertEquals(List.of(20.0, 30.0), NumeroBr.lerLista(" 20 ; 30 "));
+        assertEquals(List.of(), NumeroBr.lerLista("  "));
+        NumberFormatException erro = assertThrows(NumberFormatException.class, () -> NumeroBr.lerLista("500 1.5 2000"));
+        assertTrue(erro.getMessage().startsWith("número 2:"), erro.getMessage());
     }
 }

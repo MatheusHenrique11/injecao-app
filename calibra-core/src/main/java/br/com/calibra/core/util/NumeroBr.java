@@ -5,6 +5,8 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -39,6 +41,29 @@ public final class NumeroBr {
                     "\"" + limpo + "\" não é um número válido: use vírgula para decimais (ex.: 3,5).");
         }
         return Double.parseDouble(limpo.replace(".", "").replace(',', '.'));
+    }
+
+    /**
+     * Lê uma lista de números, como o eixo de uma tabela copiado do software da injeção: separados por espaço,
+     * tabulação, ponto e vírgula ou um por linha (a vírgula fica de fora: é o separador decimal). Ex.: "500 1.000
+     * 1.500" ou uma coluna colada. Texto vazio dá a lista vazia.
+     *
+     * @throws NumberFormatException com a posição e a explicação, em português, no primeiro número inválido
+     */
+    public static List<Double> lerLista(String texto) {
+        List<Double> numeros = new ArrayList<>();
+        if (texto == null || texto.isBlank()) {
+            return numeros;
+        }
+        String[] partes = texto.strip().split("[\\s;]+");
+        for (int i = 0; i < partes.length; i++) {
+            try {
+                numeros.add(ler(partes[i]));
+            } catch (NumberFormatException erro) {
+                throw new NumberFormatException("número " + (i + 1) + ": " + erro.getMessage());
+            }
+        }
+        return numeros;
     }
 
     /**

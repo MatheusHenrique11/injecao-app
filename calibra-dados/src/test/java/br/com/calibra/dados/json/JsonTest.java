@@ -22,12 +22,19 @@ import br.com.calibra.core.calculo.EntradaDimensionamento;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.OrientacaoTabela;
+import br.com.calibra.core.mapa.PerfilTabela;
+import br.com.calibra.core.mapa.TipoCarga;
 import br.com.calibra.core.memoria.Resultado;
 import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.motor.RodaFonica;
 import br.com.calibra.core.pecas.Bico;
 import br.com.calibra.core.pecas.Bomba;
+import br.com.calibra.core.pecas.ImpedanciaBico;
 import br.com.calibra.core.pecas.Injecao;
+import br.com.calibra.core.pecas.ModeloCombustivel;
+import br.com.calibra.core.pecas.PerfilInjecao;
 import br.com.calibra.core.pecas.Recurso;
 import br.com.calibra.core.pecas.TempoMorto;
 import br.com.calibra.core.semaforo.Indicador;
@@ -84,6 +91,29 @@ class JsonTest {
         assertEquals(bico, Json.ler(Json.escrever(bico), Bico.class));
         assertEquals(bomba, Json.ler(Json.escrever(bomba), Bomba.class));
         assertEquals(injecao, Json.ler(Json.escrever(injecao), Injecao.class));
+    }
+
+    /**
+     * Fase 4 (decisão 292): a injeção com o perfil completo vai e volta; a gravada antes da fase 4, sem o "perfil" no
+     * JSON, volta com o perfil vazio, sem perder nada.
+     */
+    @Test
+    void injecaoComPerfilEInjecaoAntiga() {
+        OrientacaoTabela orientacao = new OrientacaoTabela(OrientacaoTabela.EixoDasColunas.ROTACAO,
+                OrientacaoTabela.OrdemDasLinhas.CRESCE_PARA_CIMA);
+        PerfilTabela combustivel = new PerfilTabela("Mapa principal", FuncaoTabela.COMBUSTIVEL, TipoCarga.MAP_KPA,
+                "ms", List.of(1000.0, 2000.0, 3000.0), List.of(30.0, 100.0, 200.0), orientacao);
+        PerfilInjecao perfil = new PerfilInjecao(ImpedanciaBico.ALTA, 2, ModeloCombustivel.MS, List.of(combustivel),
+                null, Boolean.TRUE, "Cola células separadas por tabulação.", "IP67");
+        Injecao injecao = new Injecao("Marca", "Modelo", 8, 8, 8, Set.of(Recurso.DETONACAO), perfil, "manual",
+                LocalDate.of(2026, 10, 21));
+        assertEquals(injecao, Json.ler(Json.escrever(injecao), Injecao.class));
+
+        String antiga = "{\"marca\":\"Marca\",\"modelo\":\"ECU 8\",\"saidasBico\":8,\"saidasIgnicao\":8,"
+                + "\"maxCilindrosSequencial\":null,\"recursos\":[\"WIDEBAND\"],\"fonte\":\"manual\",\"data\":null}";
+        Injecao lida = Json.ler(antiga, Injecao.class);
+        assertEquals(PerfilInjecao.vazio(), lida.perfil());
+        assertEquals(Set.of(Recurso.WIDEBAND), lida.recursos());
     }
 
     @Test

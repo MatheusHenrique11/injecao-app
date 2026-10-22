@@ -18,6 +18,8 @@ import br.com.calibra.app.catalogo.FormularioCatalogo.Leitura;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.CombustiveisPadrao;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.TipoCarga;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.motor.ValidadorMotor;
 import br.com.calibra.core.oficina.ChecklistModelo;
@@ -134,6 +136,41 @@ class FormulariosCatalogoTest {
 
         List<String> erros = formulario.ler(valores.texto(FormaInjecao.MARCA, "")).erros();
         assertEquals(List.of("Preencha \"Marca\"."), erros);
+    }
+
+    /**
+     * Fase 4 (decisão 292): o perfil da injeção na tela. Os eixos viram texto ("500 1.000 2.500 7.500") e voltam; a
+     * vaga em branco não vira tabela; eixo com número errado ou fora de ordem e vaga sem orientação são recusados.
+     */
+    @Test
+    void injecaoComPerfilEixosEmTextoEVagasDasTabelas() {
+        FormularioCatalogo<Injecao> formulario = FormasCatalogo.de(TipoCatalogo.INJECAO);
+        Exemplo<Injecao> exemplo = ExemplosCatalogo.injecao();
+        ValoresForm valores = formulario.escrever(exemplo.dados(), exemplo.info());
+        assertEquals("500 1.000 2.500 7.500", valores.texto(FormaInjecao.tabela(FuncaoTabela.COMBUSTIVEL, "rotacoes")));
+        assertEquals("20 60,5 100 250", valores.texto(FormaInjecao.tabela(FuncaoTabela.COMBUSTIVEL, "cargas")));
+        assertEquals("", valores.texto(FormaInjecao.tabela(FuncaoTabela.LAMBDA_ALVO, "carga")), "vaga em branco");
+        assertEquals("NAO", valores.texto(FormaInjecao.TEMPO_MORTO_NA_TABELA));
+        assertEquals(List.of("8", "8", "Sensor de detonação, Wideband interna", "ms · tabelas de combustível e ignição"),
+                formulario.resumo(exemplo.dados()));
+
+        // Uma coluna colada do software, com uma linha por ponto.
+        valores.texto(FormaInjecao.tabela(FuncaoTabela.COMBUSTIVEL, "rotacoes"), "500\n1000\n2500\n7500\n");
+        assertEquals(exemplo.dados(), formulario.ler(valores).dados());
+
+        valores.texto(FormaInjecao.tabela(FuncaoTabela.COMBUSTIVEL, "rotacoes"), "500 1.5 2.500")
+                .texto(FormaInjecao.tabela(FuncaoTabela.IGNICAO, "cargas"), "100 0")
+                .texto(FormaInjecao.tabela(FuncaoTabela.LAMBDA_ALVO, "carga"), TipoCarga.MAP_KPA.name());
+        List<String> erros = formulario.ler(valores).erros();
+        assertTrue(erros.contains("Tabela de combustível, pontos de rotação, número 2: \"1.5\" não é um número válido: "
+                + "use vírgula para decimais (ex.: 3,5)."), erros::toString);
+        assertTrue(erros.contains("Preencha \"Tabela de lambda alvo: nome no software\"."), erros::toString);
+        assertTrue(erros.stream().anyMatch(e -> e.contains("Tabela de lambda alvo: colunas")), erros::toString);
+
+        valores.texto(FormaInjecao.tabela(FuncaoTabela.COMBUSTIVEL, "rotacoes"), "500 1.000")
+                .texto(FormaInjecao.tabela(FuncaoTabela.LAMBDA_ALVO, "carga"), "");
+        assertEquals(List.of("Tabela de ignição, pontos de carga: os pontos precisam crescer, do menor para o maior "
+                + "(o ponto 2 não é maior que o anterior)."), formulario.ler(valores).erros());
     }
 
     @Test

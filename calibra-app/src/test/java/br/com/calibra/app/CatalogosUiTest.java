@@ -21,6 +21,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
@@ -28,6 +29,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.stage.Stage;
@@ -36,10 +38,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.app.casos.CasosCatalogo;
+import br.com.calibra.app.catalogo.CampoForm;
 import br.com.calibra.app.catalogo.ExemplosCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo;
 import br.com.calibra.app.catalogo.FormularioCatalogo.LinhaHistorico;
 import br.com.calibra.core.combustivel.Combustivel;
+import br.com.calibra.core.mapa.FuncaoTabela;
+import br.com.calibra.core.mapa.OrientacaoTabela;
+import br.com.calibra.core.mapa.PerfilTabela;
 import br.com.calibra.core.motor.ModeloMotor;
 import br.com.calibra.core.oficina.ChecklistModelo;
 import br.com.calibra.core.orcamento.ItemMaterial;
@@ -48,6 +54,7 @@ import br.com.calibra.core.orcamento.ServicoPadrao;
 import br.com.calibra.core.orcamento.ServicosSugeridos;
 import br.com.calibra.core.orcamento.ServicosSugeridos.Sugestao;
 import br.com.calibra.core.pecas.Bico;
+import br.com.calibra.core.pecas.Injecao;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.catalogo.ItemCatalogo;
 import br.com.calibra.dados.catalogo.TipoCatalogo;
@@ -81,6 +88,64 @@ class CatalogosUiTest {
                 principal.encerrar();
             }
         }
+    }
+
+    /**
+     * Fase 4 (decisão 292): a injeção com o perfil. A vaga de uma tabela só aparece com a carga escolhida; os eixos
+     * colados do software (uma coluna, um ponto por linha) e a orientação são gravados no perfil.
+     */
+    @Test
+    void injecaoComPerfil() throws Throwable {
+        try {
+            TelaDeTeste.naTelaDoJavaFx(this::abrir);
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TabPane abas = achar(cena, "abas");
+                abas.getSelectionModel().select(aba(abas, "abaINJECAO"));
+                PainelCatalogo<Injecao> injecoes = achar(cena, "painelINJECAO");
+                JanelaItemCatalogo<Injecao> janela = injecoes.janelaNovo();
+                FormularioTela tela = janela.tela();
+                texto(tela, "marca").setText("Marca Teste (fictícia)");
+                texto(tela, "modelo").setText("ECU 8");
+                texto(tela, "saidasBico").setText("8");
+                texto(tela, "saidasIgnicao").setText("8");
+                escolher(tela, "modeloCombustivel", "MS");
+                assertTrue(tela.controle("tabelaMsIncluiTempoMorto").getParent().isVisible(), "em ms: o tempo morto");
+                assertFalse(tela.controle("tabela.COMBUSTIVEL.nome").getParent().isVisible(), "vaga em branco");
+                escolher(tela, "tabela.COMBUSTIVEL.carga", "MAP_KPA");
+                assertTrue(tela.controle("tabela.COMBUSTIVEL.nome").getParent().isVisible(), "a vaga aparece");
+                texto(tela, "tabela.COMBUSTIVEL.nome").setText("Mapa principal");
+                texto(tela, "tabela.COMBUSTIVEL.unidade").setText("ms");
+                ((TextArea) tela.controle("tabela.COMBUSTIVEL.rotacoes")).setText("500\n1000\n2000\n4000\n7000\n");
+                ((TextArea) tela.controle("tabela.COMBUSTIVEL.cargas")).setText("20 40 60 80 100 150 200 250");
+                escolher(tela, "tabela.COMBUSTIVEL.colunas", "ROTACAO");
+                escolher(tela, "tabela.COMBUSTIVEL.linhas", "CRESCE_PARA_CIMA");
+                texto(tela, FormularioCatalogo.FONTE).setText("Manual fictício de teste");
+                fotografar(janela.dialogo(), "captura-catalogo-injecao-perfil.png");
+                assertTrue(janela.gravar(), janela.erros()::toString);
+
+                injecoes.atualizar();
+                Injecao gravada = injecoes.tabela().getItems().getFirst().dados();
+                PerfilTabela combustivel = gravada.perfil().tabela(FuncaoTabela.COMBUSTIVEL).orElseThrow();
+                assertEquals(List.of(500.0, 1000.0, 2000.0, 4000.0, 7000.0), combustivel.rotacoes());
+                assertEquals(8, combustivel.cargas().size());
+                assertEquals(OrientacaoTabela.OrdemDasLinhas.CRESCE_PARA_CIMA, combustivel.orientacao().linhas());
+                assertTrue(gravada.perfil().tabela(FuncaoTabela.IGNICAO).isEmpty());
+                assertNull(gravada.perfil().tabelaMsIncluiTempoMorto(), "não informado");
+                assertEquals(List.of("ms · tabela de combustível"), coluna(injecoes.tabela(), "Perfil"));
+                salvar(cena, "captura-catalogo-injecoes.png");
+            });
+        } finally {
+            if (principal != null) {
+                principal.encerrar();
+            }
+        }
+    }
+
+    private static void escolher(FormularioTela tela, String chave, String valor) {
+        @SuppressWarnings("unchecked")
+        ComboBox<CampoForm.Opcao> caixa = (ComboBox<CampoForm.Opcao>) tela.controle(chave);
+        caixa.setValue(caixa.getItems().stream().filter(o -> o != null && o.valor().equals(valor)).findFirst()
+                .orElseThrow());
     }
 
     /**

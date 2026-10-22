@@ -5,8 +5,8 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Injeção programável, na forma mínima que a fase 1 usa: saídas e recursos. O perfil completo
- * (tabelas, eixos, modelo de combustível) entra na fase 3 (SPEC 9).
+ * Injeção programável (SPEC 9): saídas, recursos e, desde a fase 4, o perfil completo (tabelas, eixos, modelo de
+ * combustível...), que o mapa base usa. O perfil nunca é null: sem ele, vale {@link PerfilInjecao#vazio()}.
  *
  * @param maxCilindrosSequencial opcional: quantos cilindros a injeção controla em sequencial
  */
@@ -17,6 +17,7 @@ public record Injecao(
         int saidasIgnicao,
         Integer maxCilindrosSequencial,
         Set<Recurso> recursos,
+        PerfilInjecao perfil,
         String fonte,
         LocalDate data) {
 
@@ -25,6 +26,14 @@ public record Injecao(
         Objects.requireNonNull(modelo, "modelo");
         Objects.requireNonNull(fonte, "fonte");
         recursos = recursos == null ? Set.of() : Set.copyOf(recursos);
+        perfil = perfil == null ? PerfilInjecao.vazio() : perfil;
+    }
+
+    /** Injeção sem o perfil (como era até a fase 3). */
+    public Injecao(String marca, String modelo, int saidasBico, int saidasIgnicao, Integer maxCilindrosSequencial,
+            Set<Recurso> recursos, String fonte, LocalDate data) {
+        this(marca, modelo, saidasBico, saidasIgnicao, maxCilindrosSequencial, recursos, PerfilInjecao.vazio(), fonte,
+                data);
     }
 
     /** Injeção digitada na calculadora: nome e saídas. */
@@ -34,5 +43,11 @@ public record Injecao(
 
     public String nome() {
         return (marca + " " + modelo).strip();
+    }
+
+    /** A mesma injeção com outro perfil. */
+    public Injecao comPerfil(PerfilInjecao novo) {
+        return new Injecao(marca, modelo, saidasBico, saidasIgnicao, maxCilindrosSequencial, recursos, novo, fonte,
+                data);
     }
 }

@@ -1107,3 +1107,31 @@ O bloco 4.0 fecha as pendências das decisões 152 e 160.
       - `PartidaTest`: a segunda abertura não avisa;
       - `TelaDeAberturaTest`: o desenho numa cópia da imagem fica embaixo do logo e centralizado. A imagem sai em `target/captura-abertura-atualizando.png`;
     - **no app de verdade:** a tela de abertura com o aviso vai ser conferida no ensaio do MSI 0.4.0, que atualiza o banco.
+
+## 22/10/2026 — Fase 4, bloco 4.1: o perfil completo da injeção
+
+292. **O perfil da injeção (SPEC 9) fica dentro da injeção do catálogo, num record próprio (`PerfilInjecao`).**
+    - **os campos:**
+      - a impedância de bico aceita;
+      - os bicos por saída;
+      - o modelo de combustível (ms, VE ou modelo físico);
+      - as tabelas;
+      - a temperatura de referência do ar;
+      - se a tabela em ms inclui o tempo morto;
+      - o formato de importação e exportação (texto livre);
+      - a proteção contra água (texto livre, ex.: IP67).
+
+      Tudo é opcional, porque cada campo vem do manual ou do software da injeção (SPEC 2.7);
+    - **injeção antiga:** a cadastrada antes da fase 4 não tem "perfil" no JSON e é lida com o perfil vazio. Nada se perde, e nada precisa de migração. Os cálculos salvos guardam a injeção do mesmo jeito;
+    - **as tabelas:** cada uma tem o nome no software, a função, a carga (MAP em kPa ou TPS em %), a unidade, os pontos de rotação e de carga e a orientação. A orientação diz o que fica nas colunas e se as linhas crescem para baixo ou para cima, para a folha de transcrição sair igual à tela da injeção. O núcleo confere os eixos: de 2 a 64 pontos, crescentes, rotação até 20.000 rpm, MAP até 1.000 kPa e TPS de 0 a 100%;
+    - **na tela, três vagas fixas:** combustível, ignição e lambda alvo, as tabelas que o mapa base preenche. As "demais tabelas" (partida, aquecimento, aceleração rápida, correções) vão para o checklist da SPEC 7.5. Cada vaga começa pela carga do eixo: em branco, a vaga não existe, e os outros campos dela ficam escondidos;
+    - **os eixos são digitados ou colados** como uma lista de números: separados por espaço, tabulação, ponto e vírgula ou um por linha, no formato brasileiro (`NumeroBr.lerLista`). Assim, uma linha ou uma coluna copiada do software entra direto;
+    - **o que o perfil ainda não faz:**
+      - **bicos por saída e impedância** são informação: aparecem na folha e no checklist, para o mecânico conferir com o bico. A regra das saídas do semáforo não muda, e o app não classifica o bico em alta ou baixa impedância, porque a SPEC não dá o limite;
+      - **o formato de importação** fica como texto até o nível B, que espera um texto real copiado do software (resposta do dono em 21/10/2026);
+    - **testes:**
+      - `PerfilInjecaoTest`;
+      - `NumeroBrTest.leListaDeNumeros`;
+      - `JsonTest.injecaoComPerfilEInjecaoAntiga`;
+      - `FormulariosCatalogoTest.injecaoComPerfilEixosEmTextoEVagasDasTabelas` e a ida e volta do exemplo com o perfil;
+      - `CatalogosUiTest.injecaoComPerfil`, que cadastra pela janela de verdade.
