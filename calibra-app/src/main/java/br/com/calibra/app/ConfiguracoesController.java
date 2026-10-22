@@ -133,6 +133,7 @@ public class ConfiguracoesController {
     @FXML private TabPane abasConfiguracoes;
     @FXML private Tab abaBackup;
     @FXML private ConfiguracoesOsController configuracoesOsController;
+    @FXML private ConfiguracoesMapaBaseController configuracoesMapaBaseController;
     @FXML private Label backupPasta;
     @FXML private Label backupAvisoPasta;
     @FXML private Label backupUltimo;
@@ -220,6 +221,7 @@ public class ConfiguracoesController {
         oficinaSalva = configuracao.ler(Chave.OFICINA);
         padroesSalvos = configuracao.ler(Chave.CALCULO);
         orcamentoSalvo = configuracao.ler(Chave.ORCAMENTO);
+        configuracoesMapaBaseController.iniciar(configuracao);
         unidadesSalvas = configuracao.ler(Chave.UNIDADES);
         descartarOficina();
         descartarPadroes();

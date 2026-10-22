@@ -58,6 +58,7 @@ Antes do primeiro orçamento, abra **Configurações** (menu à esquerda). Cada 
 - **Oficina:** nome, CNPJ, endereço, telefone, e-mail e logo (PNG ou JPG, até 5 MB). Tudo opcional; aparece no cabeçalho dos PDFs.
 - **Cálculo e semáforo:** os padrões de cálculo (k_ar, DC máximo, eficiências, perdas...) e os limiares do semáforo (item 13). Valor diferente do padrão da SPEC aparece em azul. "Voltar aos padrões da SPEC" só preenche os campos: grava ao salvar. Os limiares do mapa do compressor e do torque × câmbio estão marcados "a validar".
 - **Unidades:** a unidade que você prefere para pressão (kPa, bar ou psi), temperatura (°C ou °F), potência (cv, hp ou kW) e vazão de bico (cm³/min, lb/h ou g/min). A escolhida vem primeiro nos resultados e nos PDFs, e as outras continuam ao lado, para conferir com o software da injeção ou com a ficha da peça. "Várias, como sempre" deixa como era. O g/min usa a densidade do fluido de teste do bico.
+- **Mapa base:** as regras do lambda, as reduções conservadoras de ignição e as travas do mapa base (item 11).
 - **OS:** a garantia padrão em dias (vem 90 e já aparece preenchida na entrega), os itens da vistoria (adicionar, renomear, remover e mudar a ordem; valem para as entradas seguintes) e o texto da via do cliente, que vai acima das assinaturas (em branco, ficam só as assinaturas). O texto que vem é um modelo, não um texto jurídico revisado: confira antes de usar com cliente. Embaixo, os **mecânicos**: novo, renomear, desativar e reativar, valendo na hora.
 - **Orçamento:** o que um orçamento novo traz preenchido: desconto, prazo em dias úteis (e a partir de quando conta), validade em dias, condições de pagamento e o valor da hora de mão de obra.
 - **Backup:** a pasta dos backups, "Fazer backup agora" e "Restaurar um backup…" (item 10).
@@ -352,7 +353,57 @@ Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento
 
 ## 11. Mapa base
 
-*(fase 4)*
+A aba **Mapa base** do projeto gera a tabela de injeção de partida: o ponto de partida para o motor pegar e segurar a marcha lenta, **não o mapa final**. Revise o mapa antes de dar partida e confira com a wideband. O GarageTech nunca grava na injeção: você transcreve o mapa para o software dela.
+
+**Antes de gerar:**
+- **um cálculo salvo** no Dimensionamento, com o bico e a rotação de torque máximo da meta. O mapa usa o último cálculo salvo; se o motor mudou depois dele, salve um cálculo novo;
+- **a injeção com o perfil** (Catálogos › Injeções, item 8), para o mapa sair nos eixos e no jeito da tabela dela. Sem injeção, o mapa sai nos eixos padrão (de 500 em 500 rpm; de 20 kPa até 10% acima do MAP máximo previsto, de 10 em 10), em ms e com o tempo morto somado;
+- **o modelo de VE** (Catálogos › Modelos de VE): o da família do motor já vem escolhido;
+- **a fonte da ignição:** um modelo de ignição do catálogo ou a tabela de ignição digitada neste projeto ("Digitar a tabela de ignição deste projeto": cole os pontos de rotação e de carga e as células como estão na tela da injeção). **Sem fonte, a ignição sai vazia, em vermelho:** o GarageTech não inventa avanço;
+- **a mola da wastegate** (bar, pressão relativa), se souber.
+
+**Gerar mapa base** (Enter) faz a conta em segundo plano e mostra:
+- **os alertas,** com a cor do semáforo. **Cada vermelho precisa de uma justificativa escrita para salvar** (ex.: ignição sem modelo, DC do bico alto, o eixo de carga da injeção abaixo do MAP máximo, tabela da injeção por TPS, duas bancadas de bicos). Os amarelos avisam o que faltou no perfil da injeção ou nas regras;
+- **as travas:**
+  - a pressão do turbo alvo, que é o menor valor entre a mola da wastegate e 50% da pressão prevista;
+  - o limitador de rotação, 500 rpm abaixo da máxima;
+  - como a tabela de combustível foi feita: em ms ou em VE, com ou sem o tempo morto e com o ar de referência;
+- **as tabelas,** com as cores por faixa, na orientação da tela da injeção:
+  - combustível (em ms, ou a VE em %, conforme a injeção);
+  - VE;
+  - lambda alvo;
+  - ignição;
+  - quanto as reduções tiraram da ignição;
+  - o DC do bico. No DC, verde, amarelo e vermelho seguem os limites do semáforo;
+- **a conta de uma célula:** clique numa célula de combustível, de VE ou de DC para ver a conta dela, passo a passo.
+
+**Como o mapa é montado (SPEC 7.5):**
+- **a VE:** o modelo da família dá a forma do mapa, e a VE do torque e a da potência, do cálculo, mandam nos pontos delas. Assim a célula da potência máxima bate com o dimensionamento;
+- **o lambda:**
+  - 1,00 até 70 kPa;
+  - de 70 a 100 kPa, vai até o de plena carga do aspirado;
+  - acima de 100 kPa, o alvo do cálculo;
+  - acima de 90 kPa, 0,03 mais rico; em Náutico e em Circuito/endurance, mais 0,02;
+- **o tempo de injeção** de cada célula fica na temperatura de referência do ar da injeção (25 °C, se o perfil não disser), com ou sem o tempo morto, como a injeção pede;
+- **a ignição** vem da fonte, sem passar dos eixos dela: o que fica fora deles fica vazio, em vermelho. Saem dela as reduções configuradas em Configurações › Mapa base.
+
+**Salvar mapa base** grava a versão (v1, v2...) com as justificativas. Com o orçamento já aprovado, o projeto passa para **Mapa base**; antes disso, o status fica como está. Mudou alguma escolha depois de gerar? Gere de novo para salvar.
+
+**Mapas salvos:** a lista mostra cada versão e se ela está **desatualizada**. Isso acontece quando, depois dela:
+- o motor mudou;
+- há um cálculo mais novo;
+- a injeção ou os modelos ganharam versão nova no catálogo;
+- as regras de Configurações mudaram;
+- as contas do mapa mudaram numa versão nova do app.
+
+"Ver o mapa escolhido" mostra um mapa salvo, com as justificativas.
+
+**Configurações › Mapa base:** as regras do lambda (os padrões da SPEC), as reduções conservadoras de ignição e as travas.
+- **As reduções de ignição começam em branco,** porque a SPEC não dá os números. Enquanto estiverem em branco, o mapa sai sem elas e avisa em amarelo. Elas nunca somam avanço:
+  - **por pressão:** graus a cada 10 kPa acima de 100 kPa;
+  - **por temperatura do ar:** graus a cada 10 °C acima da temperatura em que a fonte foi feita;
+  - **por troca de combustível:** graus, quando a fonte é de outro combustível.
+- **"Voltar aos padrões da SPEC"** só preenche os campos: grava ao salvar.
 
 ## 12. Acerto, relatório e biblioteca
 

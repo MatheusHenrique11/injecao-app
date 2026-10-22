@@ -143,6 +143,7 @@ public class ProjetoController {
 
     // ---------- Peças e orçamento ----------
     private OrcamentoController orcamento;
+    private MapaBaseController mapaBase;
 
     // ---------- OS do projeto ----------
     private CasosOficina oficina;
@@ -278,6 +279,9 @@ public class ProjetoController {
         if (orcamento != null) {
             orcamento.atualizar();
         }
+        if (mapaBase != null) {
+            mapaBase.atualizar();
+        }
         mostrarOs();
     }
 
@@ -335,6 +339,32 @@ public class ProjetoController {
                 orcamento.atualizar();
             }
         });
+    }
+
+    /**
+     * A aba "Mapa base" (fase 4, bloco 4.4), depois de "Peças e orçamento". Ela relê o cálculo, o catálogo e os mapas
+     * salvos ao ser aberta; salvar um mapa pode mudar o status do projeto (APROVADO → MAPA_BASE).
+     */
+    void usarMapaBase(MapaBaseController.Recursos recursos) {
+        FXMLLoader carregador = new FXMLLoader(ProjetoController.class.getResource("mapa-base.fxml"));
+        Parent tela = carregar(carregador);
+        Tab aba = new Tab("Mapa base", tela);
+        aba.setId("abaMapaBase");
+        Tab orcamentoAba = abas.getTabs().stream().filter(t -> "abaOrcamento".equals(t.getId())).findFirst()
+                .orElse(abaDimensionamento);
+        abas.getTabs().add(abas.getTabs().indexOf(orcamentoAba) + 1, aba);
+        mapaBase = carregador.getController();
+        mapaBase.iniciar(recursos, projetoId, () -> aberto.projeto().injecaoItemId(), this::recarregar);
+        aba.setOnSelectionChanged(evento -> {
+            if (aba.isSelected()) {
+                mapaBase.atualizar();
+            }
+        });
+    }
+
+    /** A aba do mapa base (para os testes de interface); null antes de {@link #usarMapaBase}. */
+    MapaBaseController mapaBase() {
+        return mapaBase;
     }
 
     // ===================== Cabeçalho =====================

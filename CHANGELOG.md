@@ -5,12 +5,16 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: 
 ## [Não lançado] — Fase 4: mapa base
 
 ### Adicionado
-- **Modelos de VE e de ignição** no catálogo. Os 4 modelos de VE que vêm com o app (2 e 4 válvulas, comando normal e agressivo) têm os valores iniciais da SPEC, todos "a verificar". Nenhum modelo de ignição vem com o app. Banco de dados na versão 15 (V15: só acrescenta os modelos de VE ao catálogo).
+- **Mapa base** (aba do projeto): gera a tabela de combustível, a VE, o lambda alvo, a ignição e o DC do bico, nos eixos e no jeito da injeção, com os alertas (o vermelho só passa com justificativa), as travas (pressão alvo e limitador) e a conta de qualquer célula. Salva em versões; com o orçamento aprovado, o projeto vai para Mapa base. O mapa salvo fica desatualizado quando o motor, o cálculo, as peças do catálogo ou as regras mudam. Sem fonte de ignição, a ignição sai vazia, em vermelho: o app não inventa avanço.
+- **Configurações › Mapa base:** as regras do lambda, as reduções de ignição (em branco até você definir) e as travas.
+- **Modelos de VE e de ignição** no catálogo. Os 4 modelos de VE que vêm com o app (2 e 4 válvulas, comando normal e agressivo) têm os valores iniciais da SPEC, todos "a verificar". Nenhum modelo de ignição vem com o app. Os modelos entram com a V15, que só acrescenta itens ao catálogo.
 - **Perfil da injeção** no catálogo: impedância aceita, bicos por saída, modelo de combustível (ms, VE ou modelo físico), se a tabela em ms inclui o tempo morto, temperatura de referência do ar, formato de importação e exportação, proteção contra água e as tabelas de combustível, ignição e lambda alvo, com os eixos colados do software e a orientação da tela da injeção. As injeções já cadastradas continuam valendo, com o perfil em branco.
 - **Unidades preferidas** (Configurações › Unidades): pressão, temperatura, potência e vazão de bico. A escolhida vem primeiro nos resultados e nos PDFs, com as outras ao lado; o padrão continua mostrando todas, como antes.
 - **"Atualizando os dados…" na tela de abertura** enquanto uma atualização faz o backup e atualiza o banco.
 
 ### Mudado
+- Núcleo de cálculo 1.2.0 (o gerador do mapa base). Os cálculos salvos na 1.1.0 continuam em dia: as contas do dimensionamento não mudaram.
+- Banco de dados na versão 16 (V15: os modelos de VE no catálogo; V16: os mapas base dos projetos). Nada do que existe muda, e, como sempre, a atualização faz um backup antes.
 - **O cálculo roda em segundo plano:** a tela não para enquanto a conta roda; o botão "Calcular" espera e um indicador aparece ao lado dele. Um campo mudado no meio da conta deixa o resultado desatualizado.
 
 ## [0.3.3] — 21/10/2026 — GarageTech

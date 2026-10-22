@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- O mapa base do projeto (fase 4, bloco 4.4; SPEC 7.5): as escolhas, o mapa gerado (alertas, travas e tabelas),
+     salvar em versões e os mapas salvos, com o "desatualizado". -->
+<ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.MapaBaseController" fitToWidth="true">
+  <VBox styleClass="pagina">
+    <Label styleClass="titulo-secao" text="Mapa base"/>
+    <Label fx:id="calculoUsado" wrapText="true"/>
+    <Label fx:id="avisoCalculo" styleClass="faixa-desatualizado" wrapText="true" maxWidth="Infinity"
+           visible="false" managed="false"/>
+    <Label styleClass="dica" wrapText="true"
+           text="O mapa base é o ponto de partida para o motor pegar, não o mapa final: revise antes de dar partida e confira com a wideband."/>
+
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="220.0"/>
+        <ColumnConstraints minWidth="380.0" hgrow="SOMETIMES"/>
+      </columnConstraints>
+      <Label text="Injeção (perfil)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <ComboBox fx:id="caixaInjecao" maxWidth="Infinity" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Modelo de VE" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <ComboBox fx:id="caixaModeloVe" maxWidth="Infinity" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label text="Fonte da ignição" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <VBox spacing="4.0" GridPane.rowIndex="2" GridPane.columnIndex="1">
+        <ComboBox fx:id="caixaModeloIgnicao" maxWidth="Infinity"/>
+        <CheckBox fx:id="ignicaoDigitada" text="Digitar a tabela de ignição deste projeto"/>
+      </VBox>
+      <Label text="Mola da wastegate (bar)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <VBox spacing="2.0" GridPane.rowIndex="3" GridPane.columnIndex="1">
+        <TextField fx:id="molaWastegate" prefColumnCount="8" maxWidth="140.0"/>
+        <Label styleClass="dica" wrapText="true"
+               text="Pressão relativa da mola. Em branco, a pressão alvo fica em 50% da prevista."/>
+      </VBox>
+    </GridPane>
+
+    <!-- A tabela de ignição digitada (fonte 3 da SPEC 7.5), colada como está na tela da injeção. -->
+    <GridPane fx:id="painelIgnicaoDigitada" styleClass="grade" visible="false" managed="false">
+      <columnConstraints>
+        <ColumnConstraints minWidth="220.0"/>
+        <ColumnConstraints minWidth="380.0" hgrow="SOMETIMES"/>
+      </columnConstraints>
+      <Label text="Pontos de rotação (rpm)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <TextArea fx:id="ignicaoRotacoes" prefRowCount="2" wrapText="true" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Pontos de carga (kPa)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <TextArea fx:id="ignicaoCargas" prefRowCount="2" wrapText="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label text="No texto colado, as colunas são" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <ComboBox fx:id="ignicaoColunas" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+      <Label text="No texto colado, as linhas" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <ComboBox fx:id="ignicaoLinhas" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+      <Label text="Avanço (graus antes do PMS)" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+      <TextArea fx:id="ignicaoCelulas" prefRowCount="6" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+      <Label text="Combustível da tabela (código)" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+      <TextField fx:id="ignicaoCombustivel" promptText="ex.: E32" maxWidth="140.0" GridPane.rowIndex="5"
+                 GridPane.columnIndex="1"/>
+      <Label text="Temperatura do ar da tabela (°C)" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+      <TextField fx:id="ignicaoTemperatura" promptText="em branco: não sei" maxWidth="140.0" GridPane.rowIndex="6"
+                 GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <HBox spacing="10.0" alignment="CENTER_LEFT">
+      <Button fx:id="botaoGerar" text="_Gerar mapa base" defaultButton="true" onAction="#gerar"/>
+      <ProgressIndicator fx:id="progressoGeracao" prefWidth="20.0" prefHeight="20.0"/>
+      <Button fx:id="botaoSalvarMapa" text="_Salvar mapa base" onAction="#salvar"/>
+      <Label fx:id="estadoMapa" styleClass="estado" wrapText="true"/>
+    </HBox>
+    <VBox fx:id="mensagensMapa" spacing="4.0"/>
+
+    <!-- O mapa gerado ou o salvo escolhido: alertas, travas, tabelas e a conta da célula clicada. -->
+    <VBox fx:id="painelMapa" spacing="10.0"/>
+
+    <Label styleClass="titulo-secao" text="Mapas salvos"/>
+    <TableView fx:id="mapasSalvos" prefHeight="160.0">
+      <columns>
+        <TableColumn fx:id="colunaVersaoMapa" text="Versão" prefWidth="70.0"/>
+        <TableColumn fx:id="colunaDataMapa" text="Salvo em" prefWidth="150.0"/>
+        <TableColumn fx:id="colunaMotorMapa" text="Motor" prefWidth="70.0"/>
+        <TableColumn fx:id="colunaAlertasMapa" text="Alertas" prefWidth="160.0"/>
+        <TableColumn fx:id="colunaSituacaoMapa" text="Situação" prefWidth="520.0"/>
+      </columns>
+    </TableView>
+    <HBox spacing="10.0">
+      <Button fx:id="botaoVerSalvo" text="Ver o mapa escolhido" onAction="#verSalvo"/>
+    </HBox>
+  </VBox>
+</ScrollPane>

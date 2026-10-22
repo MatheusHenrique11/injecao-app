@@ -1260,3 +1260,53 @@ O bloco 4.0 fecha as pendências das decisões 152 e 160.
       - **os números das reduções de ignição;**
       - **o lambda da carga parcial** fora de RUA;
       - **se alguma das injeções dele usa tabela de uma dimensão** (combustível só por MAP, com correção por rotação à parte). O gerador desta versão faz tabelas de rotação × MAP.
+
+## 22/10/2026 — Fase 4, bloco 4.4: o mapa base no projeto
+
+295. **Um resultado só fica desatualizado pelo núcleo quando as contas dele mudaram.**
+    - **o problema:** com o núcleo 1.2.0, a regra antiga ("a versão do núcleo é diferente da atual") marcaria todo cálculo salvo na 1.1.0 como desatualizado. Mas as contas do dimensionamento não mudaram;
+    - **como ficou:** a `VersaoNucleo` guarda a última versão que mudou cada conta:
+      - `ULTIMA_MUDANCA_DO_DIMENSIONAMENTO` = 1.1.0;
+      - `ULTIMA_MUDANCA_DO_MAPA_BASE` = 1.2.0.
+
+      Um resultado só fica desatualizado se foi feito antes dela. A comparação é número a número: 1.10 vem depois de 1.9;
+    - **o texto do motivo** passou a "as contas do dimensionamento mudaram: 1.0.0 → 1.2.0";
+    - **teste:** `VersaoNucleoTest`.
+296. **O mapa base no projeto** (SPEC 7.5 e 8.3; migração V16).
+    - **gravado em versões (v1, v2...):** como o cálculo, cada mapa guarda:
+      - a entrada e o resultado (as tabelas, as travas, os alertas e a memória);
+      - a versão do núcleo e a do app;
+      - o cálculo e a versão do motor que usou;
+      - as peças do catálogo (injeção, modelo de VE e modelo de ignição), com a versão de cada uma;
+      - as justificativas dos vermelhos, uma por código de alerta.
+
+      **O banco recusa alterar ou apagar** (triggers), como no cálculo;
+    - **o cálculo usado é sempre o último do projeto,** e ele precisa estar em dia com o motor. Salvar refaz o mapa com as versões de agora, para gravar o mesmo que a tela mostrou;
+    - **o status:** salvar com o projeto APROVADO o leva a MAPA_BASE. Nos outros status, o projeto fica onde está, porque a sequência anda um passo de cada vez (RASCUNHO → … → APROVADO → MAPA_BASE). O mapa fica gravado assim mesmo: dá para gerar o mapa antes da aprovação do orçamento;
+    - **"desatualizado — gerar de novo":** o mapa fica desatualizado quando:
+      - o motor mudou;
+      - há um cálculo mais novo;
+      - uma peça ganhou versão nova no catálogo;
+      - as contas do mapa mudaram;
+      - as regras de Configurações mudaram;
+    - **as regras:** ficam em Configurações › Mapa base (`Chave.MAPA_BASE`), com os padrões da SPEC e as reduções de ignição em branco;
+    - **a aba "Mapa base",** depois de "Peças e orçamento":
+      - **as escolhas:**
+        - a injeção (a do projeto vem escolhida);
+        - o modelo de VE (o da família vem escolhido);
+        - a fonte da ignição (um modelo do catálogo ou a tabela digitada no projeto);
+        - a mola da wastegate, em bar.
+      - **o que ela mostra:**
+        - a geração em segundo plano (decisão 290);
+        - os alertas, com o campo da justificativa em cada vermelho;
+        - as travas;
+        - seis tabelas com cores por faixa, na orientação da tela da injeção;
+        - a conta da célula clicada;
+        - as informações;
+        - a memória, recolhida.
+      - **mudou uma escolha depois de gerar?** Salvar fica desligado até gerar de novo;
+      - **a lista dos mapas salvos** mostra a situação de cada um e abre o escolhido;
+    - **para não colidir com as outras telas da mesma janela** (o problema do `marca` na 0.3.3), os ids da aba e da tela de regras são próprios: `estadoMapa`, `botaoSalvarMapa`, `abaRegrasMapaBase`...;
+    - **testes:**
+      - `CasosMapaBaseTest`: a sugestão do modelo, as justificativas, as versões, o status e cada motivo do desatualizado;
+      - `MapaBaseUiTest`: gerar, a conta da célula, salvar só com as justificativas e o desatualizado depois de mudar as regras, com imagens.

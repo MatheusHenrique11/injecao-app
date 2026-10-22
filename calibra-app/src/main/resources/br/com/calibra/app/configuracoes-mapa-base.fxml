@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Configurações › Mapa base (fase 4, decisão 294): as regras da SPEC 7.5, editáveis, e as reduções de ignição. -->
+<ScrollPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="br.com.calibra.app.ConfiguracoesMapaBaseController" fitToWidth="true">
+  <VBox styleClass="pagina">
+    <Label styleClass="titulo-secao" text="Lambda alvo do mapa base"/>
+    <Label styleClass="dica" wrapText="true"
+           text="Os padrões são os da SPEC 7.5. Acima de 100 kPa, vale o lambda alvo do cálculo do projeto (o padrão é o do combustível sob pressão)."/>
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="330.0"/>
+        <ColumnConstraints minWidth="140.0"/>
+      </columnConstraints>
+      <Label text="Lambda da carga parcial" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <TextField fx:id="lambdaCargaParcial" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Carga parcial até (kPa)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <TextField fx:id="cargaParcialAte" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label text="Chega ao lambda de plena carga em (kPa)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <TextField fx:id="plenaCarga" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+      <Label text="Mais rico acima de (kPa)" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <TextField fx:id="riquezaAcima" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+      <Label text="Quanto mais rico (lambda)" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+      <TextField fx:id="riqueza" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+      <Label text="A mais em náutico e circuito/endurance (lambda)" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+      <TextField fx:id="riquezaUsoContinuo" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <Label styleClass="titulo-secao" text="Reduções conservadoras de ignição"/>
+    <Label styleClass="dica" wrapText="true"
+           text="Tiradas do avanço da fonte (modelo da família ou tabela digitada); nunca somam avanço. A SPEC não dá os números: em branco, o mapa sai sem aquela redução e avisa em amarelo."/>
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="330.0"/>
+        <ColumnConstraints minWidth="140.0"/>
+      </columnConstraints>
+      <Label text="Por pressão (° a cada 10 kPa acima de 100 kPa)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <TextField fx:id="reducaoPressao" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Por temperatura do ar (° a cada 10 °C acima da fonte)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <TextField fx:id="reducaoTemperatura" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Label text="Por troca de combustível (°)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <TextField fx:id="reducaoCombustivel" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <Label styleClass="titulo-secao" text="Travas"/>
+    <GridPane styleClass="grade">
+      <columnConstraints>
+        <ColumnConstraints minWidth="330.0"/>
+        <ColumnConstraints minWidth="140.0"/>
+      </columnConstraints>
+      <Label text="Limitador abaixo da rotação máxima (rpm)" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <TextField fx:id="margemLimitador" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Label text="Pressão alvo do turbo (% da prevista)" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <TextField fx:id="fracaoPressao" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <HBox spacing="10.0">
+      <Button fx:id="botaoSalvarRegras" text="Salvar regras do mapa base" onAction="#salvar"/>
+      <Button text="Descartar alterações" onAction="#descartar"/>
+      <Button text="Voltar aos padrões da SPEC" onAction="#voltarAosPadroes"/>
+    </HBox>
+    <VBox fx:id="mensagensRegras" spacing="4.0"/>
+  </VBox>
+</ScrollPane>

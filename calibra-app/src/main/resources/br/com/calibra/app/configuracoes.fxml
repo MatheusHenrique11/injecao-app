@@ -234,6 +234,11 @@
     </ScrollPane>
   </Tab>
 
+  <!-- ===================== Mapa base (fase 4, decisão 294) ===================== -->
+  <Tab fx:id="abaRegrasMapaBase" text="Mapa base">
+    <fx:include fx:id="configuracoesMapaBase" source="configuracoes-mapa-base.fxml"/>
+  </Tab>
+
   <!-- ===================== OS (bloco 3.3) ===================== -->
   <Tab fx:id="abaOs" text="OS">
     <fx:include fx:id="configuracoesOs" source="configuracoes-os.fxml"/>

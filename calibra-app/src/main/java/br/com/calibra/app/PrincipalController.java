@@ -30,6 +30,7 @@ import br.com.calibra.app.casos.CasosCatalogo;
 import br.com.calibra.app.casos.CasosChicote;
 import br.com.calibra.app.casos.CasosInstalacao;
 import br.com.calibra.app.casos.CasosLaudo;
+import br.com.calibra.app.casos.CasosMapaBase;
 import br.com.calibra.app.casos.CasosOficina;
 import br.com.calibra.app.casos.CasosOrcamento;
 import br.com.calibra.app.casos.CasosProjeto;
@@ -85,6 +86,7 @@ public class PrincipalController implements Navegacao {
     private CasosLaudo casosLaudo;
     private CasosInstalacao casosInstalacao;
     private CasosChicote casosChicote;
+    private CasosMapaBase casosMapaBase;
     private Parent telaPainel;
     private PainelController painel;
     private Parent telaListaOficina;
@@ -144,6 +146,7 @@ public class PrincipalController implements Navegacao {
         this.casosLaudo = new CasosLaudo(contexto.banco(), contexto.relogio());
         this.casosInstalacao = new CasosInstalacao(contexto.banco(), contexto.relogio());
         this.casosChicote = new CasosChicote(contexto.banco(), contexto.relogio());
+        this.casosMapaBase = new CasosMapaBase(contexto.banco(), contexto.relogio(), contexto.versaoApp());
         // As unidades preferidas (Configurações › Unidades) valem para a tela e os PDFs desde a abertura.
         Apresentacao.usarUnidades(contexto.configuracao().ler(Chave.UNIDADES));
         // Antes da tela: o arquivo que ficou na pasta da última vez (aberto em outro programa) sai agora.
@@ -340,6 +343,8 @@ public class PrincipalController implements Navegacao {
         projeto.iniciar(casosProjeto, casosCatalogo, this, servicos, contexto.configuracao().ler(Chave.CALCULO),
                 projetoId);
         projeto.usarOrcamento(recursosDoOrcamento());
+        projeto.usarMapaBase(new MapaBaseController.Recursos(casosMapaBase, casosCatalogo,
+                () -> contexto.configuracao().ler(Chave.MAPA_BASE)));
         projeto.usarOficina(casosOficina);
         projetoAberto = projeto;
         abrirNaAreaDeProjetos(tela, "Projeto #" + projetoId);
