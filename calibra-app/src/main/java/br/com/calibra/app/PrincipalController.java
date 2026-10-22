@@ -55,7 +55,7 @@ public class PrincipalController implements Navegacao {
     /** A largura do logo na barra lateral: a da barra (190 px) sem as margens. */
     private static final double LARGURA_DA_MARCA = 174;
 
-    @FXML private ImageView marca;
+    @FXML private ImageView logoDaMarca;
     @FXML private ToggleGroup navegacao;
     @FXML private ToggleButton navPainel;
     @FXML private ToggleButton navOficina;
@@ -425,7 +425,7 @@ public class PrincipalController implements Navegacao {
         double escala = Math.max(1, Screen.getPrimary().getOutputScaleX());
         URL arquivo = Objects.requireNonNull(PrincipalController.class.getResource("icones/marca-garagetech.png"),
                 "marca-garagetech.png");
-        marca.setImage(new Image(arquivo.toExternalForm(), LARGURA_DA_MARCA * escala, 0, true, true));
+        logoDaMarca.setImage(new Image(arquivo.toExternalForm(), LARGURA_DA_MARCA * escala, 0, true, true));
     }
 
     /** Os dados mudaram todos: as telas são montadas de novo a partir do banco restaurado. */
