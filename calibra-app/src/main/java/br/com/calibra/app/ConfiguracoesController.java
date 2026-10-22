@@ -46,6 +46,7 @@ import br.com.calibra.app.casos.ServicoBackup;
 import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.unidades.UnidadesPreferidas;
 import br.com.calibra.core.util.NumeroBr;
 import br.com.calibra.dados.ErroDados;
 import br.com.calibra.dados.backup.Backup;
@@ -54,6 +55,7 @@ import br.com.calibra.dados.backup.InfoBackup;
 import br.com.calibra.dados.backup.MotivoBackup;
 import br.com.calibra.dados.config.Chave;
 import br.com.calibra.dados.config.ConfiguracaoRepositorio;
+import br.com.calibra.relatorios.Apresentacao;
 
 /**
  * Tela de Configurações (SPEC 8.7): dados da oficina, padrões de cálculo, limiares do semáforo, padrões do orçamento
@@ -120,6 +122,13 @@ public class ConfiguracoesController {
     @FXML private TextArea orcamentoCondicoes;
     @FXML private VBox mensagensOrcamento;
 
+    // ---------- Unidades (fase 4) ----------
+    @FXML private ComboBox<UnidadesPreferidas.Pressao> unidadePressao;
+    @FXML private ComboBox<UnidadesPreferidas.Temperatura> unidadeTemperatura;
+    @FXML private ComboBox<UnidadesPreferidas.Potencia> unidadePotencia;
+    @FXML private ComboBox<UnidadesPreferidas.Vazao> unidadeVazao;
+    @FXML private VBox mensagensUnidades;
+
     // ---------- Backup ----------
     @FXML private TabPane abasConfiguracoes;
     @FXML private Tab abaBackup;
@@ -148,6 +157,7 @@ public class ConfiguracoesController {
     private DadosOficina oficinaSalva = DadosOficina.vazia();
     private Parametros padroesSalvos = Parametros.padrao();
     private PadroesOrcamento orcamentoSalvo = PadroesOrcamento.padrao();
+    private UnidadesPreferidas unidadesSalvas = UnidadesPreferidas.padrao();
     /** Imagem escolhida para o logo e ainda não salva; null = sem troca. */
     private Path logoEscolhido;
     private boolean logoRemovido;
@@ -188,6 +198,14 @@ public class ConfiguracoesController {
                 FormularioOrcamento.TipoDesconto::rotulo);
         orcamentoDesconto.disableProperty().bind(orcamentoTipoDesconto.valueProperty()
                 .isEqualTo(FormularioOrcamento.TipoDesconto.NENHUM));
+        CamposTela.configurar(unidadePressao, Arrays.asList(UnidadesPreferidas.Pressao.values()),
+                UnidadesPreferidas.Pressao::rotulo);
+        CamposTela.configurar(unidadeTemperatura, Arrays.asList(UnidadesPreferidas.Temperatura.values()),
+                UnidadesPreferidas.Temperatura::rotulo);
+        CamposTela.configurar(unidadePotencia, Arrays.asList(UnidadesPreferidas.Potencia.values()),
+                UnidadesPreferidas.Potencia::rotulo);
+        CamposTela.configurar(unidadeVazao, Arrays.asList(UnidadesPreferidas.Vazao.values()),
+                UnidadesPreferidas.Vazao::rotulo);
     }
 
     /**
@@ -202,9 +220,11 @@ public class ConfiguracoesController {
         oficinaSalva = configuracao.ler(Chave.OFICINA);
         padroesSalvos = configuracao.ler(Chave.CALCULO);
         orcamentoSalvo = configuracao.ler(Chave.ORCAMENTO);
+        unidadesSalvas = configuracao.ler(Chave.UNIDADES);
         descartarOficina();
         descartarPadroes();
         descartarPadroesOrcamento();
+        descartarUnidades();
     }
 
     /**
@@ -404,6 +424,31 @@ public class ConfiguracoesController {
             orcamentoSalvo = leitura.padroes();
             descartarPadroesOrcamento();
             mostrarOk(mensagensOrcamento, "Padrões do orçamento salvos. Valem para os próximos orçamentos.");
+        }
+    }
+
+    // ===================== Unidades (fase 4) =====================
+
+    @FXML
+    private void descartarUnidades() {
+        unidadePressao.setValue(unidadesSalvas.pressao());
+        unidadeTemperatura.setValue(unidadesSalvas.temperatura());
+        unidadePotencia.setValue(unidadesSalvas.potencia());
+        unidadeVazao.setValue(unidadesSalvas.vazao());
+        mensagensUnidades.getChildren().clear();
+    }
+
+    /** Grava as unidades preferidas, que passam a valer na hora para a tela e os PDFs (decisão 289). */
+    @FXML
+    void salvarUnidades() {
+        UnidadesPreferidas escolhidas = new UnidadesPreferidas(unidadePressao.getValue(),
+                unidadeTemperatura.getValue(), unidadePotencia.getValue(), unidadeVazao.getValue());
+        if (gravar(Chave.UNIDADES, escolhidas, mensagensUnidades)) {
+            unidadesSalvas = escolhidas;
+            Apresentacao.usarUnidades(escolhidas);
+            descartarUnidades();
+            mostrarOk(mensagensUnidades, "Unidades salvas. Valem para os próximos resultados e PDFs; um resultado já "
+                    + "na tela muda ao calcular de novo.");
         }
     }
 

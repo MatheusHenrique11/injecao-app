@@ -74,12 +74,16 @@ class PecasCatalogoUiTest {
     private ContextoApp contexto;
     private CasosCatalogo catalogo;
     private PrincipalController principal;
+    private CalculadoraController calculadora;
+    private Scene cenaCalculadora;
 
     @Test
     void pecasDoCatalogoNaCalculadoraNoMotorENoProjeto() throws Throwable {
         try {
             TelaDeTeste.naTelaDoJavaFx(this::abrirECadastrar);
             TelaDeTeste.naTelaDoJavaFx(this::calculadoraComSugestoes);
+            TelaDeTeste.esperarCalculo(calculadora);
+            TelaDeTeste.naTelaDoJavaFx(this::conferirCalculoComPecas);
             TelaDeTeste.naTelaDoJavaFx(this::motorPeloCatalogo);
             TelaDeTeste.naTelaDoJavaFx(this::projetoComPecaDesatualizada);
         } finally {
@@ -120,8 +124,9 @@ class PecasCatalogoUiTest {
     private void calculadoraComSugestoes() throws Exception {
         FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("calculadora.fxml"));
         Parent raiz = carregador.load();
-        CalculadoraController calculadora = carregador.getController();
+        calculadora = carregador.getController();
         Scene cena = new Scene(raiz, 1280, 1000);
+        cenaCalculadora = cena;
         cena.getStylesheets().add(CalibraApp.folhaDeEstilo());
         calculadora.usarCatalogo(catalogo);
         calculadora.preencher(ValoresDeTeste.casoB());
@@ -150,8 +155,13 @@ class PecasCatalogoUiTest {
         salvar(cena, "captura-calculadora-pecas-catalogo.png");
 
         TelaDeTeste.<Button>achar(cena, "botaoCalcular").fire();
-        raiz.applyCss();
-        raiz.layout();
+    }
+
+    /** O resultado do cálculo com as peças do catálogo (ele roda em segundo plano: o teste espera antes). */
+    private void conferirCalculoComPecas() throws Exception {
+        Scene cena = cenaCalculadora;
+        cena.getRoot().applyCss();
+        cena.getRoot().layout();
         assertTrue(calculadora.calculoNaTela().isPresent(), "calculou com as peças do catálogo");
         CalculadoraController.CalculoNaTela naTela = calculadora.calculoNaTela().orElseThrow();
         assertEquals(5, naTela.pecas().usadas().size(), "bico, bomba, intercooler, sensor e injeção");

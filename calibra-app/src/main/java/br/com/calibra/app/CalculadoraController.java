@@ -51,6 +51,7 @@ import br.com.calibra.dados.projeto.PecaUsada;
 import br.com.calibra.relatorios.DadosRelatorio;
 import br.com.calibra.relatorios.IdentificacaoProjeto;
 import javafx.application.HostServices;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -58,6 +59,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
@@ -154,11 +156,14 @@ public class CalculadoraController {
     @FXML private VBox painelResultado;
     @FXML private HBox rodape;
     @FXML private Button botaoCalcular;
+    @FXML private ProgressIndicator progressoCalculo;
     @FXML private Button botaoPdf;
     @FXML private Label rotuloEstado;
 
     private final CamposTela campos = new CamposTela();
     private final PainelResultado painel = new PainelResultado();
+    /** O cálculo roda fora da thread da tela (SPEC 10; decisão 290). */
+    private final CalculoEmFundo calculos = new CalculoEmFundo();
     private final List<Runnable> aoMudarResultado = new ArrayList<>();
     /** Padrões de cálculo e limiares do semáforo em uso; sem Configurações (teste), os da SPEC. */
     private Parametros padroes = Parametros.padrao();
@@ -169,6 +174,8 @@ public class CalculadoraController {
     private EntradaDimensionamento ultimaEntrada;
     private Resultado<Dimensionamento> ultimoResultado;
     private boolean desatualizado;
+    /** Quantas mudanças de entrada houve: uma mudança no meio de um cálculo deixa o resultado dele desatualizado. */
+    private long mudancas;
     private Label faixaDesatualizado;
     /** Catálogo ligado pela janela principal ou pelo projeto; sem ele (testes), a seção de peças fica escondida. */
     private CasosCatalogo catalogo;
@@ -199,7 +206,15 @@ public class CalculadoraController {
         configurarPecasDoCatalogo();
         configurarReacoes();
         botaoPdf.setDisable(true);
+        botaoCalcular.disableProperty().bind(calculos.calculando());
+        progressoCalculo.visibleProperty().bind(calculos.calculando());
+        progressoCalculo.managedProperty().bind(calculos.calculando());
         rotuloEstado.setText("Preencha o motor e a meta e clique em Calcular (Enter).");
+    }
+
+    /** Se o cálculo ainda está rodando (os testes de tela esperam ele terminar). */
+    ReadOnlyBooleanProperty calculando() {
+        return calculos.calculando();
     }
 
     // ===================== Montagem da tela =====================
@@ -407,6 +422,7 @@ public class CalculadoraController {
 
     /** Qualquer mudança depois de um cálculo deixa o resultado desatualizado (regra 2.5). */
     private void marcarDesatualizado() {
+        mudancas++;
         if (ultimoResultado == null || desatualizado) {
             return;
         }
@@ -424,6 +440,10 @@ public class CalculadoraController {
 
     // ===================== Ações =====================
 
+    /**
+     * Lê a tela e calcula em segundo plano (decisão 290): enquanto a conta roda, o botão espera e o indicador
+     * aparece; o resultado volta para a tela quando ela termina.
+     */
     @FXML
     private void calcular() {
         PecasEscolhidas pecas = pecasEscolhidas();
@@ -432,24 +452,44 @@ public class CalculadoraController {
             mostrarErros(leitura.erros());
             return;
         }
-        try {
-            ultimoResultado = CalculoDimensionamento.calcular(leitura.entrada());
-            ultimaEntrada = leitura.entrada();
-            ultimasPecas = pecas;
-            desatualizado = false;
-            painelResultado.getChildren().setAll(painel.montar(ultimoResultado,
-                    ultimaEntrada.turbo() == null ? null : ultimaEntrada.turbo().mapa()));
-            botaoPdf.setDisable(false);
-            long vermelhos = ultimoResultado.valor().semaforo().stream()
-                    .filter(a -> a.cor() == Cor.VERMELHO).count();
-            rotuloEstado.setText("Calculado às " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-                    + (vermelhos > 0 ? " · " + vermelhos + " item(ns) vermelho(s) precisam de justificativa para o PDF" : ""));
-            abas.getSelectionModel().select(abaResultado);
-            avisarMudancaDeResultado();
-        } catch (EntradaInvalidaException erro) {
-            mostrarErros(erro.erros());
-        } catch (CalculoNaoConvergiuException erro) {
-            mostrarErros(List.of(erro.getMessage()));
+        EntradaDimensionamento entrada = leitura.entrada();
+        long mudancasAntes = mudancas;
+        rotuloEstado.setText("Calculando…");
+        calculos.executar(() -> CalculoDimensionamento.calcular(entrada), resultado -> {
+            mostrarCalculo(resultado, entrada, pecas);
+            if (mudancas != mudancasAntes) {
+                marcarDesatualizado();
+            }
+        }, this::falhaNoCalculo);
+    }
+
+    private void mostrarCalculo(Resultado<Dimensionamento> resultado, EntradaDimensionamento entrada,
+            PecasEscolhidas pecas) {
+        ultimoResultado = resultado;
+        ultimaEntrada = entrada;
+        ultimasPecas = pecas;
+        desatualizado = false;
+        painelResultado.getChildren().setAll(painel.montar(ultimoResultado,
+                ultimaEntrada.turbo() == null ? null : ultimaEntrada.turbo().mapa()));
+        botaoPdf.setDisable(false);
+        long vermelhos = ultimoResultado.valor().semaforo().stream()
+                .filter(a -> a.cor() == Cor.VERMELHO).count();
+        rotuloEstado.setText("Calculado às " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                + (vermelhos > 0 ? " · " + vermelhos + " item(ns) vermelho(s) precisam de justificativa para o PDF" : ""));
+        abas.getSelectionModel().select(abaResultado);
+        avisarMudancaDeResultado();
+    }
+
+    private void falhaNoCalculo(Throwable erro) {
+        if (erro instanceof CalculoNaoConvergiuException naoConvergiu) {
+            mostrarErros(List.of(naoConvergiu.getMessage()));
+            return;
+        }
+        List<String> mensagens = TarefasFundo.mensagens(erro);
+        if (mensagens.isEmpty()) {
+            rotuloEstado.setText("O cálculo não terminou: o detalhe foi para o log.");
+        } else {
+            mostrarErros(mensagens);
         }
     }
 

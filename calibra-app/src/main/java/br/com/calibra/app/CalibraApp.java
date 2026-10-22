@@ -33,7 +33,8 @@ public class CalibraApp extends Application {
     public void start(Stage palco) throws IOException {
         ContextoApp contexto;
         try {
-            contexto = Partida.abrir(Partida.pastas(), Versao.atual(), Clock.systemDefaultZone());
+            contexto = Partida.abrir(Partida.pastas(), Versao.atual(), Clock.systemDefaultZone(),
+                    () -> TelaDeAbertura.escrever("Atualizando os dados…"));
         } catch (IOException | ErroDados erro) {
             LOG.log(Level.SEVERE, "O app não conseguiu abrir os dados", erro);
             TelaDeAbertura.fechar();

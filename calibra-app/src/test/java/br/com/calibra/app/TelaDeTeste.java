@@ -105,6 +105,14 @@ final class TelaDeTeste {
     }
 
     /**
+     * Espera o cálculo da calculadora terminar (decisão 290: ele roda em segundo plano, e o resultado só volta para a
+     * tela com a thread do JavaFX livre). Chame da thread do teste, depois do passo que apertou "Calcular".
+     */
+    static void esperarCalculo(CalculadoraController calculadora) throws Throwable {
+        esperar(() -> !calculadora.calculando().get(), "o cálculo terminar");
+    }
+
+    /**
      * Roda na thread do JavaFX uma ação que abre janela e espera a resposta (showAndWait), sem esperar por ela: o
      * teste segue, acha a janela e aperta o botão, como a pessoa faria. Um erro da ação vai para {@code falha}.
      */

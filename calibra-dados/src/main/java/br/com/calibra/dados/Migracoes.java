@@ -48,10 +48,22 @@ public final class Migracoes {
     }
 
     /**
+     * @param antesDeAtualizar chamado só numa atualização de verdade (banco com dados e migração a aplicar), antes do
+     *     backup: a tela de abertura avisa "Atualizando os dados…" (fase 4, decisão 291)
+     */
+    public static Resultado migrar(BancoDados banco, Backup backup, Runnable antesDeAtualizar) {
+        return migrar(banco, backup, antesDeAtualizar, LOCAL_PADRAO);
+    }
+
+    /**
      * @throws BancoMaisNovoException se o banco veio de uma versão mais nova do app (nada é alterado)
      * @throws MigracaoFalhouException se a migração falhar (os dados voltam ao backup feito antes)
      */
     public static Resultado migrar(BancoDados banco, Backup backup, String... locais) {
+        return migrar(banco, backup, () -> { }, locais);
+    }
+
+    static Resultado migrar(BancoDados banco, Backup backup, Runnable antesDeAtualizar, String... locais) {
         Flyway flyway = Flyway.configure()
                 .dataSource(banco.fonte())
                 .locations(locais)
@@ -62,6 +74,9 @@ public final class Migracoes {
         String antes = atual == null || atual.getVersion() == null ? null : atual.getVersion().getVersion();
         if (info.pending().length == 0) {
             return new Resultado(antes, antes, 0, null);
+        }
+        if (antes != null) {
+            antesDeAtualizar.run();
         }
         InfoBackup copia = antes == null ? null
                 : backup.fazer(backup.pastas().backupsPadrao(), MotivoBackup.ANTES_DE_MIGRAR);

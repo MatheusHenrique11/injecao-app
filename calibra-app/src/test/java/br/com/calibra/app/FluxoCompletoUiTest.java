@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javafx.application.Platform;
@@ -109,7 +110,7 @@ class FluxoCompletoUiTest {
             TelaDeTeste.naTelaDoJavaFx(this::configurarOficina);
             TelaDeTeste.naTelaDoJavaFx(this::cadastrarBico);
             TelaDeTeste.naTelaDoJavaFx(this::criarProjeto);
-            TelaDeTeste.naTelaDoJavaFx(this::calcularESalvar);
+            calcularESalvar();
             TelaDeTeste.naTelaDoJavaFx(this::montarEEnviarOrcamento);
             aprovarPelaJanela();
             TelaDeTeste.naTelaDoJavaFx(this::fazerBackup);
@@ -228,38 +229,56 @@ class FluxoCompletoUiTest {
         salvar(cena, "ensaio-1-projeto-criado.png");
     }
 
-    /** Dimensionamento com o bico do catálogo; cada "Calcular" é cronometrado (bloco 2.6: menos de 1 s). */
-    private void calcularESalvar() throws Exception {
-        TabPane abas = achar(cena, "abas");
-        abas.getSelectionModel().select(aba(abas, "abaDimensionamento"));
-        ComboBox<ItemCatalogo<Bico>> bico = achar(cena, "catalogoBico");
-        bico.setValue(bico.getItems().stream().filter(item -> item != null && BICO.equals(item.info().nome()))
-                .findFirst().orElseThrow());
-        assertTrue(TelaDeTeste.<TextField>achar(cena, "bicoVazao").isDisabled(), "o bico do catálogo trava os campos");
-        TelaDeTeste.<TextField>achar(cena, "pressaoBase").setText("3");
-        TelaDeTeste.<TextField>achar(cena, "tensao").setText("13,5");
-        TextField ve = achar(cena, "ve");
-        Button calcular = achar(cena, "botaoCalcular");
+    /**
+     * Dimensionamento com o bico do catálogo; cada "Calcular" é cronometrado do clique até a tela montada (bloco 2.6:
+     * menos de 1 s). O cálculo roda em segundo plano (decisão 290): o relógio para quando o resultado chega à tela,
+     * mais o tempo de montar a cena, sem contar a espera do teste.
+     */
+    private void calcularESalvar() throws Throwable {
+        AtomicLong chegou = new AtomicLong();
+        TelaDeTeste.naTelaDoJavaFx(() -> {
+            TabPane abas = achar(cena, "abas");
+            abas.getSelectionModel().select(aba(abas, "abaDimensionamento"));
+            ComboBox<ItemCatalogo<Bico>> bico = achar(cena, "catalogoBico");
+            bico.setValue(bico.getItems().stream().filter(item -> item != null && BICO.equals(item.info().nome()))
+                    .findFirst().orElseThrow());
+            assertTrue(TelaDeTeste.<TextField>achar(cena, "bicoVazao").isDisabled(),
+                    "o bico do catálogo trava os campos");
+            TelaDeTeste.<TextField>achar(cena, "pressaoBase").setText("3");
+            TelaDeTeste.<TextField>achar(cena, "tensao").setText("13,5");
+            calculadora().aoMudarResultado(() -> chegou.set(System.nanoTime()));
+        });
         for (String valor : List.of("0,95", "0,93", "0,97", "0,90", "0,95")) {
-            ve.setText(valor);
-            long inicio = System.nanoTime();
-            calcular.fire();
-            cena.getRoot().applyCss();
-            cena.getRoot().layout();
-            recalculosMs.add(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio));
+            AtomicLong inicio = new AtomicLong();
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                TelaDeTeste.<TextField>achar(cena, "ve").setText(valor);
+                inicio.set(System.nanoTime());
+                TelaDeTeste.<Button>achar(cena, "botaoCalcular").fire();
+            });
+            TelaDeTeste.esperarCalculo(calculadora());
+            TelaDeTeste.naTelaDoJavaFx(() -> {
+                assertTrue(chegou.get() > inicio.get(), "o resultado chegou à tela");
+                long antesDeMontar = System.nanoTime();
+                cena.getRoot().applyCss();
+                cena.getRoot().layout();
+                long montar = System.nanoTime() - antesDeMontar;
+                recalculosMs.add(TimeUnit.NANOSECONDS.toMillis(chegou.get() - inicio.get() + montar));
+            });
         }
         resumo.add("Recálculos (ms, do clique em Calcular até a tela montada): " + recalculosMs);
         assertTrue(recalculosMs.stream().allMatch(ms -> ms < 1000), () -> "recalcular passou de 1 s: " + recalculosMs);
 
-        Button salvarCalculo = achar(cena, "botaoSalvarCalculo");
-        assertFalse(salvarCalculo.isDisabled(), "calculado: dá para salvar");
-        cena.getRoot().lookupAll(".text-field").stream()
-                .filter(no -> no.getId() != null && no.getId().startsWith("justificativa-"))
-                .forEach(no -> ((TextField) no).setText("Bico maior encomendado; este é provisório."));
-        salvarCalculo.fire();
-        assertEquals(StatusProjeto.DIMENSIONADO, casos.abrir(projeto).projeto().status());
-        assertEquals("Dimensionado", TelaDeTeste.<Label>achar(cena, "status").getText());
-        salvar(cena, "ensaio-2-calculo-salvo.png");
+        TelaDeTeste.naTelaDoJavaFx(() -> {
+            Button salvarCalculo = achar(cena, "botaoSalvarCalculo");
+            assertFalse(salvarCalculo.isDisabled(), "calculado: dá para salvar");
+            cena.getRoot().lookupAll(".text-field").stream()
+                    .filter(no -> no.getId() != null && no.getId().startsWith("justificativa-"))
+                    .forEach(no -> ((TextField) no).setText("Bico maior encomendado; este é provisório."));
+            salvarCalculo.fire();
+            assertEquals(StatusProjeto.DIMENSIONADO, casos.abrir(projeto).projeto().status());
+            assertEquals("Dimensionado", TelaDeTeste.<Label>achar(cena, "status").getText());
+            salvar(cena, "ensaio-2-calculo-salvo.png");
+        });
     }
 
     /**
@@ -414,6 +433,10 @@ class FluxoCompletoUiTest {
     }
 
     // ===================== Utilidades =====================
+
+    private CalculadoraController calculadora() {
+        return principal.projetoAberto().calculadora();
+    }
 
     private OrcamentoController orcamento() {
         return principal.projetoAberto().orcamento();

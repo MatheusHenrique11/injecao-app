@@ -20,6 +20,7 @@ import br.com.calibra.core.orcamento.Desconto;
 import br.com.calibra.core.orcamento.Dinheiro;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
 import br.com.calibra.core.semaforo.LimiaresSemaforo;
+import br.com.calibra.core.unidades.UnidadesPreferidas;
 import br.com.calibra.dados.BaseDeTeste;
 
 class ConfiguracaoRepositorioTest {
@@ -94,6 +95,25 @@ class ConfiguracaoRepositorioTest {
         assertEquals(LimiaresSemaforo.padrao().dcAmareloAte(), lido.limiares().dcAmareloAte());
         assertEquals(Parametros.padrao().etaC(), lido.etaC());
         assertEquals(Parametros.padrao().caminhoAr(), lido.caminhoAr());
+    }
+
+    /**
+     * Fase 4 (decisão 289): as unidades preferidas. Sem nada salvo, "várias", como sempre; uma escolha salva volta
+     * igual, e um JSON com só uma delas completa as outras com "várias".
+     */
+    @Test
+    void unidadesPreferidas() throws Exception {
+        BaseDeTeste base = BaseDeTeste.criada(pasta);
+        assertEquals(UnidadesPreferidas.padrao(), base.configuracao.ler(Chave.UNIDADES));
+        UnidadesPreferidas escolhidas = new UnidadesPreferidas(UnidadesPreferidas.Pressao.BAR,
+                UnidadesPreferidas.Temperatura.CELSIUS, UnidadesPreferidas.Potencia.HP, UnidadesPreferidas.Vazao.LB_H);
+        base.configuracao.gravar(Chave.UNIDADES, escolhidas);
+        assertEquals(escolhidas, base.configuracao.ler(Chave.UNIDADES));
+
+        BaseDeTeste outra = BaseDeTeste.criada(pasta.resolve("outra"));
+        gravarJsonCru(outra, "unidades", "{\"pressao\":\"PSI\"}");
+        assertEquals(new UnidadesPreferidas(UnidadesPreferidas.Pressao.PSI, null, null, null),
+                outra.configuracao.ler(Chave.UNIDADES));
     }
 
     @Test

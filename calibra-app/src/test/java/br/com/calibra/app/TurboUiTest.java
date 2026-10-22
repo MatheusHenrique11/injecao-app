@@ -64,12 +64,18 @@ class TurboUiTest {
     private CasosCatalogo catalogo;
     private PrincipalController principal;
     private ItemCatalogo<Cambio> cambio;
+    private CalculadoraController calculadora;
+    private Scene cenaCalculadora;
 
     @Test
     void turboMetaPelaPressaoETorqueCambio() throws Throwable {
         try {
             TelaDeTeste.naTelaDoJavaFx(this::abrirECadastrar);
             TelaDeTeste.naTelaDoJavaFx(this::calculadoraComTurbo);
+            TelaDeTeste.esperarCalculo(calculadora);
+            TelaDeTeste.naTelaDoJavaFx(this::conferirTurboEMudarAMeta);
+            TelaDeTeste.esperarCalculo(calculadora);
+            TelaDeTeste.naTelaDoJavaFx(this::conferirMetaPelaPressao);
             TelaDeTeste.naTelaDoJavaFx(this::cambioDoVeiculoNoProjeto);
         } finally {
             if (principal != null) {
@@ -100,8 +106,9 @@ class TurboUiTest {
     private void calculadoraComTurbo() throws Exception {
         FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("calculadora.fxml"));
         Parent raiz = carregador.load();
-        CalculadoraController calculadora = carregador.getController();
+        calculadora = carregador.getController();
         Scene cena = new Scene(raiz, 1280, 1000);
+        cenaCalculadora = cena;
         cena.getStylesheets().add(CalibraApp.folhaDeEstilo());
         calculadora.usarCatalogo(catalogo);
         calculadora.preencher(ValoresDeTeste.casoB());
@@ -121,8 +128,13 @@ class TurboUiTest {
         salvar(cena, "captura-dimensionamento-turbo-pecas.png");
 
         TelaDeTeste.<Button>achar(cena, "botaoCalcular").fire();
-        raiz.applyCss();
-        raiz.layout();
+    }
+
+    /** Os passos depois de cada "Calcular" ficam separados: o cálculo roda em segundo plano (decisão 290). */
+    private void conferirTurboEMudarAMeta() throws Exception {
+        Scene cena = cenaCalculadora;
+        cena.getRoot().applyCss();
+        cena.getRoot().layout();
         CalculadoraController.CalculoNaTela naTela = calculadora.calculoNaTela().orElseThrow();
         Dimensionamento d = naTela.resultado().valor();
         assertEquals("Turbo teste A (fictício)", d.noMapa().turbo());
@@ -141,6 +153,10 @@ class TurboUiTest {
         assertTrue(TelaDeTeste.<TextField>achar(cena, "potencia").isDisabled(), "a potência sai do cálculo");
         salvar(cena, "captura-meta-pela-pressao.png");
         TelaDeTeste.<Button>achar(cena, "botaoCalcular").fire();
+    }
+
+    private void conferirMetaPelaPressao() throws Exception {
+        Scene cena = cenaCalculadora;
         CalculadoraController.CalculoNaTela pelaPressao = calculadora.calculoNaTela().orElseThrow();
         assertTrue(pelaPressao.entrada().meta().pelaPressao());
         assertEquals(140.0, pelaPressao.entrada().meta().pressaoRelativaKpa(), 1e-9);

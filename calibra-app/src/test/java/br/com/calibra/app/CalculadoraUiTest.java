@@ -26,16 +26,21 @@ import org.junit.jupiter.api.Test;
 @Tag("ui")
 class CalculadoraUiTest {
 
+    private Scene cena;
+    private CalculadoraController controlador;
+
     @Test
     void preencheOCasoBCalculaEMostraOSemaforo() throws Throwable {
-        TelaDeTeste.naTelaDoJavaFx(CalculadoraUiTest::executar);
+        TelaDeTeste.naTelaDoJavaFx(this::preencherECalcular);
+        TelaDeTeste.esperarCalculo(controlador);
+        TelaDeTeste.naTelaDoJavaFx(this::conferirResultado);
     }
 
-    private static void executar() throws IOException {
+    private void preencherECalcular() throws IOException {
         FXMLLoader carregador = new FXMLLoader(CalibraApp.class.getResource("calculadora.fxml"));
         Parent raiz = carregador.load();
-        CalculadoraController controlador = carregador.getController();
-        Scene cena = new Scene(raiz, 1280, 900);
+        controlador = carregador.getController();
+        cena = new Scene(raiz, 1280, 900);
         cena.getStylesheets().add(CalibraApp.folhaDeEstilo());
 
         controlador.preencher(ValoresDeTeste.casoB());
@@ -45,9 +50,17 @@ class CalculadoraUiTest {
         abas.getSelectionModel().select(1);
         salvar(cena, "captura-calculadora-meta.png");
 
-        ((Button) cena.lookup("#botaoCalcular")).fire();
-        raiz.applyCss();
-        raiz.layout();
+        Button calcular = (Button) cena.lookup("#botaoCalcular");
+        calcular.fire();
+        assertTrue(calcular.isDisabled(), "enquanto calcula, o botão espera (decisão 290)");
+        assertTrue(cena.lookup("#progressoCalculo").isVisible(), "e o indicador aparece");
+    }
+
+    private void conferirResultado() throws IOException {
+        cena.getRoot().applyCss();
+        cena.getRoot().layout();
+        assertFalse(cena.lookup("#botaoCalcular").isDisabled(), "terminou: o botão volta");
+        assertFalse(cena.lookup("#progressoCalculo").isVisible(), "e o indicador some");
 
         Node painel = cena.lookup("#painelResultado");
         assertNotNull(painel);

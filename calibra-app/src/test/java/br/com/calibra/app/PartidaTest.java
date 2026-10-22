@@ -45,7 +45,8 @@ class PartidaTest {
         ContextoApp primeira = Partida.abrir(pastas, "0.2.0-teste", RELOGIO);
         primeira.configuracao().gravar(Chave.BACKUP, new ConfiguracaoBackup("E:\\backup"));
 
-        ContextoApp segunda = Partida.abrir(pastas, "0.2.0-teste", RELOGIO);
+        ContextoApp segunda = Partida.abrir(pastas, "0.2.0-teste", RELOGIO,
+                () -> { throw new AssertionError("nada a atualizar: sem o aviso da tela de abertura"); });
         assertFalse(segunda.migracao().migrou());
         assertEquals("E:\\backup", segunda.configuracao().ler(Chave.BACKUP).pasta());
     }

@@ -7,6 +7,7 @@ import br.com.calibra.core.cadastro.DadosOficina;
 import br.com.calibra.core.calculo.Parametros;
 import br.com.calibra.core.oficina.PadroesOs;
 import br.com.calibra.core.orcamento.PadroesOrcamento;
+import br.com.calibra.core.unidades.UnidadesPreferidas;
 
 /**
  * Uma configuração guardada na tabela {@code configuracao}: o nome, o tipo e o valor padrão.
@@ -27,6 +28,10 @@ public record Chave<T>(String nome, Class<T> tipo, Supplier<T> padrao) {
 
     /** Padrões das OS (bloco 3.3): garantia da entrega, itens da vistoria e texto da via do cliente. */
     public static final Chave<PadroesOs> OS = new Chave<>("os", PadroesOs.class, PadroesOs::padrao);
+
+    /** As unidades preferidas na tela e nos PDFs (fase 4, decisão 289). */
+    public static final Chave<UnidadesPreferidas> UNIDADES =
+            new Chave<>("unidades", UnidadesPreferidas.class, UnidadesPreferidas::padrao);
 
     /** Pasta de backup escolhida pelo usuário. */
     public static final Chave<ConfiguracaoBackup> BACKUP =

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,25 @@ class MigracoesTest {
                 "o backup guarda o banco antes da migração futura");
         assertTrue(tabelaExiste(base.banco, "tabela_de_teste"));
         assertEquals(OFICINA, base.configuracao.ler(Chave.OFICINA));
+    }
+
+    /**
+     * Fase 4 (decisão 291): o aviso "Atualizando os dados…" só numa atualização de verdade, antes do backup. Banco
+     * novo e banco já em dia abrem sem aviso.
+     */
+    @Test
+    void avisaSoNaAtualizacao() throws Exception {
+        List<String> avisos = new ArrayList<>();
+        BaseDeTeste nova = BaseDeTeste.semMigrar(pasta.resolve("nova"));
+        Migracoes.migrar(nova.banco, nova.backup, () -> avisos.add("banco novo"));
+        Migracoes.migrar(nova.banco, nova.backup, () -> avisos.add("em dia"));
+        assertEquals(List.of(), avisos);
+
+        BaseDeTeste base = BaseDeTeste.criada(pasta.resolve("antiga"));
+        Migracoes.migrar(base.banco, base.backup, () -> avisos.add("antes do backup: "
+                + Backup.listar(base.pastas.backupsPadrao()).size()), Migracoes.LOCAL_PADRAO, BaseDeTeste.FUTURA_OK);
+        assertEquals(List.of("antes do backup: 0"), avisos);
+        assertEquals(1, Backup.listar(base.pastas.backupsPadrao()).size());
     }
 
     /** SPEC 10: se a migração falhar, restaurar o backup e mostrar a mensagem. */

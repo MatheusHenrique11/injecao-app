@@ -57,6 +57,7 @@ Antes do primeiro orçamento, abra **Configurações** (menu à esquerda). Cada 
 
 - **Oficina:** nome, CNPJ, endereço, telefone, e-mail e logo (PNG ou JPG, até 5 MB). Tudo opcional; aparece no cabeçalho dos PDFs.
 - **Cálculo e semáforo:** os padrões de cálculo (k_ar, DC máximo, eficiências, perdas...) e os limiares do semáforo (item 13). Valor diferente do padrão da SPEC aparece em azul. "Voltar aos padrões da SPEC" só preenche os campos: grava ao salvar. Os limiares do mapa do compressor e do torque × câmbio estão marcados "a validar".
+- **Unidades:** a unidade que você prefere para pressão (kPa, bar ou psi), temperatura (°C ou °F), potência (cv, hp ou kW) e vazão de bico (cm³/min, lb/h ou g/min). A escolhida vem primeiro nos resultados e nos PDFs, e as outras continuam ao lado, para conferir com o software da injeção ou com a ficha da peça. "Várias, como sempre" deixa como era. O g/min usa a densidade do fluido de teste do bico.
 - **OS:** a garantia padrão em dias (vem 90 e já aparece preenchida na entrega), os itens da vistoria (adicionar, renomear, remover e mudar a ordem; valem para as entradas seguintes) e o texto da via do cliente, que vai acima das assinaturas (em branco, ficam só as assinaturas). O texto que vem é um modelo, não um texto jurídico revisado: confira antes de usar com cliente. Embaixo, os **mecânicos**: novo, renomear, desativar e reativar, valendo na hora.
 - **Orçamento:** o que um orçamento novo traz preenchido: desconto, prazo em dias úteis (e a partir de quando conta), validade em dias, condições de pagamento e o valor da hora de mão de obra.
 - **Backup:** a pasta dos backups, "Fazer backup agora" e "Restaurar um backup…" (item 10).
@@ -263,10 +264,10 @@ A **Calculadora** (menu à esquerda) faz a conta sem gravar nada. A aba **Dimens
 
 ### 7.3 Resultado
 
-Clique em **Calcular** (ou tecle Enter). O resultado mostra:
+Clique em **Calcular** (ou tecle Enter). Enquanto a conta roda, o botão espera e um indicador gira ao lado dele (leva menos de um segundo). O resultado mostra:
 
 1. **Semáforo:** verde, amarelo ou vermelho, sempre com a cor escrita e a explicação (item 13).
-2. **Resultados** em várias unidades (ex.: 241,0 kPa · 2,41 bar · 34,95 psia), com o ponto de torque e os pontos no mapa do turbo.
+2. **Resultados** em várias unidades (ex.: 241,0 kPa · 2,41 bar · 34,95 psia; a sua unidade preferida vem primeiro, item 4), com o ponto de torque e os pontos no mapa do turbo.
 3. **Mapa do compressor:** com turbo do catálogo que tenha mapa, o mapa aparece desenhado com o ponto de potência (círculo) e o de torque (quadrado).
 4. **Recomendações, avisos e a memória de cálculo**, com cada conta, a fórmula e as entradas.
 
@@ -344,7 +345,7 @@ Se o motor, o câmbio do veículo ou o cálculo do projeto mudarem, o orçamento
 - **Fazer backup agora:** a qualquer momento.
 - **Restaurar um backup…:** escolha o backup na lista e confirme. Antes de trocar os dados, o app confere cada foto e documento pela impressão digital e guarda os dados atuais num backup de segurança na pasta padrão. Backup corrompido, de uma versão mais nova do app ou sem as fotos na `anexos-dos-backups` é recusado sem mexer em nada, com a explicação. O que estiver digitado e não salvo nas telas se perde.
 - **Backups antigos** (feitos até a versão 0.3.0, com as fotos dentro do `.zip`) continuam restaurando normalmente. Eles saem da pasta conforme os novos entram.
-- **Ao atualizar o app** e o banco precisar mudar de versão, o app faz um backup antes. Se a atualização do banco falhar, ele volta o backup e mostra a mensagem.
+- **Ao atualizar o app** e o banco precisar mudar de versão, o app faz um backup antes. Enquanto isso, a tela de abertura mostra "Atualizando os dados…" embaixo do logo. Se a atualização do banco falhar, ele volta o backup e mostra a mensagem.
 
 ## 11. Mapa base
 

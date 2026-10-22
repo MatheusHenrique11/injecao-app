@@ -39,6 +39,7 @@ import br.com.calibra.core.memoria.VersaoNucleo;
 import br.com.calibra.core.oficina.StatusOs;
 import br.com.calibra.dados.backup.InfoBackup;
 import br.com.calibra.dados.config.Chave;
+import br.com.calibra.relatorios.Apresentacao;
 
 /**
  * Janela principal: navegação entre as telas, barra de status com o backup e a versão (SPEC 10). O app abre no
@@ -143,6 +144,8 @@ public class PrincipalController implements Navegacao {
         this.casosLaudo = new CasosLaudo(contexto.banco(), contexto.relogio());
         this.casosInstalacao = new CasosInstalacao(contexto.banco(), contexto.relogio());
         this.casosChicote = new CasosChicote(contexto.banco(), contexto.relogio());
+        // As unidades preferidas (Configurações › Unidades) valem para a tela e os PDFs desde a abertura.
+        Apresentacao.usarUnidades(contexto.configuracao().ler(Chave.UNIDADES));
         // Antes da tela: o arquivo que ficou na pasta da última vez (aberto em outro programa) sai agora.
         casosOficina.apagarArquivosSemUso();
         atualizarStatus();

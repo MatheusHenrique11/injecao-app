@@ -13,6 +13,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
@@ -23,9 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import br.com.calibra.core.calculo.Parametros;
+import br.com.calibra.core.unidades.UnidadesPreferidas;
 import br.com.calibra.dados.PastasDados;
 import br.com.calibra.dados.backup.Backup;
 import br.com.calibra.dados.config.Chave;
+import br.com.calibra.relatorios.Apresentacao;
 
 /**
  * Teste de interface (opcional, fora do verify padrão): abre a janela principal com uma pasta de dados
@@ -48,6 +51,7 @@ class ConfiguracoesUiTest {
             TelaDeTeste.naTelaDoJavaFx(this::abrir);
             TelaDeTeste.naTelaDoJavaFx(this::salvarOficina);
             TelaDeTeste.naTelaDoJavaFx(this::salvarPadroesEConferirACalculadora);
+            TelaDeTeste.naTelaDoJavaFx(this::salvarUnidades);
             TelaDeTeste.naTelaDoJavaFx(this::fazerBackupAgora);
             TelaDeTeste.esperar(() -> TelaDeTeste.<Label>achar(cena, "backupUltimo").getText().contains("feito por você"),
                     "a aba Backup mostrar o backup feito");
@@ -56,6 +60,7 @@ class ConfiguracoesUiTest {
             if (principal != null) {
                 principal.encerrar();
             }
+            Apresentacao.usarUnidades(UnidadesPreferidas.padrao());
         }
     }
 
@@ -102,6 +107,26 @@ class ConfiguracoesUiTest {
         TelaDeTeste.<ToggleButton>achar(cena, "navCalculadora").fire();
         assertEquals("9,5", TelaDeTeste.<TextField>achar(cena, "kAr").getText());
         salvar(cena, "captura-principal-calculadora.png");
+    }
+
+    /** Fase 4 (decisão 289): psi e kW salvos passam a vir primeiro, na hora, sem reabrir o app. */
+    private void salvarUnidades() throws Exception {
+        TelaDeTeste.<ToggleButton>achar(cena, "navConfiguracoes").fire();
+        TabPane abas = achar(cena, "abasConfiguracoes");
+        abas.getSelectionModel().select(abas.getTabs().stream().filter(aba -> "abaUnidades".equals(aba.getId()))
+                .findFirst().orElseThrow());
+        TelaDeTeste.<ComboBox<UnidadesPreferidas.Pressao>>achar(cena, "unidadePressao")
+                .setValue(UnidadesPreferidas.Pressao.PSI);
+        TelaDeTeste.<ComboBox<UnidadesPreferidas.Potencia>>achar(cena, "unidadePotencia")
+                .setValue(UnidadesPreferidas.Potencia.KW);
+        TelaDeTeste.<Button>achar(cena, "botaoSalvarUnidades").fire();
+
+        UnidadesPreferidas esperadas = new UnidadesPreferidas(UnidadesPreferidas.Pressao.PSI, null,
+                UnidadesPreferidas.Potencia.KW, null);
+        assertEquals(esperadas, contexto.configuracao().ler(Chave.UNIDADES));
+        assertEquals(esperadas, Apresentacao.unidades(), "vale na hora");
+        assertEquals("34,95 psia · 241,0 kPa · 2,41 bar", Apresentacao.pressaoAbsoluta(241));
+        salvar(cena, "captura-configuracoes-unidades.png");
     }
 
     private void fazerBackupAgora() {

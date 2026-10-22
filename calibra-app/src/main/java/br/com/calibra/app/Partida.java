@@ -56,11 +56,20 @@ final class Partida {
      * @throws br.com.calibra.dados.ErroDados se o banco não abrir; a mensagem já explica o que houve
      */
     static ContextoApp abrir(PastasDados pastas, String versaoApp, Clock relogio) throws IOException {
+        return abrir(pastas, versaoApp, relogio, () -> { });
+    }
+
+    /**
+     * @param antesDeAtualizar chamado numa atualização (banco com dados e migração a aplicar), antes do backup e da
+     *     migração: a tela de abertura escreve "Atualizando os dados…" (decisão 291)
+     */
+    static ContextoApp abrir(PastasDados pastas, String versaoApp, Clock relogio, Runnable antesDeAtualizar)
+            throws IOException {
         pastas.criar();
         prepararCaches(pastas);
         BancoDados banco = new BancoDados(pastas.banco());
         Backup backup = new Backup(pastas, banco, versaoApp, relogio);
-        Migracoes.Resultado migracao = Migracoes.migrar(banco, backup);
+        Migracoes.Resultado migracao = Migracoes.migrar(banco, backup, antesDeAtualizar);
         LOG.info(() -> "Banco aberto em " + pastas.banco() + " (versão " + migracao.versaoDepois() + ").");
         return new ContextoApp(pastas, banco, backup, new ConfiguracaoRepositorio(banco, relogio), versaoApp,
                 relogio, migracao);

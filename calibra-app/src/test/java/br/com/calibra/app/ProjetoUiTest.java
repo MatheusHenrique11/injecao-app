@@ -72,7 +72,9 @@ class ProjetoUiTest {
             TelaDeTeste.naTelaDoJavaFx(this::abrir);
             TelaDeTeste.naTelaDoJavaFx(this::assistente);
             TelaDeTeste.naTelaDoJavaFx(this::editarVeiculo);
-            TelaDeTeste.naTelaDoJavaFx(this::calcularESalvar);
+            TelaDeTeste.naTelaDoJavaFx(this::calcular);
+            TelaDeTeste.esperarCalculo(principal.projetoAberto().calculadora());
+            TelaDeTeste.naTelaDoJavaFx(this::salvarCalculo);
             TelaDeTeste.naTelaDoJavaFx(this::versaoNovaDoMotor);
             TelaDeTeste.naTelaDoJavaFx(this::calculoDesatualizado);
             TelaDeTeste.naTelaDoJavaFx(this::listaComBusca);
@@ -161,7 +163,7 @@ class ProjetoUiTest {
         salvar(cena, "captura-projeto-veiculo.png");
     }
 
-    private void calcularESalvar() throws Exception {
+    private void calcular() throws Exception {
         abas().getSelectionModel().select(3);
         TelaDeTeste.<TextField>achar(cena, "ve").setText("0,95");
         TelaDeTeste.<TextField>achar(cena, "pressaoBase").setText("3");
@@ -169,6 +171,10 @@ class ProjetoUiTest {
         TelaDeTeste.<TextField>achar(cena, "bicoPressaoTeste").setText("3");
         TelaDeTeste.<TextField>achar(cena, "bicoTempoMorto").setText("1");
         TelaDeTeste.<Button>achar(cena, "botaoCalcular").fire();
+    }
+
+    /** Depois do cálculo em segundo plano (decisão 290; o teste espera ele terminar). */
+    private void salvarCalculo() throws Exception {
         Button salvarCalculo = achar(cena, "botaoSalvarCalculo");
         assertFalse(salvarCalculo.isDisabled(), "calculado: dá para salvar");
         TelaDeTeste.<TextField>achar(cena, "justificativa-DC_BICO").setText("Bico de 1.300 cm³/min encomendado.");

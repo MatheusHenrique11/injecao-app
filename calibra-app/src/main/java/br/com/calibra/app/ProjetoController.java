@@ -313,6 +313,11 @@ public class ProjetoController {
         return orcamento;
     }
 
+    /** A calculadora da aba Dimensionamento (para os testes de interface esperarem o cálculo). */
+    CalculadoraController calculadora() {
+        return calculadora;
+    }
+
     /**
      * A aba "Peças e orçamento" (bloco 2.5), logo depois do Dimensionamento. Ela relê a situação ao ser aberta (o
      * cálculo ou o motor podem ter mudado) e avisa quando o status do projeto muda (enviado, aprovado).

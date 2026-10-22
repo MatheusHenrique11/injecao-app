@@ -1072,3 +1072,38 @@ Pedido do dono: o app passa a se apresentar como **GarageTech — Gestão e Tecn
     - **os dados reais:** intocados;
     - **o que os testes pegaram:** o id `marca` do logo colidia com o campo da marca do veículo. Corrigido (`logoDaMarca`) antes do MSI final;
     - os números estão em `docs/fase3b/ensaio-instalador.md`.
+
+## 21/10/2026 — Fase 4, bloco 4.0: as pendências da fase 2
+
+Plano da fase 4 (mapa base) aprovado em 21/10/2026, com estas respostas do dono:
+- as injeções que ele usa: FuelTech, Injepro, Pandoo e Octtane;
+- a tabela para colar (nível B) fica para quando ele mandar um texto real copiado do software;
+- o modelo de VE começa com os valores da SPEC, "a validar";
+- as paradas só onde precisa dele: a conferência do mapa de um projeto real (4.4) e o fim da fase, com o MSI.
+
+O bloco 4.0 fecha as pendências das decisões 152 e 160.
+
+289. **Unidades preferidas (Configurações › Unidades):** pressão (kPa, bar ou psi), temperatura (°C ou °F), potência (cv, hp ou kW) e vazão de bico (cm³/min, lb/h ou g/min).
+    - **o que muda:** a unidade escolhida vem primeiro; as outras continuam ao lado (ex.: com psi, "34,95 psia · 241,0 kPa · 2,41 bar"). Assim o mecânico lê na unidade dele e ainda confere na do software da injeção ou da ficha da peça;
+    - **o padrão:** "Várias, como sempre", com o texto de antes, sem mudança para quem não mexer;
+    - **onde vale:** em tudo que passa pela `Apresentacao` (relatórios), ou seja, na tela de resultado e nos PDFs. O núcleo continua em SI;
+    - **g/min:** a vazão do bico em cm³/min × a densidade do fluido de teste do bico (a mesma da ficha). Ela só aparece com essa escolha;
+    - **onde fica:** o record `UnidadesPreferidas` (núcleo), a chave `unidades` da configuração (JSON; campo que falta vira "várias") e a aba nova da tela de Configurações;
+    - **testes:** `ApresentacaoTest` (o texto de sempre e cada escolha) e `ConfiguracaoRepositorioTest.unidadesPreferidas`.
+290. **O cálculo roda em segundo plano** (SPEC 10; fecha a decisão 160).
+    - **como:** o "Calcular" lê a tela, e a conta roda numa `Task`, numa linha de execução só dos cálculos (`CalculoEmFundo`). Ela é separada da fila do backup e das fotos, para um cálculo nunca esperar um backup comprido;
+    - **na tela:** enquanto a conta roda, o botão "Calcular" fica desligado e um indicador de progresso aparece ao lado dele;
+    - **mudança no meio da conta:** se um campo muda enquanto ela roda, o resultado chega já marcado "desatualizado";
+    - **erros:** os de digitação e o "não convergiu" aparecem como antes; um erro inesperado vai para o log e para a janela de erro;
+    - **o "Sugerir" (bico, bomba, injeção e turbo)** continua na thread da tela: são poucas contas, de milissegundos. Se o gerador do mapa base deixar alguma pesada, ela vai para a mesma linha de execução;
+    - **o mapa base** (bloco 4.4) usa o mesmo `CalculoEmFundo`;
+    - **os testes de tela** esperam o cálculo terminar (`TelaDeTeste.esperarCalculo`). O ensaio completo mede do clique até a tela montada: 35 a 116 ms, abaixo da meta de 1 s.
+291. **"Atualizando os dados…" na tela de abertura** (fecha o resto da decisão 160).
+    - **quando:** só numa atualização de verdade, com um banco que já tem dados e uma migração a aplicar. O texto aparece antes do backup e da migração. Banco novo e banco em dia abrem sem ele;
+    - **onde:** embaixo do "Gestão e Tecnologia Automotiva", centralizado, em cinza-claro sobre o fundo escuro da imagem;
+    - **como:** `Migracoes.migrar` recebe o aviso como parâmetro, porque o calibra-dados não conhece a tela. A `Partida` o repassa, e a `TelaDeAbertura` escreve com a API da tela de abertura do Java (`SplashScreen.createGraphics` e `update`). Sem tela de abertura (os testes), não faz nada;
+    - **testes:**
+      - `MigracoesTest.avisaSoNaAtualizacao`: o aviso vem antes do backup e não aparece no banco novo nem no banco em dia;
+      - `PartidaTest`: a segunda abertura não avisa;
+      - `TelaDeAberturaTest`: o desenho numa cópia da imagem fica embaixo do logo e centralizado. A imagem sai em `target/captura-abertura-atualizando.png`;
+    - **no app de verdade:** a tela de abertura com o aviso vai ser conferida no ensaio do MSI 0.4.0, que atualiza o banco.

@@ -2,6 +2,15 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Versões: semântica (0.x.y).
 
+## [Não lançado] — Fase 4: mapa base
+
+### Adicionado
+- **Unidades preferidas** (Configurações › Unidades): pressão, temperatura, potência e vazão de bico. A escolhida vem primeiro nos resultados e nos PDFs, com as outras ao lado; o padrão continua mostrando todas, como antes.
+- **"Atualizando os dados…" na tela de abertura** enquanto uma atualização faz o backup e atualiza o banco.
+
+### Mudado
+- **O cálculo roda em segundo plano:** a tela não para enquanto a conta roda; o botão "Calcular" espera e um indicador aparece ao lado dele. Um campo mudado no meio da conta deixa o resultado desatualizado.
+
 ## [0.3.3] — 21/10/2026 — GarageTech
 
 ### Mudado

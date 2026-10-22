@@ -204,12 +204,42 @@
     </ScrollPane>
   </Tab>
 
-  <!-- ===================== Orçamento ===================== -->
+  <!-- ===================== Unidades (fase 4, decisão 289) ===================== -->
+  <Tab fx:id="abaUnidades" text="Unidades">
+    <ScrollPane fitToWidth="true">
+      <VBox styleClass="pagina">
+        <Label styleClass="titulo-secao" text="Unidades na tela e nos PDFs"/>
+        <Label styleClass="dica" wrapText="true"
+               text="A unidade escolhida aparece primeiro, e as outras continuam depois. Os cálculos não mudam: só o jeito de mostrar. Vale para os resultados e os PDFs feitos daqui em diante."/>
+        <GridPane styleClass="grade">
+          <columnConstraints>
+            <ColumnConstraints minWidth="200.0"/>
+            <ColumnConstraints minWidth="260.0"/>
+          </columnConstraints>
+          <Label text="Pressão" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+          <ComboBox fx:id="unidadePressao" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+          <Label text="Temperatura" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+          <ComboBox fx:id="unidadeTemperatura" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+          <Label text="Potência" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+          <ComboBox fx:id="unidadePotencia" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+          <Label text="Vazão do bico" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+          <ComboBox fx:id="unidadeVazao" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+        </GridPane>
+        <HBox spacing="10.0">
+          <Button fx:id="botaoSalvarUnidades" text="Salvar unidades" onAction="#salvarUnidades"/>
+          <Button text="Descartar alterações" onAction="#descartarUnidades"/>
+        </HBox>
+        <VBox fx:id="mensagensUnidades" spacing="4.0"/>
+      </VBox>
+    </ScrollPane>
+  </Tab>
+
   <!-- ===================== OS (bloco 3.3) ===================== -->
   <Tab fx:id="abaOs" text="OS">
     <fx:include fx:id="configuracoesOs" source="configuracoes-os.fxml"/>
   </Tab>
 
+  <!-- ===================== Orçamento ===================== -->
   <Tab fx:id="abaOrcamento" text="Orçamento">
     <ScrollPane fitToWidth="true">
       <VBox styleClass="pagina">

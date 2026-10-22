@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
@@ -256,6 +257,8 @@
   <bottom>
     <HBox fx:id="rodape" styleClass="rodape" spacing="10.0">
       <Button fx:id="botaoCalcular" text="_Calcular" defaultButton="true" onAction="#calcular"/>
+      <!-- Enquanto o cálculo roda em segundo plano (decisão 290). -->
+      <ProgressIndicator fx:id="progressoCalculo" prefWidth="20.0" prefHeight="20.0"/>
       <Button fx:id="botaoPdf" text="Gerar _PDF da memória…" onAction="#gerarPdf"/>
       <Label fx:id="rotuloEstado" styleClass="estado"/>
     </HBox>
